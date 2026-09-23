@@ -7,5 +7,8 @@ const app = new ThirdPersonControllerApp({
 });
 
 app.init().catch((error) => {
+  if (app.debugDisplay && typeof app.debugDisplay.LogError === 'function') {
+    app.debugDisplay.LogError(`Initialization failed: ${error?.message ?? error}`);
+  }
   console.error('Failed to initialize third-person controller app:', error);
 });

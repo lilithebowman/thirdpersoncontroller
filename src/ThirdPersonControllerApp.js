@@ -320,6 +320,7 @@ export class ThirdPersonControllerApp {
     const debugConfig = manifest.debug ?? sceneConfig.debug ?? {};
 
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
+    this.debugDisplay.Log(`Debug display ${this.debugDisplay.enabled ? 'enabled' : 'disabled'} from manifest.`);
 
     if (sceneConfig.background) {
       this.scene.background = new THREE.Color(sceneConfig.background);
@@ -350,12 +351,18 @@ export class ThirdPersonControllerApp {
       const objPath = item.objPath ?? item.path;
       if (!objPath) continue;
 
-      const model = await this.loadObjModel({
-        objPath,
-        mtlPath: item.mtlPath,
-        texturePath: item.texturePath,
-        materialName: item.material,
-      });
+      let model = null;
+      try {
+        model = await this.loadObjModel({
+          objPath,
+          mtlPath: item.mtlPath,
+          texturePath: item.texturePath,
+          materialName: item.material,
+        });
+      } catch (error) {
+        this.debugDisplay.LogError(`Failed to load object ${objPath}: ${error?.message ?? error}`);
+        continue;
+      }
 
       if (!model) continue;
 
@@ -375,6 +382,7 @@ export class ThirdPersonControllerApp {
       });
 
       this.scene.add(model);
+      this.debugDisplay.Log(`Loaded object ${item.name ?? objPath}`);
     }
   }
 
@@ -407,6 +415,7 @@ export class ThirdPersonControllerApp {
           }
         });
       } catch (error) {
+        this.debugDisplay.LogWarning(`Texture could not be loaded for ${objPath}: ${error?.message ?? error}`);
         console.warn('Texture could not be loaded for', objPath, error);
       }
     }
@@ -442,6 +451,7 @@ export class ThirdPersonControllerApp {
     this.keyboardInput.clear();
     this.inputEnabledAt = performance.now() + 150;
     this.isRunning = true;
+    this.debugDisplay.Log('Controller loop started.');
     this.tick();
   }
 

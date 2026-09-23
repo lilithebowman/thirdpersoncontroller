@@ -97,3 +97,52 @@ canvas {
   color: #d4ebff;
   opacity: 0.98;
 }
+
+.debug-console {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 25;
+  max-height: min(34vh, 260px);
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(3, 8, 14, 0.82);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.26);
+  pointer-events: none;
+}
+
+.debug-console h3 {
+  margin: 0 0 8px 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #d9ecff;
+  opacity: 0.95;
+}
+
+.debug-console-content {
+  height: min(26vh, 190px);
+  overflow-y: auto;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.debug-console-line {
+  margin: 0 0 4px 0;
+}
+
+.debug-console-line-info {
+  color: #b9e2ff;
+}
+
+.debug-console-line-warning {
+  color: #ffe39d;
+}
+
+.debug-console-line-error {
+  color: #ffb2b2;
+}
