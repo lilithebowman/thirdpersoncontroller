@@ -23,11 +23,16 @@ Then open the local Vite URL in a browser.
 
 - `src/main.js` - core Three.js scene setup and controller logic
 - `public/scene-manifest.json` - object placement and asset manifest
+- `SCENESETUP.md` - full guide for configuring the scene manifest
 - `public/models/` - sample OBJ/MTL assets and textures
 - `copilot-instructions.md` - guidance for future AI-assisted editing
 - `project-plan.md` - short implementation roadmap
 
 ## Scene manifest format
+
+For full setup instructions, schema details, and collider examples, see:
+
+- [`SCENESETUP.md`](SCENESETUP.md)
 
 ```json
 {
