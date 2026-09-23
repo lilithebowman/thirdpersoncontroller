@@ -138,13 +138,15 @@
       }
     },
     {
-      "type": "obj",
-      "name": "Poang Seating Group",
-      "objPath": "/models/SpawnPoangSeatingGroup01.obj",
-      "mtlPath": "/models/SpawnPoangSeatingGroup01.mtl",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
-      "scale": [1, 1, 1]
+      "type": "scene",
+      "name": "Poang Seating Subscene",
+      "manifestPath": "/scenes/poang-seating-scene.json",
+      "stream": {
+        "enabled": true,
+        "center": [0, 0, 0],
+        "loadDistance": 55,
+        "unloadDistance": 75
+      }
     }
   ]
 }

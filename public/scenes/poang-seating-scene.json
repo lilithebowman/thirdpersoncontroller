@@ -1,0 +1,17 @@
+{
+  "objects": [
+    {
+      "type": "obj",
+      "name": "Poang Seating Group",
+      "objPath": "/models/SpawnPoangSeatingGroup01.obj",
+      "mtlPath": "/models/SpawnPoangSeatingGroup01.mtl",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "collider": {
+        "type": "mesh",
+        "physicsCollision": true
+      }
+    }
+  ]
+}

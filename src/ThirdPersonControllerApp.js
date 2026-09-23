@@ -63,6 +63,9 @@ export class ThirdPersonControllerApp {
       physicsCollision: true,
     });
     this.worldColliders = [];
+    this.loadedSubScenePaths = new Set();
+    this.sceneStreams = [];
+    this.activeSceneStreamLoads = new Map();
     this.jumpImpulseVector = new THREE.Vector3();
 
     this.playerState = {
@@ -143,6 +146,169 @@ export class ThirdPersonControllerApp {
 
   shortestAngleDelta(fromAngle, toAngle) {
     return this.normalizeAngle(toAngle - fromAngle);
+  }
+
+  resolveScenePath(referencePath, basePath = this.manifestPath) {
+    const baseURL = new URL(basePath, window.location.origin);
+    return new URL(referencePath, baseURL).toString();
+  }
+
+  async fetchManifest(manifestPath, basePath = this.manifestPath) {
+    const resolvedPath = this.resolveScenePath(manifestPath, basePath);
+    const response = await fetch(resolvedPath);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch manifest ${resolvedPath}: ${response.status} ${response.statusText}`);
+    }
+
+    const manifest = await response.json();
+    return { manifest, resolvedPath };
+  }
+
+  isSceneReferenceItem(item) {
+    return item?.type === 'scene';
+  }
+
+  getSceneReferencePath(item) {
+    return item?.manifestPath ?? item?.path ?? null;
+  }
+
+  registerSceneStream(item, basePath, parentGroup = null) {
+    const referencePath = this.getSceneReferencePath(item);
+    if (!referencePath) {
+      this.debugDisplay.LogWarning('Scene reference object is missing manifestPath/path.');
+      return;
+    }
+
+    const streamConfig = item.stream ?? {};
+    const center = this.toVector3(streamConfig.center ?? item.position, new THREE.Vector3());
+    const loadDistance = Number.isFinite(streamConfig.loadDistance) ? streamConfig.loadDistance : 45;
+    const unloadDistance = Number.isFinite(streamConfig.unloadDistance)
+      ? streamConfig.unloadDistance
+      : loadDistance * 1.35;
+
+    const streamEntry = {
+      key: this.resolveScenePath(referencePath, basePath),
+      referencePath,
+      basePath,
+      center,
+      loadDistance,
+      unloadDistance: Math.max(unloadDistance, loadDistance + 0.01),
+      loaded: false,
+      loading: false,
+      sceneGroup: null,
+      parentGroup,
+    };
+
+    this.sceneStreams.push(streamEntry);
+    this.debugDisplay.Log(`Registered streamed scene ${streamEntry.key}`);
+  }
+
+  async loadSubScene(referencePath, basePath, {
+    allowReload = false,
+    sceneKey = null,
+    parentGroup = null,
+    ancestry = new Set(),
+  } = {}) {
+    const resolvedPath = this.resolveScenePath(referencePath, basePath);
+
+    if (ancestry.has(resolvedPath)) {
+      this.debugDisplay.LogWarning(`Detected cyclic sub-scene reference at ${resolvedPath}. Skipping.`);
+      return;
+    }
+
+    if (!allowReload && this.loadedSubScenePaths.has(resolvedPath)) {
+      return;
+    }
+
+    const nextAncestry = new Set(ancestry);
+    nextAncestry.add(resolvedPath);
+
+    const { manifest } = await this.fetchManifest(resolvedPath, basePath);
+    if (!allowReload) {
+      this.loadedSubScenePaths.add(resolvedPath);
+    }
+
+    const items = manifest.objects ?? [];
+    await this.processManifestObjects(items, {
+      basePath: resolvedPath,
+      parentGroup,
+      sceneKey,
+      ancestry: nextAncestry,
+    });
+  }
+
+  async loadStreamedScene(streamEntry) {
+    if (!streamEntry || streamEntry.loading || streamEntry.loaded) {
+      return;
+    }
+
+    streamEntry.loading = true;
+
+    const sceneGroup = new THREE.Group();
+    sceneGroup.name = `StreamedScene:${streamEntry.key}`;
+    if (streamEntry.parentGroup) {
+      streamEntry.parentGroup.add(sceneGroup);
+    } else {
+      this.scene.add(sceneGroup);
+    }
+    streamEntry.sceneGroup = sceneGroup;
+
+    try {
+      await this.loadSubScene(streamEntry.referencePath, streamEntry.basePath, {
+        allowReload: true,
+        sceneKey: streamEntry.key,
+        parentGroup: sceneGroup,
+      });
+
+      streamEntry.loaded = true;
+      this.debugDisplay.Log(`Loaded streamed scene ${streamEntry.key}`);
+    } catch (error) {
+      if (sceneGroup.parent) {
+        sceneGroup.parent.remove(sceneGroup);
+      }
+
+      streamEntry.sceneGroup = null;
+      this.debugDisplay.LogError(`Failed to load streamed scene ${streamEntry.key}: ${error?.message ?? error}`);
+    } finally {
+      streamEntry.loading = false;
+    }
+  }
+
+  unloadStreamedScene(streamEntry) {
+    if (!streamEntry?.loaded) {
+      return;
+    }
+
+    if (streamEntry.sceneGroup?.parent) {
+      streamEntry.sceneGroup.parent.remove(streamEntry.sceneGroup);
+    }
+
+    this.worldColliders = this.worldColliders.filter((entry) => entry.sceneKey !== streamEntry.key);
+    this.distanceCullables = this.distanceCullables.filter((entry) => entry.sceneKey !== streamEntry.key);
+
+    streamEntry.sceneGroup = null;
+    streamEntry.loaded = false;
+    this.debugDisplay.Log(`Unloaded streamed scene ${streamEntry.key}`);
+  }
+
+  updateSceneStreams() {
+    if (!this.player || this.sceneStreams.length === 0) {
+      return;
+    }
+
+    for (const streamEntry of this.sceneStreams) {
+      const distanceToPlayer = this.player.position.distanceTo(streamEntry.center);
+
+      if (!streamEntry.loaded && !streamEntry.loading && distanceToPlayer <= streamEntry.loadDistance) {
+        this.loadStreamedScene(streamEntry);
+        continue;
+      }
+
+      if (streamEntry.loaded && distanceToPlayer > streamEntry.unloadDistance) {
+        this.unloadStreamedScene(streamEntry);
+      }
+    }
   }
 
   resolvePlayerSpawnFromManifest(manifest) {
@@ -267,6 +433,7 @@ export class ThirdPersonControllerApp {
     this.worldColliders.push({
       position: built.position,
       physicsCollision: built.collider.physicsCollision,
+      sceneKey: context.sceneKey ?? null,
       getAABB: (position, target) => built.collider.getAABB(position, target),
     });
 
@@ -531,7 +698,7 @@ export class ThirdPersonControllerApp {
     });
   }
 
-  registerDistanceCullable(root) {
+  registerDistanceCullable(root, sceneKey = null) {
     if (!this.distanceCullingEnabled || !root) {
       return;
     }
@@ -550,10 +717,11 @@ export class ThirdPersonControllerApp {
       root,
       center: boundingSphere.center.clone(),
       radius: boundingSphere.radius,
+      sceneKey,
     });
   }
 
-  registerDistanceCullablesForObj(root) {
+  registerDistanceCullablesForObj(root, sceneKey = null) {
     if (!this.distanceCullingEnabled || !root || typeof root.traverse !== 'function') {
       return;
     }
@@ -563,8 +731,139 @@ export class ThirdPersonControllerApp {
         return;
       }
 
-      this.registerDistanceCullable(child);
+      this.registerDistanceCullable(child, sceneKey);
     });
+  }
+
+  async processManifestObjects(items, {
+    basePath,
+    parentGroup = null,
+    sceneKey = null,
+    ancestry = new Set(),
+  } = {}) {
+    for (const item of items) {
+      if (!item || !item.type) continue;
+
+      if (this.isSceneReferenceItem(item)) {
+        const referencePath = this.getSceneReferencePath(item);
+        if (!referencePath) {
+          this.debugDisplay.LogWarning('Scene reference object is missing manifestPath/path.');
+          continue;
+        }
+
+        const streamEnabled = item.stream?.enabled === true;
+        if (streamEnabled) {
+          this.registerSceneStream(item, basePath, parentGroup);
+          continue;
+        }
+
+        try {
+          await this.loadSubScene(referencePath, basePath, {
+            allowReload: false,
+            sceneKey,
+            parentGroup,
+            ancestry,
+          });
+          this.debugDisplay.Log(`Loaded sub-scene ${this.resolveScenePath(referencePath, basePath)}`);
+        } catch (error) {
+          this.debugDisplay.LogError(`Failed to load sub-scene ${referencePath}: ${error?.message ?? error}`);
+        }
+
+        continue;
+      }
+
+      if (item.type === 'light') {
+        const light = this.createManifestLight(item);
+        if (light) {
+          if (parentGroup) {
+            parentGroup.add(light);
+          } else {
+            this.scene.add(light);
+          }
+        }
+        continue;
+      }
+
+      if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
+        const mesh = this.createManifestObject(item);
+        if (mesh) {
+          if (parentGroup) {
+            parentGroup.add(mesh);
+          } else {
+            this.scene.add(mesh);
+          }
+
+          if (item.type !== 'floor') {
+            this.registerDistanceCullable(mesh, sceneKey);
+          }
+
+          if (item.type === 'floor') {
+            const floorSize = this.toVector3(item.size, new THREE.Vector3(120, 0.2, 120));
+            this.registerColliderFromManifestItem(item, new THREE.Vector3(floorSize.x, 0.2, floorSize.y), { sceneKey });
+          }
+
+          if (item.type === 'box' || item.type === 'cube') {
+            this.registerColliderFromManifestItem(item, this.toVector3(item.size, new THREE.Vector3(1, 1, 1)), { sceneKey });
+          }
+
+          if (item.type === 'cylinder') {
+            const radius = item.radiusTop ?? item.radiusBottom ?? 0.2;
+            this.registerColliderFromManifestItem(item, new THREE.Vector3(radius * 2, item.height ?? 0.8, radius * 2), { sceneKey });
+          }
+        }
+        continue;
+      }
+
+      if (item.type !== 'obj') continue;
+
+      const objPath = item.objPath ?? item.path;
+      if (!objPath) continue;
+
+      let model = null;
+      try {
+        model = await this.loadObjModel({
+          objPath: this.resolveScenePath(objPath, basePath),
+          mtlPath: item.mtlPath ? this.resolveScenePath(item.mtlPath, basePath) : undefined,
+          materialName: item.material,
+        });
+      } catch (error) {
+        this.debugDisplay.LogError(`Failed to load object ${objPath}: ${error?.message ?? error}`);
+        continue;
+      }
+
+      if (!model) continue;
+
+      model.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+      model.rotation.set(
+        THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
+        THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
+        THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
+      );
+      model.scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
+
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.frustumCulled = true;
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      this.configureMeshCulling(model);
+
+      if (parentGroup) {
+        parentGroup.add(model);
+      } else {
+        this.scene.add(model);
+      }
+
+      this.registerDistanceCullablesForObj(model, sceneKey);
+      this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), {
+        mesh: model,
+        sceneKey,
+      });
+      this.debugDisplay.Log(`Loaded object ${item.name ?? objPath}`);
+    }
   }
 
   createManifestObject(item) {
@@ -683,8 +982,7 @@ export class ThirdPersonControllerApp {
   }
 
   async loadManifestScene() {
-    const response = await fetch(this.manifestPath);
-    const manifest = await response.json();
+    const { manifest, resolvedPath } = await this.fetchManifest(this.manifestPath, this.manifestPath);
     const spawnPosition = this.resolvePlayerSpawnFromManifest(manifest);
 
     const sceneConfig = manifest.scene ?? {};
@@ -695,6 +993,8 @@ export class ThirdPersonControllerApp {
     this.debugDisplay.Log(`Debug display ${this.debugDisplay.enabled ? 'enabled' : 'disabled'} from manifest.`);
     this.worldColliders = [];
     this.distanceCullables = [];
+    this.sceneStreams = [];
+    this.loadedSubScenePaths.clear();
 
     this.applyPerformanceConfig(manifest);
 
@@ -717,85 +1017,12 @@ export class ThirdPersonControllerApp {
       }
     }
 
-    for (const item of items) {
-      if (!item || !item.type) continue;
-
-      if (item.type === 'light') {
-        const light = this.createManifestLight(item);
-        if (light) this.scene.add(light);
-        continue;
-      }
-
-      if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
-        const mesh = this.createManifestObject(item);
-        if (mesh) {
-          this.scene.add(mesh);
-
-          if (item.type !== 'floor') {
-            this.registerDistanceCullable(mesh);
-          }
-
-          if (item.type === 'floor') {
-            const floorSize = this.toVector3(item.size, new THREE.Vector3(120, 0.2, 120));
-            this.registerColliderFromManifestItem(item, new THREE.Vector3(floorSize.x, 0.2, floorSize.y));
-          }
-
-          if (item.type === 'box' || item.type === 'cube') {
-            this.registerColliderFromManifestItem(item, this.toVector3(item.size, new THREE.Vector3(1, 1, 1)));
-          }
-
-          if (item.type === 'cylinder') {
-            const radius = item.radiusTop ?? item.radiusBottom ?? 0.2;
-            this.registerColliderFromManifestItem(item, new THREE.Vector3(radius * 2, item.height ?? 0.8, radius * 2));
-          }
-        }
-        continue;
-      }
-
-      if (item.type !== 'obj') continue;
-
-      const objPath = item.objPath ?? item.path;
-      if (!objPath) continue;
-
-      let model = null;
-      try {
-        model = await this.loadObjModel({
-          objPath,
-          mtlPath: item.mtlPath,
-          materialName: item.material,
-        });
-      } catch (error) {
-        this.debugDisplay.LogError(`Failed to load object ${objPath}: ${error?.message ?? error}`);
-        continue;
-      }
-
-      if (!model) continue;
-
-      model.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
-      model.rotation.set(
-        THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
-        THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
-        THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
-      );
-      model.scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
-
-      model.traverse((child) => {
-        if (child.isMesh) {
-          child.frustumCulled = true;
-          child.castShadow = true;
-          child.receiveShadow = true;
-        }
-      });
-
-      this.configureMeshCulling(model);
-
-      this.scene.add(model);
-      this.registerDistanceCullablesForObj(model);
-      this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), {
-        mesh: model,
-      });
-      this.debugDisplay.Log(`Loaded object ${item.name ?? objPath}`);
-    }
+    await this.processManifestObjects(items, {
+      basePath: resolvedPath,
+      parentGroup: null,
+      sceneKey: null,
+      ancestry: new Set([resolvedPath]),
+    });
 
     this.debugDisplay.Log(`Registered ${this.worldColliders.length} world collider(s).`);
   }
@@ -858,6 +1085,7 @@ export class ThirdPersonControllerApp {
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta);
     this.updateCamera();
+    this.updateSceneStreams();
     this.updateDistanceCulling();
     this.updateDebugDisplay();
     this.renderer.render(this.scene, this.camera);
