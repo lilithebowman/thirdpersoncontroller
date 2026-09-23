@@ -102,6 +102,8 @@ export class DebugDisplay {
       `velocity: ${this.formatVector3(data.velocity)}`,
       `grounded: ${data.isGrounded ? 'yes' : 'no'}`,
       `move input: ${data.hasMoveInput ? 'active' : 'idle'}`,
+      `fps: ${this.formatNumber(data.fps)}`,
+      `camera far: ${this.formatNumber(data.cameraFar)}`,
     ];
 
     this.content.textContent = lines.join('\n');

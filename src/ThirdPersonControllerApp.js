@@ -8,6 +8,7 @@ import { Force } from './Force.js';
 import { BoxCollider } from './BoxCollider.js';
 import { SphereCollider } from './SphereCollider.js';
 import { MeshCollider } from './MeshCollider.js';
+import { PerformanceMonitor } from './PerformanceMonitor.js';
 
 export class ThirdPersonControllerApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -25,6 +26,7 @@ export class ThirdPersonControllerApp {
 
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 4.5, 8.5);
+    this.minimumAdaptiveCameraFar = 10;
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -80,6 +82,9 @@ export class ThirdPersonControllerApp {
 
     this.materialCache = new Map();
     this.textureLoader = new THREE.TextureLoader();
+    this.performanceMonitor = new PerformanceMonitor({ smoothing: 0.9, initialFPS: 60 });
+    this.isReducingFrustum = false;
+    this.frustumShrinkRatePerSecond = 160;
     this.debugDisplay = new DebugDisplay({ parentElement: this.app, enabled: false });
     this.isRunning = false;
     this.inputEnabledAt = 0;
@@ -373,7 +378,37 @@ export class ThirdPersonControllerApp {
       hasMoveInput: this.hasMoveInput,
       velocity: this.playerRigidbody.velocity,
       isGrounded: this.isGrounded,
+      fps: this.performanceMonitor.FPS,
+      cameraFar: this.camera.far,
     });
+  }
+
+  updateAdaptiveFrustum(delta) {
+    const fps = this.performanceMonitor.update(delta);
+
+    if (!this.isReducingFrustum && fps < 30) {
+      this.isReducingFrustum = true;
+      this.debugDisplay.LogWarning('FPS dropped below 30. Starting adaptive frustum reduction.');
+    }
+
+    if (!this.isReducingFrustum) {
+      return;
+    }
+
+    const targetFar = Math.max(
+      this.minimumAdaptiveCameraFar,
+      this.camera.far - this.frustumShrinkRatePerSecond * delta
+    );
+
+    if (targetFar !== this.camera.far) {
+      this.camera.far = targetFar;
+      this.camera.updateProjectionMatrix();
+    }
+
+    if (fps > 40) {
+      this.isReducingFrustum = false;
+      this.debugDisplay.Log('FPS rose above 40. Adaptive frustum reduction paused.');
+    }
   }
 
   resolveGroundYFromManifest(items) {
@@ -691,6 +726,7 @@ export class ThirdPersonControllerApp {
 
     requestAnimationFrame(this.tick);
     const delta = Math.min(this.clock.getDelta(), 0.05);
+    this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta);
     this.updateCamera();
     this.updateDebugDisplay();
