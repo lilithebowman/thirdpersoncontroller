@@ -19,33 +19,6 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 app.appendChild(renderer.domElement);
 
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x243b3a, 1.5);
-scene.add(hemiLight);
-
-const sunLight = new THREE.DirectionalLight(0xffffff, 1.15);
-sunLight.position.set(12, 18, 8);
-sunLight.castShadow = true;
-sunLight.shadow.mapSize.set(2048, 2048);
-sunLight.shadow.camera.left = -25;
-sunLight.shadow.camera.right = 25;
-sunLight.shadow.camera.top = 25;
-sunLight.shadow.camera.bottom = -25;
-sunLight.shadow.camera.near = 0.5;
-sunLight.shadow.camera.far = 60;
-scene.add(sunLight);
-
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(120, 120),
-  new THREE.MeshStandardMaterial({
-    color: 0x7fb069,
-    roughness: 0.96,
-    metalness: 0.08,
-  })
-);
-floor.rotation.x = -Math.PI / 2;
-floor.receiveShadow = true;
-scene.add(floor);
-
 const player = new THREE.Group();
 const body = new THREE.Mesh(
   new THREE.BoxGeometry(1, 1, 1),
@@ -138,25 +111,120 @@ function updateCamera() {
   camera.lookAt(cameraTarget);
 }
 
-function addMarker(x, z, color) {
-  const marker = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.2, 0.2, 0.8, 12),
-    new THREE.MeshStandardMaterial({ color })
-  );
-  marker.position.set(x, 0.4, z);
-  marker.castShadow = true;
-  marker.receiveShadow = true;
-  scene.add(marker);
-}
-
-for (let x = -18; x <= 18; x += 6) {
-  for (let z = -18; z <= 18; z += 6) {
-    addMarker(x, z, x % 12 === 0 ? 0x5e9f67 : 0x7bc9d9);
-  }
-}
-
 const materialCache = new Map();
 const textureLoader = new THREE.TextureLoader();
+
+function createManifestObject(item) {
+  if (item.type === 'floor') {
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(item.size?.[0] ?? 120, item.size?.[1] ?? 120),
+      new THREE.MeshStandardMaterial({
+        color: item.color ? new THREE.Color(item.color).getHex() : 0x7fb069,
+        roughness: item.roughness ?? 0.96,
+        metalness: item.metalness ?? 0.08,
+      })
+    );
+    mesh.receiveShadow = true;
+    mesh.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+    mesh.rotation.set(
+      THREE.MathUtils.degToRad(item.rotation?.[0] ?? -90),
+      THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
+      THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
+    );
+    return mesh;
+  }
+
+  if (item.type === 'box' || item.type === 'cube') {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        item.size?.[0] ?? 1,
+        item.size?.[1] ?? 1,
+        item.size?.[2] ?? 1
+      ),
+      new THREE.MeshStandardMaterial({
+        color: item.color ? new THREE.Color(item.color).getHex() : 0x8ecae6,
+        roughness: item.roughness ?? 0.75,
+        metalness: item.metalness ?? 0.15,
+      })
+    );
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+    mesh.rotation.set(
+      THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
+      THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
+      THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
+    );
+    return mesh;
+  }
+
+  if (item.type === 'cylinder') {
+    const mesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        item.radiusTop ?? 0.2,
+        item.radiusBottom ?? 0.2,
+        item.height ?? 0.8,
+        item.radialSegments ?? 12
+      ),
+      new THREE.MeshStandardMaterial({
+        color: item.color ? new THREE.Color(item.color).getHex() : 0x7bc9d9,
+        roughness: item.roughness ?? 0.7,
+        metalness: item.metalness ?? 0.15,
+      })
+    );
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+    mesh.rotation.set(
+      THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
+      THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
+      THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
+    );
+    return mesh;
+  }
+
+  return null;
+}
+
+function createManifestLight(item) {
+  if (item.lightType === 'hemisphere') {
+    const light = new THREE.HemisphereLight(
+      item.color ? new THREE.Color(item.color).getHex() : 0xffffff,
+      item.groundColor ? new THREE.Color(item.groundColor).getHex() : 0x243b3a,
+      item.intensity ?? 1.5
+    );
+    light.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+    return light;
+  }
+
+  if (item.lightType === 'directional') {
+    const light = new THREE.DirectionalLight(
+      item.color ? new THREE.Color(item.color).getHex() : 0xffffff,
+      item.intensity ?? 1.15
+    );
+    light.position.set(item.position?.[0] ?? 12, item.position?.[1] ?? 18, item.position?.[2] ?? 8);
+    light.castShadow = item.castShadow ?? true;
+
+    if (item.shadow) {
+      const shadowConfig = item.shadow;
+      light.shadow.mapSize.set(
+        shadowConfig.mapSize?.[0] ?? 2048,
+        shadowConfig.mapSize?.[1] ?? 2048
+      );
+      const cameraConfig = shadowConfig.camera ?? {};
+      light.shadow.camera.left = cameraConfig.left ?? -25;
+      light.shadow.camera.right = cameraConfig.right ?? 25;
+      light.shadow.camera.top = cameraConfig.top ?? 25;
+      light.shadow.camera.bottom = cameraConfig.bottom ?? -25;
+      light.shadow.camera.near = cameraConfig.near ?? 0.5;
+      light.shadow.camera.far = cameraConfig.far ?? 60;
+    }
+
+    return light;
+  }
+
+  return null;
+}
 
 async function loadManifestScene() {
   const response = await fetch('/scene-manifest.json');
@@ -170,9 +238,23 @@ async function loadManifestScene() {
     }
   }
 
-  const models = manifest.objects ?? [];
+  const items = manifest.objects ?? [];
 
-  for (const item of models) {
+  for (const item of items) {
+    if (!item || !item.type) continue;
+
+    if (item.type === 'light') {
+      const light = createManifestLight(item);
+      if (light) scene.add(light);
+      continue;
+    }
+
+    if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
+      const mesh = createManifestObject(item);
+      if (mesh) scene.add(mesh);
+      continue;
+    }
+
     if (item.type !== 'obj') continue;
 
     const objPath = item.objPath ?? item.path;

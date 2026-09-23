@@ -5,6 +5,63 @@
   },
   "objects": [
     {
+      "type": "light",
+      "lightType": "hemisphere",
+      "color": "#ffffff",
+      "groundColor": "#243b3a",
+      "intensity": 1.5,
+      "position": [0, 5, 0]
+    },
+    {
+      "type": "light",
+      "lightType": "directional",
+      "color": "#ffffff",
+      "intensity": 1.15,
+      "position": [12, 18, 8],
+      "castShadow": true,
+      "shadow": {
+        "mapSize": [2048, 2048],
+        "camera": {
+          "left": -25,
+          "right": 25,
+          "top": 25,
+          "bottom": -25,
+          "near": 0.5,
+          "far": 60
+        }
+      }
+    },
+    {
+      "type": "floor",
+      "name": "Ground",
+      "size": [120, 120],
+      "color": "#7fb069",
+      "roughness": 0.96,
+      "metalness": 0.08,
+      "position": [0, 0, 0],
+      "rotation": [-90, 0, 0]
+    },
+    {
+      "type": "cylinder",
+      "name": "Marker 1",
+      "radiusTop": 0.2,
+      "radiusBottom": 0.2,
+      "height": 0.8,
+      "radialSegments": 12,
+      "color": "#5e9f67",
+      "position": [0, 0.4, 0]
+    },
+    {
+      "type": "cylinder",
+      "name": "Marker 2",
+      "radiusTop": 0.2,
+      "radiusBottom": 0.2,
+      "height": 0.8,
+      "radialSegments": 12,
+      "color": "#7bc9d9",
+      "position": [6, 0.4, 6]
+    },
+    {
       "type": "obj",
       "name": "Rock Cluster",
       "objPath": "/models/rock.obj",
