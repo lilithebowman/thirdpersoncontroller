@@ -59,6 +59,12 @@ Example:
 
 Objects can include a `collider` block for physics collision.
 
+Supported collider types:
+
+- `box`
+- `sphere`
+- `mesh`
+
 ### Box collider
 
 ```json
@@ -80,6 +86,23 @@ Objects can include a `collider` block for physics collision.
   "physicsCollision": true
 }
 ```
+
+### Mesh collider
+
+```json
+"collider": {
+  "type": "mesh",
+  "offset": [0, 0, 0],
+  "physicsCollision": true
+}
+```
+
+Notes for mesh collider:
+
+- Intended for `obj` entries where a model mesh is loaded from `objPath`.
+- Bounds are generated from the loaded mesh geometry in world space.
+- Use `offset` to shift the collision volume when needed.
+- If no mesh is available, the collider cannot be created.
 
 Notes:
 
@@ -127,6 +150,18 @@ Use `controller.jumpImpulse` to tune jump height.
         "type": "box",
         "size": [120, 0.2, 120],
         "offset": [0, 0.1, 0],
+        "physicsCollision": true
+      }
+    },
+    {
+      "type": "obj",
+      "name": "Rock Cluster",
+      "objPath": "/models/rock.obj",
+      "mtlPath": "/models/rock.mtl",
+      "position": [4, 0, -5],
+      "scale": [1.4, 1.4, 1.4],
+      "collider": {
+        "type": "mesh",
         "physicsCollision": true
       }
     }

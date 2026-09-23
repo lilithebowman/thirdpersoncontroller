@@ -7,6 +7,7 @@ import { Rigidbody } from './Rigidbody.js';
 import { Force } from './Force.js';
 import { BoxCollider } from './BoxCollider.js';
 import { SphereCollider } from './SphereCollider.js';
+import { MeshCollider } from './MeshCollider.js';
 
 export class ThirdPersonControllerApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -184,7 +185,7 @@ export class ThirdPersonControllerApp {
     return new THREE.Vector3(x, y, z);
   }
 
-  buildManifestCollider(colliderConfig, fallbackPosition, fallbackSize) {
+  buildManifestCollider(colliderConfig, fallbackPosition, fallbackSize, context = {}) {
     if (!colliderConfig || !colliderConfig.type) {
       return null;
     }
@@ -222,19 +223,35 @@ export class ThirdPersonControllerApp {
       };
     }
 
+    if (colliderConfig.type === 'mesh') {
+      if (!context.mesh) {
+        return null;
+      }
+
+      return {
+        position,
+        collider: new MeshCollider({
+          mesh: context.mesh,
+          offset,
+          physicsCollision,
+        }),
+        source: colliderConfig.source ?? 'manifest',
+      };
+    }
+
     return null;
   }
 
-  registerColliderFromManifestItem(item, fallbackSize) {
+  registerColliderFromManifestItem(item, fallbackSize, context = {}) {
     if (!item.collider) {
       return;
     }
 
     const fallbackPosition = this.toVector3(item.position, new THREE.Vector3());
-    const built = this.buildManifestCollider(item.collider, fallbackPosition, fallbackSize);
+    const built = this.buildManifestCollider(item.collider, fallbackPosition, fallbackSize, context);
 
     if (!built) {
-      this.debugDisplay.LogWarning(`Unsupported collider type on ${item.name ?? item.type}. Supported collider types are box and sphere.`);
+      this.debugDisplay.LogWarning(`Unsupported collider type on ${item.name ?? item.type}. Supported collider types are box, sphere, and mesh.`);
       return;
     }
 
@@ -611,7 +628,9 @@ export class ThirdPersonControllerApp {
       });
 
       this.scene.add(model);
-      this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)));
+      this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), {
+        mesh: model,
+      });
       this.debugDisplay.Log(`Loaded object ${item.name ?? objPath}`);
     }
 
