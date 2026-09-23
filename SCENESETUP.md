@@ -55,6 +55,12 @@ Example:
   - `cylinder`
   - `obj`
 
+### OBJ materials and textures
+
+- For `obj` entries, use `mtlPath` when the model has materials.
+- Texture maps should be linked inside the `.mtl` file (`map_Kd`, etc.).
+- Do not add `texturePath` in the manifest for OBJ assets; one global texture override breaks multi-material OBJ meshes.
+
 ## Collider setup
 
 Objects can include a `collider` block for physics collision.

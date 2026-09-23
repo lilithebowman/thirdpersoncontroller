@@ -602,7 +602,6 @@ export class ThirdPersonControllerApp {
         model = await this.loadObjModel({
           objPath,
           mtlPath: item.mtlPath,
-          texturePath: item.texturePath,
           materialName: item.material,
         });
       } catch (error) {
@@ -637,7 +636,7 @@ export class ThirdPersonControllerApp {
     this.debugDisplay.Log(`Registered ${this.worldColliders.length} world collider(s).`);
   }
 
-  async loadObjModel({ objPath, mtlPath, texturePath, materialName }) {
+  async loadObjModel({ objPath, mtlPath, materialName }) {
     const loader = new OBJLoader();
 
     if (mtlPath) {
@@ -648,28 +647,6 @@ export class ThirdPersonControllerApp {
     }
 
     const model = await loader.loadAsync(objPath);
-
-    if (texturePath) {
-      try {
-        const texture = await this.textureLoader.loadAsync(texturePath);
-        texture.colorSpace = THREE.SRGBColorSpace;
-
-        model.traverse((child) => {
-          if (child.isMesh && child.material) {
-            const material = Array.isArray(child.material) ? child.material : [child.material];
-            material.forEach((entry) => {
-              if (entry && 'map' in entry) {
-                entry.map = texture;
-                entry.needsUpdate = true;
-              }
-            });
-          }
-        });
-      } catch (error) {
-        this.debugDisplay.LogWarning(`Texture could not be loaded for ${objPath}: ${error?.message ?? error}`);
-        console.warn('Texture could not be loaded for', objPath, error);
-      }
-    }
 
     if (materialName) {
       const fallbackMaterial = this.materialCache.get(materialName) ?? new THREE.MeshStandardMaterial({

@@ -99,7 +99,6 @@
       "name": "Rock Cluster",
       "objPath": "/models/rock.obj",
       "mtlPath": "/models/rock.mtl",
-      "texturePath": "/models/textures/stone.svg",
       "position": [4, 0, -5],
       "rotation": [0, 30, 0],
       "scale": [1.4, 1.4, 1.4],
@@ -115,7 +114,6 @@
       "name": "Tree Group",
       "objPath": "/models/tree.obj",
       "mtlPath": "/models/tree.mtl",
-      "texturePath": "/models/textures/wood.svg",
       "position": [-6, 0, 4],
       "rotation": [0, 115, 0],
       "scale": [1.25, 1.25, 1.25],
@@ -131,7 +129,6 @@
       "name": "Crate Stack",
       "objPath": "/models/crate.obj",
       "mtlPath": "/models/crate.mtl",
-      "texturePath": "/models/textures/wood.svg",
       "position": [8, 0, 5],
       "rotation": [0, 20, 0],
       "scale": [1.1, 1.1, 1.1],
@@ -139,6 +136,21 @@
         "type": "box",
         "size": [1.3, 1.3, 1.3],
         "offset": [0, 0.65, 0],
+        "physicsCollision": true
+      }
+    },
+    {
+      "type": "obj",
+      "name": "2026 CozyCon Cafe",
+      "objPath": "/models/2026-CozyCon-Cafe.obj",
+      "mtlPath": "/models/2026-CozyCon-Cafe.mtl",
+      "position": [10, 0, 10],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "collider": {
+        "type": "box",
+        "size": [2, 2, 2],
+        "offset": [0, 1, 0],
         "physicsCollision": true
       }
     }
