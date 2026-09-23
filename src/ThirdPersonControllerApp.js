@@ -6,6 +6,7 @@ import { DebugDisplay } from './DebugDisplay.js';
 import { Rigidbody } from './Rigidbody.js';
 import { Force } from './Force.js';
 import { BoxCollider } from './BoxCollider.js';
+import { SphereCollider } from './SphereCollider.js';
 
 export class ThirdPersonControllerApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -184,23 +185,44 @@ export class ThirdPersonControllerApp {
   }
 
   buildManifestCollider(colliderConfig, fallbackPosition, fallbackSize) {
-    if (!colliderConfig || colliderConfig.type !== 'box') {
+    if (!colliderConfig || !colliderConfig.type) {
       return null;
     }
 
-    const size = this.toVector3(colliderConfig.size, fallbackSize);
     const offset = this.toVector3(colliderConfig.offset, new THREE.Vector3(0, 0, 0));
     const position = this.toVector3(colliderConfig.position, fallbackPosition);
+    const physicsCollision = colliderConfig.physicsCollision !== false;
 
-    return {
-      position,
-      collider: new BoxCollider({
-        size,
-        offset,
-        physicsCollision: colliderConfig.physicsCollision !== false,
-      }),
-      source: colliderConfig.source ?? 'manifest',
-    };
+    if (colliderConfig.type === 'box') {
+      const size = this.toVector3(colliderConfig.size, fallbackSize);
+
+      return {
+        position,
+        collider: new BoxCollider({
+          size,
+          offset,
+          physicsCollision,
+        }),
+        source: colliderConfig.source ?? 'manifest',
+      };
+    }
+
+    if (colliderConfig.type === 'sphere') {
+      const fallbackRadius = Math.max(fallbackSize.x, fallbackSize.y, fallbackSize.z) * 0.5;
+      const radius = Number.isFinite(colliderConfig.radius) ? colliderConfig.radius : fallbackRadius;
+
+      return {
+        position,
+        collider: new SphereCollider({
+          radius,
+          offset,
+          physicsCollision,
+        }),
+        source: colliderConfig.source ?? 'manifest',
+      };
+    }
+
+    return null;
   }
 
   registerColliderFromManifestItem(item, fallbackSize) {
@@ -212,7 +234,7 @@ export class ThirdPersonControllerApp {
     const built = this.buildManifestCollider(item.collider, fallbackPosition, fallbackSize);
 
     if (!built) {
-      this.debugDisplay.LogWarning(`Unsupported collider type on ${item.name ?? item.type}. Only box is currently supported.`);
+      this.debugDisplay.LogWarning(`Unsupported collider type on ${item.name ?? item.type}. Supported collider types are box and sphere.`);
       return;
     }
 
@@ -222,7 +244,7 @@ export class ThirdPersonControllerApp {
       getAABB: (position, target) => built.collider.getAABB(position, target),
     });
 
-    this.debugDisplay.Log(`Registered BoxCollider for ${item.name ?? item.type}.`);
+    this.debugDisplay.Log(`Registered ${built.collider.type} for ${item.name ?? item.type}.`);
   }
 
   updatePlayer(delta) {
