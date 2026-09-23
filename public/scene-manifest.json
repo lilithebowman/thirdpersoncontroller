@@ -8,6 +8,7 @@
   "controller": {
     "jumpImpulse": 8.8,
     "physics": {
+      "enableCollision": true,
       "gravityY": -26,
       "mass": 1,
       "linearDamping": 0
@@ -53,7 +54,13 @@
       "roughness": 0.96,
       "metalness": 0.08,
       "position": [0, 0, 0],
-      "rotation": [-90, 0, 0]
+      "rotation": [-90, 0, 0],
+      "collider": {
+        "type": "box",
+        "size": [120, 0.2, 120],
+        "offset": [0, 0.1, 0],
+        "physicsCollision": true
+      }
     },
     {
       "type": "cylinder",
@@ -63,7 +70,13 @@
       "height": 0.8,
       "radialSegments": 12,
       "color": "#5e9f67",
-      "position": [0, 0.4, 0]
+      "position": [0, 0.4, 0],
+      "collider": {
+        "type": "box",
+        "size": [0.4, 0.8, 0.4],
+        "offset": [0, 0.4, 0],
+        "physicsCollision": true
+      }
     },
     {
       "type": "cylinder",
@@ -73,7 +86,13 @@
       "height": 0.8,
       "radialSegments": 12,
       "color": "#7bc9d9",
-      "position": [6, 0.4, 6]
+      "position": [6, 0.4, 6],
+      "collider": {
+        "type": "box",
+        "size": [0.4, 0.8, 0.4],
+        "offset": [0, 0.4, 0],
+        "physicsCollision": true
+      }
     },
     {
       "type": "obj",
@@ -83,7 +102,13 @@
       "texturePath": "/models/textures/stone.svg",
       "position": [4, 0, -5],
       "rotation": [0, 30, 0],
-      "scale": [1.4, 1.4, 1.4]
+      "scale": [1.4, 1.4, 1.4],
+      "collider": {
+        "type": "box",
+        "size": [1.8, 1.2, 1.8],
+        "offset": [0, 0.6, 0],
+        "physicsCollision": true
+      }
     },
     {
       "type": "obj",
@@ -93,7 +118,13 @@
       "texturePath": "/models/textures/wood.svg",
       "position": [-6, 0, 4],
       "rotation": [0, 115, 0],
-      "scale": [1.25, 1.25, 1.25]
+      "scale": [1.25, 1.25, 1.25],
+      "collider": {
+        "type": "box",
+        "size": [1.4, 2.6, 1.4],
+        "offset": [0, 1.3, 0],
+        "physicsCollision": true
+      }
     },
     {
       "type": "obj",
@@ -103,7 +134,13 @@
       "texturePath": "/models/textures/wood.svg",
       "position": [8, 0, 5],
       "rotation": [0, 20, 0],
-      "scale": [1.1, 1.1, 1.1]
+      "scale": [1.1, 1.1, 1.1],
+      "collider": {
+        "type": "box",
+        "size": [1.3, 1.3, 1.3],
+        "offset": [0, 0.65, 0],
+        "physicsCollision": true
+      }
     }
   ]
 }

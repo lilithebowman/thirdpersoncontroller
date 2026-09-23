@@ -5,6 +5,7 @@ import { KeyboardInput } from './KeyboardInput.js';
 import { DebugDisplay } from './DebugDisplay.js';
 import { Rigidbody } from './Rigidbody.js';
 import { Force } from './Force.js';
+import { BoxCollider } from './BoxCollider.js';
 
 export class ThirdPersonControllerApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -50,7 +51,14 @@ export class ThirdPersonControllerApp {
       mass: 1,
       gravity: new THREE.Vector3(0, -26, 0),
       linearDamping: 0,
+      enablePhysicsCollision: true,
     });
+    this.playerCollider = new BoxCollider({
+      size: new THREE.Vector3(0.9, 1.9, 0.9),
+      offset: new THREE.Vector3(0, 0.95, 0),
+      physicsCollision: true,
+    });
+    this.worldColliders = [];
     this.jumpImpulseVector = new THREE.Vector3();
 
     this.playerState = {
@@ -158,7 +166,63 @@ export class ThirdPersonControllerApp {
     this.playerTargetYaw = 0;
     this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
     this.player.quaternion.copy(this.playerRotationQuaternion);
+    this.playerRigidbody.velocity.set(0, 0, 0);
     this.scene.add(this.player);
+  }
+
+  toVector3(values, fallback = new THREE.Vector3()) {
+    if (!Array.isArray(values) || values.length < 3) {
+      return fallback.clone();
+    }
+
+    const [x, y, z] = values;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+      return fallback.clone();
+    }
+
+    return new THREE.Vector3(x, y, z);
+  }
+
+  buildManifestCollider(colliderConfig, fallbackPosition, fallbackSize) {
+    if (!colliderConfig || colliderConfig.type !== 'box') {
+      return null;
+    }
+
+    const size = this.toVector3(colliderConfig.size, fallbackSize);
+    const offset = this.toVector3(colliderConfig.offset, new THREE.Vector3(0, 0, 0));
+    const position = this.toVector3(colliderConfig.position, fallbackPosition);
+
+    return {
+      position,
+      collider: new BoxCollider({
+        size,
+        offset,
+        physicsCollision: colliderConfig.physicsCollision !== false,
+      }),
+      source: colliderConfig.source ?? 'manifest',
+    };
+  }
+
+  registerColliderFromManifestItem(item, fallbackSize) {
+    if (!item.collider) {
+      return;
+    }
+
+    const fallbackPosition = this.toVector3(item.position, new THREE.Vector3());
+    const built = this.buildManifestCollider(item.collider, fallbackPosition, fallbackSize);
+
+    if (!built) {
+      this.debugDisplay.LogWarning(`Unsupported collider type on ${item.name ?? item.type}. Only box is currently supported.`);
+      return;
+    }
+
+    this.worldColliders.push({
+      position: built.position,
+      physicsCollision: built.collider.physicsCollision,
+      getAABB: (position, target) => built.collider.getAABB(position, target),
+    });
+
+    this.debugDisplay.Log(`Registered BoxCollider for ${item.name ?? item.type}.`);
   }
 
   updatePlayer(delta) {
@@ -223,6 +287,8 @@ export class ThirdPersonControllerApp {
 
     this.isGrounded = this.playerRigidbody.integrate(this.player.position, delta, {
       groundY: this.playerState.groundY,
+      collider: this.playerCollider,
+      colliders: this.worldColliders,
     });
 
     if (this.isGrounded) {
@@ -302,9 +368,13 @@ export class ThirdPersonControllerApp {
       this.playerRigidbody.linearDamping = physicsConfig.linearDamping;
     }
 
+    if (typeof physicsConfig.enableCollision === 'boolean') {
+      this.playerRigidbody.enablePhysicsCollision = physicsConfig.enableCollision;
+    }
+
     this.playerRigidbody.gravity.set(0, this.playerState.gravityY, 0);
     this.debugDisplay.Log(
-      `Controller config: jumpImpulse=${this.playerState.jumpImpulse.toFixed(2)}, gravityY=${this.playerState.gravityY.toFixed(2)}, groundY=${this.playerState.groundY.toFixed(2)}`
+      `Controller config: jumpImpulse=${this.playerState.jumpImpulse.toFixed(2)}, gravityY=${this.playerState.gravityY.toFixed(2)}, groundY=${this.playerState.groundY.toFixed(2)}, collision=${this.playerRigidbody.enablePhysicsCollision}`
     );
   }
 
@@ -431,6 +501,7 @@ export class ThirdPersonControllerApp {
 
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
     this.debugDisplay.Log(`Debug display ${this.debugDisplay.enabled ? 'enabled' : 'disabled'} from manifest.`);
+    this.worldColliders = [];
 
     if (!spawnPosition) {
       const message = 'No valid player spawns were defined in scene-manifest.json under playerSpawns.';
@@ -462,7 +533,23 @@ export class ThirdPersonControllerApp {
 
       if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
         const mesh = this.createManifestObject(item);
-        if (mesh) this.scene.add(mesh);
+        if (mesh) {
+          this.scene.add(mesh);
+
+          if (item.type === 'floor') {
+            const floorSize = this.toVector3(item.size, new THREE.Vector3(120, 0.2, 120));
+            this.registerColliderFromManifestItem(item, new THREE.Vector3(floorSize.x, 0.2, floorSize.y));
+          }
+
+          if (item.type === 'box' || item.type === 'cube') {
+            this.registerColliderFromManifestItem(item, this.toVector3(item.size, new THREE.Vector3(1, 1, 1)));
+          }
+
+          if (item.type === 'cylinder') {
+            const radius = item.radiusTop ?? item.radiusBottom ?? 0.2;
+            this.registerColliderFromManifestItem(item, new THREE.Vector3(radius * 2, item.height ?? 0.8, radius * 2));
+          }
+        }
         continue;
       }
 
@@ -502,8 +589,11 @@ export class ThirdPersonControllerApp {
       });
 
       this.scene.add(model);
+      this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)));
       this.debugDisplay.Log(`Loaded object ${item.name ?? objPath}`);
     }
+
+    this.debugDisplay.Log(`Registered ${this.worldColliders.length} world collider(s).`);
   }
 
   async loadObjModel({ objPath, mtlPath, texturePath, materialName }) {
