@@ -6,6 +6,7 @@ Kd 0.800000 0.800000 0.800000
 Ks 0.000000 0.000000 0.000000
 d 1.000000
 illum 2
+map_Kd /models/textures/oak-wood-bare_albedo.png
 
 newmtl oak-wood-bare-orme
 Ka 0.200000 0.200000 0.200000
@@ -13,7 +14,7 @@ Kd 1 1 1
 Ks 0.000000 0.000000 0.000000
 d 1
 illum 2
-map_Kd oak-wood-bare_albedo.png
+map_Kd ./textures/oak-wood-bare_albedo.png
 
 newmtl Default-Material
 Ka 0.200000 0.200000 0.200000
@@ -21,6 +22,7 @@ Kd 1 1 1
 Ks 0.000000 0.000000 0.000000
 d 1
 illum 2
+map_Kd ./textures/oak-wood-bare_albedo.png
 
 newmtl Poang_Chair_Arms
 Ka 0.200000 0.200000 0.200000

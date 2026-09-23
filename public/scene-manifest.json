@@ -77,76 +77,13 @@
       }
     },
     {
-      "type": "cylinder",
-      "name": "Marker 2",
-      "radiusTop": 0.2,
-      "radiusBottom": 0.2,
-      "height": 0.8,
-      "radialSegments": 12,
-      "color": "#7bc9d9",
-      "position": [6, 0.4, 6],
-      "collider": {
-        "type": "box",
-        "size": [0.4, 0.8, 0.4],
-        "offset": [0, 0.4, 0],
-        "physicsCollision": true
-      }
-    },
-    {
       "type": "obj",
-      "name": "Rock Cluster",
-      "objPath": "/models/rock.obj",
-      "mtlPath": "/models/rock.mtl",
-      "position": [4, 0, -5],
-      "rotation": [0, 30, 0],
-      "scale": [1.4, 1.4, 1.4],
-      "collider": {
-        "type": "box",
-        "size": [1.8, 1.2, 1.8],
-        "offset": [0, 0.6, 0],
-        "physicsCollision": true
-      }
-    },
-    {
-      "type": "obj",
-      "name": "Tree Group",
-      "objPath": "/models/tree.obj",
-      "mtlPath": "/models/tree.mtl",
-      "position": [-6, 0, 4],
-      "rotation": [0, 115, 0],
-      "scale": [1.25, 1.25, 1.25],
-      "collider": {
-        "type": "box",
-        "size": [1.4, 2.6, 1.4],
-        "offset": [0, 1.3, 0],
-        "physicsCollision": true
-      }
-    },
-    {
-      "type": "obj",
-      "name": "Crate Stack",
-      "objPath": "/models/crate.obj",
-      "mtlPath": "/models/crate.mtl",
-      "position": [8, 0, 5],
-      "rotation": [0, 20, 0],
-      "scale": [1.1, 1.1, 1.1],
-      "collider": {
-        "type": "box",
-        "size": [1.3, 1.3, 1.3],
-        "offset": [0, 0.65, 0],
-        "physicsCollision": true
-      }
-    },
-    {
-      "type": "scene",
-      "name": "Poang Seating Subscene",
-      "manifestPath": "/scenes/poang-seating-scene.json",
-      "stream": {
-        "enabled": true,
-        "center": [0, 0, 0],
-        "loadDistance": 55,
-        "unloadDistance": 75
-      }
+      "name": "Poang Seating Group",
+      "objPath": "/models/SpawnPoangSeatingGroup01.obj",
+      "mtlPath": "/models/SpawnPoangSeatingGroup01.mtl",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1]
     }
   ]
 }
