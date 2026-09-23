@@ -43,6 +43,9 @@ const clock = new THREE.Clock();
 const keys = {};
 const cameraTarget = new THREE.Vector3();
 const cameraPosition = new THREE.Vector3();
+const playerRotationQuaternion = new THREE.Quaternion();
+const playerRotationAxis = new THREE.Vector3(0, 1, 0);
+const renderEuler = new THREE.Euler(0, 0, 0, 'XYZ');
 
 const playerState = {
   speed: 10,
@@ -94,7 +97,13 @@ function updatePlayer(delta) {
     player.position.addScaledVector(move, speed * delta);
 
     const targetRotation = Math.atan2(move.x, move.z);
-    player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRotation, delta * playerState.rotationSpeed);
+    const currentYaw = player.rotation.y;
+    const shortestYaw = ((targetRotation - currentYaw + Math.PI) % (Math.PI * 2)) - Math.PI;
+    const nextYaw = currentYaw + shortestYaw * Math.min(1, delta * playerState.rotationSpeed);
+
+    playerRotationQuaternion.setFromAxisAngle(playerRotationAxis, nextYaw);
+    renderEuler.setFromQuaternion(playerRotationQuaternion, 'XYZ');
+    player.rotation.set(renderEuler.x, renderEuler.y, renderEuler.z, 'XYZ');
   }
 }
 
