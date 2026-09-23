@@ -65,6 +65,20 @@ Supported collider types:
 - `sphere`
 - `mesh`
 
+### Collider quick reference
+
+| Collider type | Required fields | Optional fields |
+| --- | --- | --- |
+| `box` | `type`, `size` | `offset`, `physicsCollision`, `position` |
+| `sphere` | `type` | `radius`, `offset`, `physicsCollision`, `position` |
+| `mesh` | `type` | `offset`, `physicsCollision`, `position` |
+
+Field notes:
+
+- `type` must be one of `box`, `sphere`, `mesh`.
+- `position` overrides the manifest item position for collider placement.
+- `physicsCollision` defaults to `true` if omitted.
+
 ### Box collider
 
 ```json
