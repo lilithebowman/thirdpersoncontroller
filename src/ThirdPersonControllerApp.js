@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { KeyboardInput } from './KeyboardInput.js';
+import { DebugDisplay } from './DebugDisplay.js';
 
 export class ThirdPersonControllerApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -36,8 +37,12 @@ export class ThirdPersonControllerApp {
     this.cameraPosition = new THREE.Vector3();
     this.playerRotationQuaternion = new THREE.Quaternion();
     this.playerRotationAxis = new THREE.Vector3(0, 1, 0);
+    this.playerLookNormal = new THREE.Vector3(0, 0, 1);
+    this.cameraForwardNormal = new THREE.Vector3(0, 0, -1);
+    this.rotationEuler = new THREE.Euler(0, 0, 0, 'XYZ');
     this.playerYaw = 0;
     this.playerTargetYaw = 0;
+    this.hasMoveInput = false;
 
     this.playerState = {
       speed: 10,
@@ -53,6 +58,7 @@ export class ThirdPersonControllerApp {
 
     this.materialCache = new Map();
     this.textureLoader = new THREE.TextureLoader();
+    this.debugDisplay = new DebugDisplay({ parentElement: this.app, enabled: false });
     this.isRunning = false;
     this.inputEnabledAt = 0;
 
@@ -139,8 +145,8 @@ export class ThirdPersonControllerApp {
     if (this.keyboardInput.isDown('KeyQ')) move.sub(viewRight);
     if (this.keyboardInput.isDown('KeyE')) move.add(viewRight);
 
-    const hasMoveInput = move.lengthSq() > 1e-8;
-    if (hasMoveInput) {
+    this.hasMoveInput = move.lengthSq() > 1e-8;
+    if (this.hasMoveInput) {
       move.normalize();
       const speed = this.keyboardInput.isDown('ShiftLeft') || this.keyboardInput.isDown('ShiftRight')
         ? this.playerState.sprintSpeed
@@ -170,6 +176,28 @@ export class ThirdPersonControllerApp {
 
     this.cameraTarget.set(this.player.position.x, this.player.position.y + 1.5, this.player.position.z);
     this.camera.lookAt(this.cameraTarget);
+  }
+
+  updateDebugDisplay() {
+    if (!this.debugDisplay.enabled) {
+      return;
+    }
+
+    this.playerLookNormal.set(0, 0, 1).applyQuaternion(this.player.quaternion).normalize();
+    this.camera.getWorldDirection(this.cameraForwardNormal).normalize();
+    this.rotationEuler.setFromQuaternion(this.player.quaternion, 'XYZ');
+
+    this.debugDisplay.update({
+      position: this.player.position,
+      rotationEulerRadians: this.rotationEuler,
+      quaternion: this.player.quaternion,
+      lookNormal: this.playerLookNormal,
+      cameraForward: this.cameraForwardNormal,
+      playerYawRadians: this.playerYaw,
+      playerTargetYawRadians: this.playerTargetYaw,
+      cameraYawRadians: this.cameraState.yaw,
+      hasMoveInput: this.hasMoveInput,
+    });
   }
 
   createManifestObject(item) {
@@ -289,6 +317,10 @@ export class ThirdPersonControllerApp {
     const manifest = await response.json();
 
     const sceneConfig = manifest.scene ?? {};
+    const debugConfig = manifest.debug ?? sceneConfig.debug ?? {};
+
+    this.debugDisplay.setEnabled(debugConfig.enabled === true);
+
     if (sceneConfig.background) {
       this.scene.background = new THREE.Color(sceneConfig.background);
       if (this.scene.fog) {
@@ -420,6 +452,7 @@ export class ThirdPersonControllerApp {
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.updatePlayer(delta);
     this.updateCamera();
+    this.updateDebugDisplay();
     this.renderer.render(this.scene, this.camera);
   }
 

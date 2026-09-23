@@ -1,4 +1,7 @@
 {
+  "debug": {
+    "enabled": true
+  },
   "scene": {
     "background": "#8ecae6",
     "fog": "#8ecae6"
