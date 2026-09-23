@@ -98,7 +98,7 @@ window.addEventListener('resize', () => {
 });
 
 function updatePlayer(delta) {
-  const viewForward = new THREE.Vector3(Math.sin(cameraState.yaw), 0, Math.cos(cameraState.yaw));
+  const viewForward = new THREE.Vector3(-Math.sin(cameraState.yaw), 0, -Math.cos(cameraState.yaw));
   const viewRight = new THREE.Vector3(Math.cos(cameraState.yaw), 0, -Math.sin(cameraState.yaw));
   const move = new THREE.Vector3();
 
