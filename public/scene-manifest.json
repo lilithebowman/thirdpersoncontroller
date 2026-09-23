@@ -142,17 +142,11 @@
     {
       "type": "obj",
       "name": "2026 CozyCon Cafe",
-      "objPath": "/models/2026-CozyCon-Cafe.obj",
-      "mtlPath": "/models/2026-CozyCon-Cafe.mtl",
+      "objPath": "/models/2026-CozyCon-Cafe/2026-CozyCon-Cafe-Station.obj",
+      "mtlPath": "/models/2026-CozyCon-Cafe/2026-CozyCon-Cafe-Station.mtl",
       "position": [10, 0, 10],
       "rotation": [0, 0, 0],
-      "scale": [1, 1, 1],
-      "collider": {
-        "type": "box",
-        "size": [2, 2, 2],
-        "offset": [0, 1, 0],
-        "physicsCollision": true
-      }
+      "scale": [1, 1, 1]
     }
   ]
 }
