@@ -77,10 +77,9 @@
       }
     },
     {
-      "type": "obj",
+      "type": "scene",
       "name": "Poang Seating Group",
-      "objPath": "/models/SpawnPoangSeatingGroup01.obj",
-      "mtlPath": "/models/SpawnPoangSeatingGroup01.mtl",
+      "path": "/scenes/poang-seating-scene.json",
       "position": [0, 0, 0],
       "rotation": [0, 0, 0],
       "scale": [1, 1, 1]
