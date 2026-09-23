@@ -17,6 +17,8 @@ export class Rigidbody {
     this._aabbB = { min: new THREE.Vector3(), max: new THREE.Vector3() };
     this._centerA = new THREE.Vector3();
     this._centerB = new THREE.Vector3();
+    this._previousPosition = new THREE.Vector3();
+    this._candidatePosition = new THREE.Vector3();
   }
 
   addForce(force) {
@@ -49,10 +51,11 @@ export class Rigidbody {
       this.velocity.multiplyScalar(damping);
     }
 
+    this._previousPosition.copy(position);
     position.addScaledVector(this.velocity, delta);
 
     if (this.enablePhysicsCollision && collider && Array.isArray(colliders) && colliders.length > 0) {
-      this.resolveColliderCollisions(position, collider, colliders);
+      this.resolveColliderCollisions(position, this._previousPosition, collider, colliders);
     }
 
     let isGrounded = false;
@@ -68,7 +71,7 @@ export class Rigidbody {
     return isGrounded;
   }
 
-  resolveColliderCollisions(position, collider, colliders) {
+  resolveColliderCollisions(position, previousPosition, collider, colliders) {
     collider.getAABB(position, this._aabbA);
 
     for (const worldCollider of colliders) {
@@ -76,7 +79,12 @@ export class Rigidbody {
         continue;
       }
 
-      worldCollider.getAABB(worldCollider.position, this._aabbB);
+      const collisionShape = worldCollider.collider ?? worldCollider;
+      if (!collisionShape || typeof collisionShape.getAABB !== 'function') {
+        continue;
+      }
+
+      collisionShape.getAABB(worldCollider.position, this._aabbB);
 
       if (
         this._aabbA.max.x <= this._aabbB.min.x ||
@@ -86,6 +94,16 @@ export class Rigidbody {
         this._aabbA.max.z <= this._aabbB.min.z ||
         this._aabbA.min.z >= this._aabbB.max.z
       ) {
+        continue;
+      }
+
+      if (typeof collisionShape.intersectsAABB === 'function' && !collisionShape.intersectsAABB(this._aabbA, worldCollider.position)) {
+        continue;
+      }
+
+      if (collisionShape.type === 'MeshCollider') {
+        this.resolveMeshCollision(position, previousPosition, collider, collisionShape, worldCollider.position);
+        collider.getAABB(position, this._aabbA);
         continue;
       }
 
@@ -120,5 +138,40 @@ export class Rigidbody {
 
       collider.getAABB(position, this._aabbA);
     }
+  }
+
+  resolveMeshCollision(position, previousPosition, movingCollider, worldCollisionShape, worldPosition) {
+    const targetX = position.x;
+    const targetY = position.y;
+    const targetZ = position.z;
+
+    this._candidatePosition.set(targetX, previousPosition.y, previousPosition.z);
+    if (this.intersectsWorldShapeAt(this._candidatePosition, movingCollider, worldCollisionShape, worldPosition)) {
+      position.x = previousPosition.x;
+      this.velocity.x = 0;
+    } else {
+      position.x = targetX;
+    }
+
+    this._candidatePosition.set(position.x, targetY, previousPosition.z);
+    if (this.intersectsWorldShapeAt(this._candidatePosition, movingCollider, worldCollisionShape, worldPosition)) {
+      position.y = previousPosition.y;
+      this.velocity.y = 0;
+    } else {
+      position.y = targetY;
+    }
+
+    this._candidatePosition.set(position.x, position.y, targetZ);
+    if (this.intersectsWorldShapeAt(this._candidatePosition, movingCollider, worldCollisionShape, worldPosition)) {
+      position.z = previousPosition.z;
+      this.velocity.z = 0;
+    } else {
+      position.z = targetZ;
+    }
+  }
+
+  intersectsWorldShapeAt(testPosition, movingCollider, worldCollisionShape, worldPosition) {
+    movingCollider.getAABB(testPosition, this._aabbA);
+    return worldCollisionShape.intersectsAABB(this._aabbA, worldPosition);
   }
 }

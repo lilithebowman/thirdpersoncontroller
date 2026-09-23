@@ -433,6 +433,7 @@ export class ThirdPersonControllerApp {
     this.worldColliders.push({
       position: built.position,
       physicsCollision: built.collider.physicsCollision,
+      collider: built.collider,
       sceneKey: context.sceneKey ?? null,
       getAABB: (position, target) => built.collider.getAABB(position, target),
     });

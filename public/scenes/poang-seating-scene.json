@@ -10,7 +10,7 @@
       "scale": [1, 1, 1],
       "collider": {
         "type": "mesh",
-        "physicsCollision": false
+        "physicsCollision": true
       }
     }
   ]
