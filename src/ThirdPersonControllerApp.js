@@ -452,6 +452,30 @@ export class ThirdPersonControllerApp {
     );
   }
 
+  configureMeshCulling(root) {
+    if (!root || typeof root.traverse !== 'function') {
+      return;
+    }
+
+    root.traverse((child) => {
+      if (!child?.isMesh) {
+        return;
+      }
+
+      child.frustumCulled = true;
+
+      if (child.geometry) {
+        if (!child.geometry.boundingSphere) {
+          child.geometry.computeBoundingSphere();
+        }
+
+        if (!child.geometry.boundingBox) {
+          child.geometry.computeBoundingBox();
+        }
+      }
+    });
+  }
+
   createManifestObject(item) {
     if (item.type === 'floor') {
       const mesh = new THREE.Mesh(
@@ -469,6 +493,7 @@ export class ThirdPersonControllerApp {
         THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
         THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
       );
+      this.configureMeshCulling(mesh);
       return mesh;
     }
 
@@ -493,6 +518,7 @@ export class ThirdPersonControllerApp {
         THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
         THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
       );
+      this.configureMeshCulling(mesh);
       return mesh;
     }
 
@@ -518,6 +544,7 @@ export class ThirdPersonControllerApp {
         THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
         THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
       );
+      this.configureMeshCulling(mesh);
       return mesh;
     }
 
@@ -656,10 +683,13 @@ export class ThirdPersonControllerApp {
 
       model.traverse((child) => {
         if (child.isMesh) {
+          child.frustumCulled = true;
           child.castShadow = true;
           child.receiveShadow = true;
         }
       });
+
+      this.configureMeshCulling(model);
 
       this.scene.add(model);
       this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), {
