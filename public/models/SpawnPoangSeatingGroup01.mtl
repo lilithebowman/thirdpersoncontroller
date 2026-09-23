@@ -1,0 +1,38 @@
+﻿# Wavefront MTL exported from Unity
+
+newmtl Default_Material
+Ka 0.200000 0.200000 0.200000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+d 1.000000
+illum 2
+
+newmtl oak-wood-bare-orme
+Ka 0.200000 0.200000 0.200000
+Kd 1 1 1
+Ks 0.000000 0.000000 0.000000
+d 1
+illum 2
+map_Kd oak-wood-bare_albedo.png
+
+newmtl Default-Material
+Ka 0.200000 0.200000 0.200000
+Kd 1 1 1
+Ks 0.000000 0.000000 0.000000
+d 1
+illum 2
+
+newmtl Poang_Chair_Arms
+Ka 0.200000 0.200000 0.200000
+Kd 0.398731 0.356932 0.176997
+Ks 0.000000 0.000000 0.000000
+d 1
+illum 2
+
+newmtl Poang_Chair_Fabric
+Ka 0.200000 0.200000 0.200000
+Kd 0.906335 0.899496 0.597432
+Ks 0.000000 0.000000 0.000000
+d 1
+illum 2
+

@@ -390,9 +390,9 @@ export class ThirdPersonControllerApp {
   updateAdaptiveFrustum(delta) {
     const fps = this.performanceMonitor.update(delta);
 
-    if (!this.isReducingFrustum && fps < 30) {
+    if (!this.isReducingFrustum && fps < 15) {
       this.isReducingFrustum = true;
-      this.debugDisplay.LogWarning('FPS dropped below 30. Starting adaptive frustum reduction.');
+      this.debugDisplay.LogWarning('FPS dropped below 15. Starting adaptive frustum reduction.');
     }
 
     if (!this.isReducingFrustum) {

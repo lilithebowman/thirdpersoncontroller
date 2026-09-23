@@ -2,9 +2,7 @@
   "debug": {
     "enabled": true
   },
-  "playerSpawns": [
-    [0, 0, 0]
-  ],
+  "playerSpawns": [[0, 0, 0]],
   "controller": {
     "jumpImpulse": 8.8,
     "physics": {
@@ -138,6 +136,15 @@
         "offset": [0, 0.65, 0],
         "physicsCollision": true
       }
+    },
+    {
+      "type": "obj",
+      "name": "Poang Seating Group",
+      "objPath": "/models/SpawnPoangSeatingGroup01.obj",
+      "mtlPath": "/models/SpawnPoangSeatingGroup01.mtl",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1]
     }
   ]
 }
