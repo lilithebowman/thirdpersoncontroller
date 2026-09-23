@@ -30,8 +30,7 @@ export class ThirdPersonControllerApp {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.app.appendChild(this.renderer.domElement);
 
-    this.player = this.createPlayer();
-    this.scene.add(this.player);
+    this.player = null;
 
     this.clock = new THREE.Clock();
     this.keyboardInput = new KeyboardInput();
@@ -81,7 +80,6 @@ export class ThirdPersonControllerApp {
     this.playerYaw = 0;
     this.playerTargetYaw = 0;
     this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
-    this.player.quaternion.copy(this.playerRotationQuaternion);
 
     this.keyboardInput.attach();
     this.attachEvents();
@@ -128,7 +126,46 @@ export class ThirdPersonControllerApp {
     return this.normalizeAngle(toAngle - fromAngle);
   }
 
+  resolvePlayerSpawnFromManifest(manifest) {
+    const spawns = manifest.playerSpawns;
+
+    if (!Array.isArray(spawns) || spawns.length === 0) {
+      return null;
+    }
+
+    for (const spawn of spawns) {
+      if (!Array.isArray(spawn) || spawn.length < 3) {
+        continue;
+      }
+
+      const [x, y, z] = spawn;
+      if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+        return new THREE.Vector3(x, y, z);
+      }
+    }
+
+    return null;
+  }
+
+  spawnPlayerAt(spawnPosition) {
+    if (this.player) {
+      this.scene.remove(this.player);
+    }
+
+    this.player = this.createPlayer();
+    this.player.position.copy(spawnPosition);
+    this.playerYaw = 0;
+    this.playerTargetYaw = 0;
+    this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
+    this.player.quaternion.copy(this.playerRotationQuaternion);
+    this.scene.add(this.player);
+  }
+
   updatePlayer(delta) {
+    if (!this.player) {
+      return;
+    }
+
     if (performance.now() < this.inputEnabledAt) {
       // Ignore transient key states right after startup to avoid boot-time spin.
       this.keyboardInput.clear();
@@ -194,6 +231,10 @@ export class ThirdPersonControllerApp {
   }
 
   updateCamera() {
+    if (!this.player) {
+      return;
+    }
+
     this.cameraPosition.set(
       Math.sin(this.cameraState.yaw) * this.cameraState.distance,
       this.cameraState.height,
@@ -207,7 +248,7 @@ export class ThirdPersonControllerApp {
   }
 
   updateDebugDisplay() {
-    if (!this.debugDisplay.enabled) {
+    if (!this.debugDisplay.enabled || !this.player) {
       return;
     }
 
@@ -382,6 +423,7 @@ export class ThirdPersonControllerApp {
   async loadManifestScene() {
     const response = await fetch(this.manifestPath);
     const manifest = await response.json();
+    const spawnPosition = this.resolvePlayerSpawnFromManifest(manifest);
 
     const sceneConfig = manifest.scene ?? {};
     const debugConfig = manifest.debug ?? sceneConfig.debug ?? {};
@@ -389,6 +431,16 @@ export class ThirdPersonControllerApp {
 
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
     this.debugDisplay.Log(`Debug display ${this.debugDisplay.enabled ? 'enabled' : 'disabled'} from manifest.`);
+
+    if (!spawnPosition) {
+      const message = 'No valid player spawns were defined in scene-manifest.json under playerSpawns.';
+      console.error(message);
+      this.debugDisplay.LogError(message);
+    } else {
+      this.spawnPlayerAt(spawnPosition);
+      this.debugDisplay.Log(`Spawned player at (${spawnPosition.x.toFixed(2)}, ${spawnPosition.y.toFixed(2)}, ${spawnPosition.z.toFixed(2)}).`);
+    }
+
     this.playerState.groundY = this.resolveGroundYFromManifest(items);
     this.applyControllerConfig(manifest);
 
@@ -519,6 +571,9 @@ export class ThirdPersonControllerApp {
     this.keyboardInput.clear();
     this.inputEnabledAt = performance.now() + 150;
     this.isRunning = true;
+    if (!this.player) {
+      this.debugDisplay.LogWarning('Controller loop started without a spawned player. Define playerSpawns in scene-manifest.json.');
+    }
     this.debugDisplay.Log('Controller loop started.');
     this.tick();
   }
