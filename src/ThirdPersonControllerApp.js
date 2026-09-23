@@ -85,6 +85,10 @@ export class ThirdPersonControllerApp {
     this.performanceMonitor = new PerformanceMonitor({ smoothing: 0.9, initialFPS: 60 });
     this.isReducingFrustum = false;
     this.frustumShrinkRatePerSecond = 160;
+    this.distanceCullingEnabled = true;
+    this.distanceCullingMaxDistance = 140;
+    this.distanceCullingHysteresis = 12;
+    this.distanceCullables = [];
     this.debugDisplay = new DebugDisplay({ parentElement: this.app, enabled: false });
     this.isRunning = false;
     this.inputEnabledAt = 0;
@@ -411,6 +415,36 @@ export class ThirdPersonControllerApp {
     }
   }
 
+  updateDistanceCulling() {
+    if (!this.distanceCullingEnabled || this.distanceCullables.length === 0) {
+      return;
+    }
+
+    const hideMargin = this.distanceCullingHysteresis;
+    const showMargin = Math.max(0, this.distanceCullingHysteresis * 0.5);
+
+    for (const entry of this.distanceCullables) {
+      if (!entry?.root) {
+        continue;
+      }
+
+      const hideDistance = this.distanceCullingMaxDistance + entry.radius + hideMargin;
+      const showDistance = this.distanceCullingMaxDistance + entry.radius + showMargin;
+      const distanceToCamera = this.camera.position.distanceTo(entry.center);
+
+      if (entry.root.visible) {
+        if (distanceToCamera > hideDistance) {
+          entry.root.visible = false;
+        }
+        continue;
+      }
+
+      if (distanceToCamera < showDistance) {
+        entry.root.visible = true;
+      }
+    }
+  }
+
   resolveGroundYFromManifest(items) {
     const floorItem = (items ?? []).find((item) => item && item.type === 'floor');
 
@@ -420,6 +454,27 @@ export class ThirdPersonControllerApp {
     }
 
     return floorItem.position?.[1] ?? 0;
+  }
+
+  applyPerformanceConfig(manifest) {
+    const performanceConfig = manifest.performance ?? manifest.scene?.performance ?? {};
+    const distanceCullingConfig = performanceConfig.distanceCulling ?? {};
+
+    if (typeof distanceCullingConfig.enabled === 'boolean') {
+      this.distanceCullingEnabled = distanceCullingConfig.enabled;
+    }
+
+    if (Number.isFinite(distanceCullingConfig.maxDistance) && distanceCullingConfig.maxDistance > 0) {
+      this.distanceCullingMaxDistance = distanceCullingConfig.maxDistance;
+    }
+
+    if (Number.isFinite(distanceCullingConfig.hysteresis) && distanceCullingConfig.hysteresis >= 0) {
+      this.distanceCullingHysteresis = distanceCullingConfig.hysteresis;
+    }
+
+    this.debugDisplay.Log(
+      `Distance culling: enabled=${this.distanceCullingEnabled}, maxDistance=${this.distanceCullingMaxDistance.toFixed(1)}, hysteresis=${this.distanceCullingHysteresis.toFixed(1)}`
+    );
   }
 
   applyControllerConfig(manifest) {
@@ -473,6 +528,28 @@ export class ThirdPersonControllerApp {
           child.geometry.computeBoundingBox();
         }
       }
+    });
+  }
+
+  registerDistanceCullable(root) {
+    if (!this.distanceCullingEnabled || !root) {
+      return;
+    }
+
+    const boundingBox = new THREE.Box3().setFromObject(root);
+    if (boundingBox.isEmpty()) {
+      return;
+    }
+
+    const boundingSphere = boundingBox.getBoundingSphere(new THREE.Sphere());
+    if (!Number.isFinite(boundingSphere.radius) || boundingSphere.radius <= 0) {
+      return;
+    }
+
+    this.distanceCullables.push({
+      root,
+      center: boundingSphere.center.clone(),
+      radius: boundingSphere.radius,
     });
   }
 
@@ -603,6 +680,9 @@ export class ThirdPersonControllerApp {
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
     this.debugDisplay.Log(`Debug display ${this.debugDisplay.enabled ? 'enabled' : 'disabled'} from manifest.`);
     this.worldColliders = [];
+    this.distanceCullables = [];
+
+    this.applyPerformanceConfig(manifest);
 
     if (!spawnPosition) {
       const message = 'No valid player spawns were defined in scene-manifest.json under playerSpawns.';
@@ -636,6 +716,10 @@ export class ThirdPersonControllerApp {
         const mesh = this.createManifestObject(item);
         if (mesh) {
           this.scene.add(mesh);
+
+          if (item.type !== 'floor') {
+            this.registerDistanceCullable(mesh);
+          }
 
           if (item.type === 'floor') {
             const floorSize = this.toVector3(item.size, new THREE.Vector3(120, 0.2, 120));
@@ -692,6 +776,7 @@ export class ThirdPersonControllerApp {
       this.configureMeshCulling(model);
 
       this.scene.add(model);
+      this.registerDistanceCullable(model);
       this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), {
         mesh: model,
       });
@@ -759,6 +844,7 @@ export class ThirdPersonControllerApp {
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta);
     this.updateCamera();
+    this.updateDistanceCulling();
     this.updateDebugDisplay();
     this.renderer.render(this.scene, this.camera);
   }
