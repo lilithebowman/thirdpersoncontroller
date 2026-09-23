@@ -1,6 +1,7 @@
 export class KeyboardInput {
   constructor() {
     this.keys = {};
+    this.pressed = {};
 
     this.onKeyDown = this.onKeyDown.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
@@ -29,6 +30,7 @@ export class KeyboardInput {
     }
 
     this.keys[event.code] = true;
+    this.pressed[event.code] = true;
   }
 
   onKeyUp(event) {
@@ -49,7 +51,17 @@ export class KeyboardInput {
     return this.keys[code] === true;
   }
 
+  consumePress(code) {
+    if (this.pressed[code] !== true) {
+      return false;
+    }
+
+    this.pressed[code] = false;
+    return true;
+  }
+
   clear() {
     this.keys = {};
+    this.pressed = {};
   }
 }

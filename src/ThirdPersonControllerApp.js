@@ -3,6 +3,8 @@ import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { KeyboardInput } from './KeyboardInput.js';
 import { DebugDisplay } from './DebugDisplay.js';
+import { Rigidbody } from './Rigidbody.js';
+import { Force } from './Force.js';
 
 export class ThirdPersonControllerApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -43,11 +45,22 @@ export class ThirdPersonControllerApp {
     this.playerYaw = 0;
     this.playerTargetYaw = 0;
     this.hasMoveInput = false;
+    this.isGrounded = true;
+    this.force = new Force();
+    this.playerRigidbody = new Rigidbody({
+      mass: 1,
+      gravity: new THREE.Vector3(0, -26, 0),
+      linearDamping: 0,
+    });
+    this.jumpImpulseVector = new THREE.Vector3();
 
     this.playerState = {
       speed: 10,
       sprintSpeed: 18,
       rotationSpeed: 8,
+      jumpImpulse: 8.8,
+      groundY: 0,
+      gravityY: -26,
     };
 
     this.cameraState = {
@@ -145,6 +158,13 @@ export class ThirdPersonControllerApp {
     if (this.keyboardInput.isDown('KeyQ')) move.sub(viewRight);
     if (this.keyboardInput.isDown('KeyE')) move.add(viewRight);
 
+    if (this.keyboardInput.consumePress('Space') && this.isGrounded) {
+      this.jumpImpulseVector.set(0, this.playerState.jumpImpulse, 0);
+      this.force.Impulse(this.playerRigidbody, this.jumpImpulseVector);
+      this.isGrounded = false;
+      this.debugDisplay.Log('Jump impulse applied.');
+    }
+
     this.hasMoveInput = move.lengthSq() > 1e-8;
     if (this.hasMoveInput) {
       move.normalize();
@@ -163,6 +183,14 @@ export class ThirdPersonControllerApp {
 
     this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
     this.player.quaternion.copy(this.playerRotationQuaternion);
+
+    this.isGrounded = this.playerRigidbody.integrate(this.player.position, delta, {
+      groundY: this.playerState.groundY,
+    });
+
+    if (this.isGrounded) {
+      this.player.position.y = this.playerState.groundY;
+    }
   }
 
   updateCamera() {
@@ -197,7 +225,46 @@ export class ThirdPersonControllerApp {
       playerTargetYawRadians: this.playerTargetYaw,
       cameraYawRadians: this.cameraState.yaw,
       hasMoveInput: this.hasMoveInput,
+      velocity: this.playerRigidbody.velocity,
+      isGrounded: this.isGrounded,
     });
+  }
+
+  resolveGroundYFromManifest(items) {
+    const floorItem = (items ?? []).find((item) => item && item.type === 'floor');
+
+    if (!floorItem) {
+      this.debugDisplay.LogWarning('No floor object found in manifest. Falling back to groundY=0.');
+      return 0;
+    }
+
+    return floorItem.position?.[1] ?? 0;
+  }
+
+  applyControllerConfig(manifest) {
+    const controllerConfig = manifest.controller ?? {};
+    const physicsConfig = controllerConfig.physics ?? {};
+
+    if (Number.isFinite(controllerConfig.jumpImpulse)) {
+      this.playerState.jumpImpulse = controllerConfig.jumpImpulse;
+    }
+
+    if (Number.isFinite(physicsConfig.gravityY)) {
+      this.playerState.gravityY = physicsConfig.gravityY;
+    }
+
+    if (Number.isFinite(physicsConfig.mass) && physicsConfig.mass > 0) {
+      this.playerRigidbody.mass = physicsConfig.mass;
+    }
+
+    if (Number.isFinite(physicsConfig.linearDamping) && physicsConfig.linearDamping >= 0) {
+      this.playerRigidbody.linearDamping = physicsConfig.linearDamping;
+    }
+
+    this.playerRigidbody.gravity.set(0, this.playerState.gravityY, 0);
+    this.debugDisplay.Log(
+      `Controller config: jumpImpulse=${this.playerState.jumpImpulse.toFixed(2)}, gravityY=${this.playerState.gravityY.toFixed(2)}, groundY=${this.playerState.groundY.toFixed(2)}`
+    );
   }
 
   createManifestObject(item) {
@@ -318,9 +385,12 @@ export class ThirdPersonControllerApp {
 
     const sceneConfig = manifest.scene ?? {};
     const debugConfig = manifest.debug ?? sceneConfig.debug ?? {};
+    const items = manifest.objects ?? [];
 
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
     this.debugDisplay.Log(`Debug display ${this.debugDisplay.enabled ? 'enabled' : 'disabled'} from manifest.`);
+    this.playerState.groundY = this.resolveGroundYFromManifest(items);
+    this.applyControllerConfig(manifest);
 
     if (sceneConfig.background) {
       this.scene.background = new THREE.Color(sceneConfig.background);
@@ -328,8 +398,6 @@ export class ThirdPersonControllerApp {
         this.scene.fog.color = new THREE.Color(sceneConfig.background);
       }
     }
-
-    const items = manifest.objects ?? [];
 
     for (const item of items) {
       if (!item || !item.type) continue;

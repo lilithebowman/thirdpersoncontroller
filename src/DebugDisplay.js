@@ -99,6 +99,8 @@ export class DebugDisplay {
       `player yaw (deg): ${this.formatDegrees(data.playerYawRadians)}`,
       `target yaw (deg): ${this.formatDegrees(data.playerTargetYawRadians)}`,
       `camera yaw (deg): ${this.formatDegrees(data.cameraYawRadians)}`,
+      `velocity: ${this.formatVector3(data.velocity)}`,
+      `grounded: ${data.isGrounded ? 'yes' : 'no'}`,
       `move input: ${data.hasMoveInput ? 'active' : 'idle'}`,
     ];
 

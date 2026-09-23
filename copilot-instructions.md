@@ -5,9 +5,14 @@ This project is a browser-based 3D prototype for a third-person character contro
 
 ## Coding standards
 - Use modern JavaScript modules and keep logic organized by responsibility.
+- Keep classes atomic: each class should have one clear job and a minimal public API.
+- Keep classes concise: avoid bloated "god" classes and split behavior into focused modules.
+- Clearly document each class with a short purpose statement and key public methods.
+- Maintain a single source of truth for important gameplay/config values and avoid duplicated or competing settings.
+- Keep code DRY: centralize shared logic into utility classes and avoid copy-pasting behavior across modules.
 - Prefer simple, readable code over over-engineering.
 - Keep the demo stable in a browser without framework overhead.
-- Maintain a clear separation between scene setup, input handling, and manifest-driven asset loading.
+- Maintain a clear separation between scene setup, input handling, physics, and manifest-driven asset loading.
 
 ## Required behavior
 - The scene should include a floor, lighting, and a simple third-person camera.

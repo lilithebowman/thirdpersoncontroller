@@ -2,6 +2,14 @@
   "debug": {
     "enabled": true
   },
+  "controller": {
+    "jumpImpulse": 8.8,
+    "physics": {
+      "gravityY": -26,
+      "mass": 1,
+      "linearDamping": 0
+    }
+  },
   "scene": {
     "background": "#8ecae6",
     "fog": "#8ecae6"
