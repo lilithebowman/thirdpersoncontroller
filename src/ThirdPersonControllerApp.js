@@ -553,6 +553,20 @@ export class ThirdPersonControllerApp {
     });
   }
 
+  registerDistanceCullablesForObj(root) {
+    if (!this.distanceCullingEnabled || !root || typeof root.traverse !== 'function') {
+      return;
+    }
+
+    root.traverse((child) => {
+      if (!child?.isMesh) {
+        return;
+      }
+
+      this.registerDistanceCullable(child);
+    });
+  }
+
   createManifestObject(item) {
     if (item.type === 'floor') {
       const mesh = new THREE.Mesh(
@@ -776,7 +790,7 @@ export class ThirdPersonControllerApp {
       this.configureMeshCulling(model);
 
       this.scene.add(model);
-      this.registerDistanceCullable(model);
+      this.registerDistanceCullablesForObj(model);
       this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), {
         mesh: model,
       });
