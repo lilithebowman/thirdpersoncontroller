@@ -1,0 +1,38 @@
+{
+  "scene": {
+    "background": "#8ecae6",
+    "fog": "#8ecae6"
+  },
+  "objects": [
+    {
+      "type": "obj",
+      "name": "Rock Cluster",
+      "objPath": "/models/rock.obj",
+      "mtlPath": "/models/rock.mtl",
+      "texturePath": "/models/textures/stone.svg",
+      "position": [4, 0, -5],
+      "rotation": [0, 30, 0],
+      "scale": [1.4, 1.4, 1.4]
+    },
+    {
+      "type": "obj",
+      "name": "Tree Group",
+      "objPath": "/models/tree.obj",
+      "mtlPath": "/models/tree.mtl",
+      "texturePath": "/models/textures/wood.svg",
+      "position": [-6, 0, 4],
+      "rotation": [0, 115, 0],
+      "scale": [1.25, 1.25, 1.25]
+    },
+    {
+      "type": "obj",
+      "name": "Crate Stack",
+      "objPath": "/models/crate.obj",
+      "mtlPath": "/models/crate.mtl",
+      "texturePath": "/models/textures/wood.svg",
+      "position": [8, 0, 5],
+      "rotation": [0, 20, 0],
+      "scale": [1.1, 1.1, 1.1]
+    }
+  ]
+}

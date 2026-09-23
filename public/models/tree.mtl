@@ -1,0 +1,14 @@
+newmtl WoodMaterial
+Ka 0.1 0.1 0.1
+Kd 0.58 0.39 0.24
+Ks 0.15 0.15 0.15
+Ns 20.0
+illum 2
+map_Kd /models/textures/wood.svg
+
+newmtl LeafMaterial
+Ka 0.1 0.1 0.1
+Kd 0.28 0.62 0.28
+Ks 0.15 0.15 0.15
+Ns 18.0
+illum 2
