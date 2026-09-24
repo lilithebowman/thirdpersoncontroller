@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { KeyboardInput } from './KeyboardInput.js';
+import { MouseInput } from './MouseInput.js';
 import { DebugDisplay } from './DebugDisplay.js';
 import { Rigidbody } from './Rigidbody.js';
 import { Force } from './Force.js';
@@ -46,6 +47,7 @@ export class ThirdPersonControllerApp {
 
     this.clock = new THREE.Clock();
     this.keyboardInput = new KeyboardInput();
+    this.mouseInput = new MouseInput({ domElement: this.renderer.domElement });
     this.cameraTarget = new THREE.Vector3();
     this.cameraPosition = new THREE.Vector3();
     this.playerRotationQuaternion = new THREE.Quaternion();
@@ -100,6 +102,33 @@ export class ThirdPersonControllerApp {
     this.distanceCullingHysteresis = 12;
     this.distanceCullables = [];
     this.debugDisplay = new DebugDisplay({ parentElement: this.app, enabled: false });
+    this.isPointerLocked = false;
+    this.raycaster = new THREE.Raycaster();
+    this.raycaster.far = 60;
+    this.rayDirection = new THREE.Vector3();
+    this.mouseBeamStart = new THREE.Vector3();
+    this.mouseBeamEnd = new THREE.Vector3();
+    this.mouseBeamGeometry = new THREE.BufferGeometry();
+    this.mouseBeamMaterial = new THREE.LineBasicMaterial({
+      color: 0x00f5ff,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+    });
+    this.mouseBeam = new THREE.Line(this.mouseBeamGeometry, this.mouseBeamMaterial);
+    this.mouseBeam.visible = false;
+    this.hitMarker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 12, 12),
+      new THREE.MeshBasicMaterial({
+        color: 0x00f5ff,
+        transparent: true,
+        opacity: 0.45,
+        depthWrite: false,
+      })
+    );
+    this.hitMarker.visible = false;
+    this.scene.add(this.mouseBeam);
+    this.scene.add(this.hitMarker);
     this.isRunning = false;
     this.inputEnabledAt = 0;
 
@@ -111,6 +140,7 @@ export class ThirdPersonControllerApp {
     this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
 
     this.keyboardInput.attach();
+    this.mouseInput.attach();
     this.attachEvents();
   }
 
@@ -139,6 +169,19 @@ export class ThirdPersonControllerApp {
 
   attachEvents() {
     window.addEventListener('resize', this.onResize);
+    this.renderer.domElement.addEventListener('click', () => {
+      if (!this.isPointerLocked) {
+        this.renderer.domElement.requestPointerLock();
+      }
+    });
+    document.addEventListener('pointerlockchange', this.onPointerLockChange.bind(this));
+  }
+
+  onPointerLockChange() {
+    this.isPointerLocked = document.pointerLockElement === this.renderer.domElement;
+    if (!this.isPointerLocked) {
+      this.mouseInput.clear();
+    }
   }
 
   onResize() {
@@ -448,6 +491,82 @@ export class ThirdPersonControllerApp {
     this.debugDisplay.Log(`Registered ${built.collider.type} for ${item.name ?? item.type}.`);
   }
 
+  updateMouseLook() {
+    if (!this.isPointerLocked) {
+      return;
+    }
+
+    const { deltaX, deltaY } = this.mouseInput.consumeLookDelta();
+    if (Math.abs(deltaX) > 0) {
+      this.cameraState.yaw -= deltaX * 0.0025;
+      this.cameraState.yaw = this.normalizeAngle(this.cameraState.yaw);
+    }
+
+    if (Math.abs(deltaY) > 0) {
+      this.cameraState.height = THREE.MathUtils.clamp(
+        this.cameraState.height - deltaY * 0.01,
+        2.4,
+        10
+      );
+    }
+  }
+
+  updateAimBeam() {
+    if (!this.player || !this.camera) {
+      return;
+    }
+
+    if (!this.mouseInput.consumeClick()) {
+      return;
+    }
+
+    const cameraDirection = new THREE.Vector3();
+    this.camera.getWorldDirection(cameraDirection);
+    this.mouseBeamStart.copy(this.camera.position).addScaledVector(cameraDirection, 0.05);
+
+    this.raycaster.set(this.mouseBeamStart, cameraDirection);
+    this.raycaster.far = 60;
+
+    const raycastTargets = [];
+    this.scene.traverse((object) => {
+      if (
+        object === this.mouseBeam ||
+        object === this.hitMarker ||
+        object === this.camera ||
+        object === this.renderer?.domElement
+      ) {
+        return;
+      }
+
+      const isPlayerDescendant = this.player && this.player.children.includes(object)
+        ? true
+        : this.player && object.isObject3D && this.player === object;
+
+      if (isPlayerDescendant) {
+        return;
+      }
+
+      if (object.isMesh || object.isLine || object.isPoints) {
+        raycastTargets.push(object);
+      }
+    });
+
+    const intersections = this.raycaster.intersectObjects(raycastTargets, true);
+    const hitPoint = intersections.length > 0 ? intersections[0].point : null;
+
+    if (hitPoint) {
+      this.mouseBeamEnd.copy(hitPoint);
+      this.hitMarker.position.copy(hitPoint);
+      this.hitMarker.visible = true;
+    } else {
+      this.mouseBeamEnd.copy(this.mouseBeamStart).addScaledVector(cameraDirection, this.raycaster.far);
+      this.hitMarker.visible = false;
+    }
+
+    this.mouseBeamGeometry.setFromPoints([this.mouseBeamStart, this.mouseBeamEnd]);
+    this.mouseBeam.visible = true;
+  }
+
   updatePlayer(delta) {
     if (!this.player) {
       return;
@@ -467,20 +586,10 @@ export class ThirdPersonControllerApp {
     const viewRight = new THREE.Vector3(Math.cos(this.cameraState.yaw), 0, -Math.sin(this.cameraState.yaw));
     const move = new THREE.Vector3();
 
-    if (this.keyboardInput.isDown('KeyA') || this.keyboardInput.isDown('ArrowLeft')) {
-      this.cameraState.yaw += delta * 2.2;
-    }
-    if (this.keyboardInput.isDown('KeyD') || this.keyboardInput.isDown('ArrowRight')) {
-      this.cameraState.yaw -= delta * 2.2;
-    }
-
-    this.cameraState.yaw = this.normalizeAngle(this.cameraState.yaw);
-
     if (this.keyboardInput.isDown('KeyW') || this.keyboardInput.isDown('ArrowUp')) move.add(viewForward);
     if (this.keyboardInput.isDown('KeyS') || this.keyboardInput.isDown('ArrowDown')) move.sub(viewForward);
-
-    if (this.keyboardInput.isDown('KeyQ')) move.sub(viewRight);
-    if (this.keyboardInput.isDown('KeyE')) move.add(viewRight);
+    if (this.keyboardInput.isDown('KeyA') || this.keyboardInput.isDown('ArrowLeft')) move.sub(viewRight);
+    if (this.keyboardInput.isDown('KeyD') || this.keyboardInput.isDown('ArrowRight')) move.add(viewRight);
 
     if (this.keyboardInput.consumePress('Space') && this.isGrounded) {
       this.jumpImpulseVector.set(0, this.playerState.jumpImpulse, 0);
@@ -1090,12 +1199,19 @@ export class ThirdPersonControllerApp {
 
     requestAnimationFrame(this.tick);
     const delta = Math.min(this.clock.getDelta(), 0.05);
+
+    if (this.keyboardInput.consumePress('Escape') && this.isPointerLocked) {
+      document.exitPointerLock();
+    }
+
+    this.updateMouseLook();
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta);
     this.updateCamera();
     this.updateSceneStreams();
     this.updateDistanceCulling();
     this.updateDebugDisplay();
+    this.updateAimBeam();
     this.renderer.render(this.scene, this.camera);
   }
 
