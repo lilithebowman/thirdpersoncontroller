@@ -1,7 +1,8 @@
 /**
  * DebugDisplay.js
- * 
- * Provides a debug overlay and console for displaying runtime information and messages.
+ *
+ * Renders the on-page debug overlay and message log used to inspect runtime
+ * state while the controller is running.
  */
 
 import * as THREE from 'three';

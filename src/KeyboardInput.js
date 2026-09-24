@@ -1,7 +1,8 @@
 /**
  * KeyboardInput.js
- * 
- * Provides a utility for handling keyboard input, tracking key states and pressed events.
+ *
+ * Tracks keyboard down and pressed state, and clears input when focus is lost
+ * or the document becomes hidden.
  */
 
 export class KeyboardInput {

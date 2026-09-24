@@ -1,7 +1,8 @@
 /**
  * Collider.js
- * 
- * Defines a base class for colliders used in a physics or collision detection system.
+ *
+ * Provides the abstract collider base used by box, sphere, and mesh collider
+ * implementations.
  */
 
 import * as THREE from 'three';

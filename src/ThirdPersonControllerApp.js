@@ -1,7 +1,8 @@
 /**
  * ThirdPersonControllerApp.js
- * 
- * Defines a third person perspective player controller in JavaScript using Three.js.
+ *
+ * Builds the Three.js scene, loads world assets, and coordinates input,
+ * camera, physics, and debug UI for the third-person controller.
  */
 
 import * as THREE from 'three';

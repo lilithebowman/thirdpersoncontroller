@@ -1,7 +1,8 @@
 /**
  * MeshCollider.js
- * 
- * Defines a mesh-based collider for use in a physics or collision detection system.
+ *
+ * Implements a mesh-backed collider that uses broad-phase AABB checks and
+ * triangle intersection tests against scene geometry.
  */
 
 import * as THREE from 'three';

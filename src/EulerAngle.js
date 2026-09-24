@@ -1,7 +1,8 @@
 /**
  * EulerAngle.js
- * 
- * Represents an Euler angle with methods for yaw normalization, rotation, and conversion to/from quaternions.
+ *
+ * Wraps Euler rotation values and provides yaw normalization plus conversion
+ * helpers for Three.js quaternions and Euler objects.
  */
 
 import * as THREE from 'three';

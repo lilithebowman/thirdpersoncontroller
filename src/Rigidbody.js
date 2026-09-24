@@ -1,7 +1,8 @@
 /**
  * Rigidbody.js
- * 
- * Implements a rigid body for physics simulation, including force accumulation, integration, and collision resolution.
+ *
+ * Integrates velocity and accumulated forces, applies gravity and damping, and
+ * resolves ground and collider overlaps for the player controller.
  */
 
 import * as THREE from 'three';

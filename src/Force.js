@@ -1,7 +1,8 @@
 /**
  * Force.js
- * 
- * Provides a utility class for applying forces to rigidbodies, such as impulses.
+ *
+ * Provides a small helper for applying impulses to rigidbodies from either a
+ * Vector3 or an array input.
  */
 
 import * as THREE from 'three';

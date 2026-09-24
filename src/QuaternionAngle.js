@@ -1,7 +1,8 @@
 /**
  * QuaternionAngle.js
- * 
- * Represents a quaternion with methods for conversion to/from Euler angles and spherical linear interpolation (slerp).
+ *
+ * Wraps quaternion values and provides conversion helpers for Euler angles and
+ * spherical linear interpolation.
  */
 
 import * as THREE from 'three';

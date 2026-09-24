@@ -1,7 +1,8 @@
 /**
  * main.js
- * 
- * Entry point for the third-person controller application. Initializes and starts the app.
+ *
+ * Bootstraps the third-person controller app and reports initialization
+ * failures to the debug overlay and console.
  */
 
 import './style.css';

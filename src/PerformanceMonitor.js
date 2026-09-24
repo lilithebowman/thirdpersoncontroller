@@ -1,7 +1,8 @@
 /**
  * PerformanceMonitor.js
- * 
- * Provides a simple performance monitoring utility to track frames per second (FPS) with smoothing.
+ *
+ * Tracks FPS with exponential smoothing so the app can display a stable
+ * performance reading.
  */
 
 export class PerformanceMonitor {

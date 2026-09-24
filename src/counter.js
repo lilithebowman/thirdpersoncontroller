@@ -1,7 +1,8 @@
 /**
  * counter.js
- * 
- * Provides a simple counter setup function that attaches to a DOM element and updates its content on click.
+ *
+ * Keeps the Vite starter counter demo helper for wiring a click-to-increment
+ * element in the default template.
  */
 
 export function setupCounter(element) {

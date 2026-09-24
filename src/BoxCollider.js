@@ -1,7 +1,8 @@
 /**
  * BoxCollider.js
- * 
- * Defines a box-shaped collider for use in a physics or collision detection system.
+ *
+ * Implements an axis-aligned box collider with configurable size, offset, and
+ * AABB generation for the physics system.
  */
 
 import * as THREE from 'three';
