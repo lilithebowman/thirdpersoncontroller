@@ -1,3 +1,9 @@
+/**
+ * DebugDisplay.js
+ * 
+ * Provides a debug overlay and console for displaying runtime information and messages.
+ */
+
 import * as THREE from 'three';
 
 export class DebugDisplay {

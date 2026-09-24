@@ -1,3 +1,9 @@
+/**
+ * main.js
+ * 
+ * Entry point for the third-person controller application. Initializes and starts the app.
+ */
+
 import './style.css';
 import { ThirdPersonControllerApp } from './ThirdPersonControllerApp.js';
 

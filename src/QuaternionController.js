@@ -1,3 +1,11 @@
+/**
+ * QuaternionController.js
+ * 
+ * Provides a controller for managing quaternion-based rotations with yaw and smooth interpolation.
+ */
+
+import * as THREE from 'three';
+
 export class QuaternionController {
   constructor({ yaw = 0, lerpFactor = 0.14 } = {}) {
     this.yaw = yaw;

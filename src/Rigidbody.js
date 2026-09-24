@@ -1,3 +1,9 @@
+/**
+ * Rigidbody.js
+ * 
+ * Implements a rigid body for physics simulation, including force accumulation, integration, and collision resolution.
+ */
+
 import * as THREE from 'three';
 
 export class Rigidbody {

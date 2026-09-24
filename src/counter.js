@@ -1,3 +1,9 @@
+/**
+ * counter.js
+ * 
+ * Provides a simple counter setup function that attaches to a DOM element and updates its content on click.
+ */
+
 export function setupCounter(element) {
   let counter = 0
   const setCounter = (count) => {

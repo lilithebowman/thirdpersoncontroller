@@ -1,3 +1,9 @@
+/**
+ * PerformanceMonitor.js
+ * 
+ * Provides a simple performance monitoring utility to track frames per second (FPS) with smoothing.
+ */
+
 export class PerformanceMonitor {
   constructor({ smoothing = 0.9, initialFPS = 60 } = {}) {
     this.smoothing = smoothing;

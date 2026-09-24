@@ -1,3 +1,9 @@
+/**
+ * ThirdPersonControllerApp.js
+ * 
+ * Defines a third person perspective player controller in JavaScript using Three.js.
+ */
+
 import * as THREE from 'three';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';

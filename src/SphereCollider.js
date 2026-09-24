@@ -1,3 +1,9 @@
+/**
+ * SphereCollider.js
+ * 
+ * Defines a sphere-shaped collider for use in a physics or collision detection system.
+ */
+
 import * as THREE from 'three';
 import { Collider } from './Collider.js';
 

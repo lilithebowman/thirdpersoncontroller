@@ -1,3 +1,9 @@
+/**
+ * Collider.js
+ * 
+ * Defines a base class for colliders used in a physics or collision detection system.
+ */
+
 import * as THREE from 'three';
 
 export class Collider {

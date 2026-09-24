@@ -1,3 +1,9 @@
+/**
+ * KeyboardInput.js
+ * 
+ * Provides a utility for handling keyboard input, tracking key states and pressed events.
+ */
+
 export class KeyboardInput {
   constructor() {
     this.keys = {};

@@ -1,3 +1,9 @@
+/**
+ * MeshCollider.js
+ * 
+ * Defines a mesh-based collider for use in a physics or collision detection system.
+ */
+
 import * as THREE from 'three';
 import { Collider } from './Collider.js';
 

@@ -1,3 +1,9 @@
+/**
+ * Force.js
+ * 
+ * Provides a utility class for applying forces to rigidbodies, such as impulses.
+ */
+
 import * as THREE from 'three';
 
 export class Force {

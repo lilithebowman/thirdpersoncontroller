@@ -1,3 +1,9 @@
+/**
+ * BoxCollider.js
+ * 
+ * Defines a box-shaped collider for use in a physics or collision detection system.
+ */
+
 import * as THREE from 'three';
 import { Collider } from './Collider.js';
 

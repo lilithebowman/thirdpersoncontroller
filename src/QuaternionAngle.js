@@ -1,6 +1,11 @@
+/**
+ * QuaternionAngle.js
+ * 
+ * Represents a quaternion with methods for conversion to/from Euler angles and spherical linear interpolation (slerp).
+ */
+
 import * as THREE from 'three';
 import { EulerAngle } from './EulerAngle.js';
-
 export class QuaternionAngle {
   constructor(x = 0, y = 0, z = 0, w = 1) {
     this.x = x;
