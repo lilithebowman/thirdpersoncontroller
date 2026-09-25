@@ -267,6 +267,25 @@ export class Rigidbody {
     } else {
       position.z = targetZ;
     }
+
+    if (this.intersectsWorldShapeAt(position, movingCollider, worldCollisionShape, worldPosition)) {
+      const dx = Math.abs(targetX - previousPosition.x);
+      const dy = Math.abs(targetY - previousPosition.y);
+      const dz = Math.abs(targetZ - previousPosition.z);
+
+      if (dy >= dx && dy >= dz) {
+        position.y = previousPosition.y;
+        this.velocity.y = 0;
+      } else if (dx >= dz) {
+        position.x = previousPosition.x;
+        this.velocity.x = 0;
+        position.z = targetZ;
+      } else {
+        position.z = previousPosition.z;
+        this.velocity.z = 0;
+        position.x = targetX;
+      }
+    }
   }
 
   intersectsWorldShapeAt(testPosition, movingCollider, worldCollisionShape, worldPosition) {
