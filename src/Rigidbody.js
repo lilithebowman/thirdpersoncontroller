@@ -40,6 +40,35 @@ export class Rigidbody {
     this.accumulatedForce.set(0, 0, 0);
   }
 
+  getGroundHeightAt(position, colliders) {
+    let bestGroundY = null;
+
+    for (const worldCollider of colliders) {
+      if (!worldCollider || worldCollider.physicsCollision !== true) {
+        continue;
+      }
+
+      const collisionShape = worldCollider.collider ?? worldCollider;
+      if (!collisionShape || typeof collisionShape.getGroundHeightAt !== 'function') {
+        continue;
+      }
+
+      const probePosition = new THREE.Vector3(position.x, Math.max(position.y + 3, 15), position.z);
+      const groundY = collisionShape.getGroundHeightAt(probePosition, worldCollider.position);
+      if (groundY === null || !Number.isFinite(groundY)) {
+        continue;
+      }
+
+      const playerBottom = position.y;
+      const withinReach = playerBottom >= groundY - 1.2 && playerBottom <= groundY + 1.2;
+      if (withinReach && (bestGroundY === null || groundY > bestGroundY)) {
+        bestGroundY = groundY;
+      }
+    }
+
+    return bestGroundY;
+  }
+
   integrate(position, delta, { groundY = 0, collider = null, colliders = [] } = {}) {
     if (!Number.isFinite(delta) || delta <= 0) {
       return position.y <= groundY + 1e-6;
@@ -65,8 +94,20 @@ export class Rigidbody {
       this.resolveColliderCollisions(position, this._previousPosition, collider, colliders);
     }
 
+    const groundHeight = this.getGroundHeightAt(position, colliders);
     const groundedFromCollision = this.isGroundedAgainstWorld(position, this._previousPosition, collider, colliders);
     let isGrounded = groundedFromCollision || position.y <= groundY + 1e-6;
+
+    if (groundHeight !== null && this.velocity.y <= 0.2) {
+      isGrounded = true;
+      const epsilon = 0.18;
+      if (position.y < groundHeight - epsilon) {
+        position.y = groundHeight;
+      }
+      if (this.velocity.y < 0) {
+        this.velocity.y = 0;
+      }
+    }
 
     if (isGrounded && position.y < groundY) {
       position.y = groundY;
@@ -89,7 +130,6 @@ export class Rigidbody {
 
     const playerBottom = this._boundsA.min.y;
     const previousBottom = this._boundsB.min.y;
-    const feetProbePosition = new THREE.Vector3(position.x, position.y - 0.2, position.z);
 
     for (const worldCollider of colliders) {
       if (!worldCollider || worldCollider.physicsCollision !== true) {
@@ -101,17 +141,14 @@ export class Rigidbody {
         continue;
       }
 
-      let groundY = null;
-      if (typeof collisionShape.getGroundHeightAt === 'function') {
-        groundY = collisionShape.getGroundHeightAt(feetProbePosition, worldCollider.position);
-      }
+      const groundHeight = typeof collisionShape.getGroundHeightAt === 'function'
+        ? collisionShape.getGroundHeightAt(new THREE.Vector3(position.x, Math.max(position.y + 3, 15), position.z), worldCollider.position)
+        : null;
 
-      if (groundY !== null) {
-        const playerIsAboveSurface = playerBottom >= groundY - 0.35 && playerBottom <= groundY + 0.8;
-        const hasDownwardVelocity = this.velocity.y <= 0.15;
-        const wasAboveSurface = previousBottom >= groundY - 0.2;
-
-        if (playerIsAboveSurface && (hasDownwardVelocity || wasAboveSurface)) {
+      if (groundHeight !== null && Number.isFinite(groundHeight)) {
+        const onSurface = playerBottom >= groundHeight - 0.8 && playerBottom <= groundHeight + 0.6;
+        const isSettled = this.velocity.y <= 0.2 || previousBottom >= groundHeight - 0.2;
+        if (onSurface && isSettled) {
           return true;
         }
       }
