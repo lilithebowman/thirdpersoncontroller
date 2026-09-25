@@ -1,0 +1,47 @@
+# Blender 5.2.0 LTS MTL File: 'Cozy Sloth Island.blend'
+# www.blender.org
+
+newmtl Deck
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Wood/wood-veneer1-albedo.png
+map_refl C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Wood/wood-veneer1-Metallic.psd
+map_Bump -bm 1.000000 C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Wood/wood-veneer1-Normal-ogl.png
+
+newmtl Island
+Ka 0.787037 0.787037 0.787037
+Ks 0.648148 0.648148 0.648148
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Sand/ground_0024_color_2k.jpg
+map_Ns C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Sand/ground_0024_roughness_2k.jpg
+map_Bump -bm 1.000000 C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Sand/ground_0024_normal_directx_2k.png
+
+newmtl Patio
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Wood/narrow-floorboards1-albedo.png
+map_Ns C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Wood/narrow-floorboards1-roughness.png
+map_refl C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Wood/narrow-floorboards1-metallic.png
+map_Bump -bm 1.000000 C:/Source/VRC-CozyCon-Island/Assets/Models/Cozy Sloth Island/Textures/Wood/narrow-floorboards1-normal-dx.png
+
+newmtl Water
+Ns 816.558655
+Ka 0.887273 0.887273 0.887273
+Kd 0.560048 0.729490 0.800000
+Ks 0.747273 0.747273 0.747273
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 0.781818
+illum 6

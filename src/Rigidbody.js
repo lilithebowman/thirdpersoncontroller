@@ -65,17 +65,56 @@ export class Rigidbody {
       this.resolveColliderCollisions(position, this._previousPosition, collider, colliders);
     }
 
-    let isGrounded = false;
-    if (position.y < groundY) {
+    const groundedFromCollision = this.isGroundedAgainstWorld(position, this._previousPosition, collider, colliders);
+    let isGrounded = groundedFromCollision || position.y <= groundY + 1e-6;
+
+    if (isGrounded && position.y < groundY) {
       position.y = groundY;
       if (this.velocity.y < 0) {
         this.velocity.y = 0;
       }
-      isGrounded = true;
     }
 
     this.clearForces();
     return isGrounded;
+  }
+
+  isGroundedAgainstWorld(position, previousPosition, collider, colliders) {
+    if (!collider || !Array.isArray(colliders) || colliders.length === 0) {
+      return false;
+    }
+
+    collider.getAABB(position, this._aabbA);
+    collider.getAABB(previousPosition, this._aabbB);
+
+    const movingDown = position.y < previousPosition.y - 1e-6;
+    if (!movingDown) {
+      return false;
+    }
+
+    for (const worldCollider of colliders) {
+      if (!worldCollider || worldCollider.physicsCollision !== true) {
+        continue;
+      }
+
+      const collisionShape = worldCollider.collider ?? worldCollider;
+      if (!collisionShape || typeof collisionShape.getAABB !== 'function') {
+        continue;
+      }
+
+      collisionShape.getAABB(worldCollider.position, this._centerA);
+
+      const xOverlap = this._aabbA.max.x > this._centerA.min.x && this._aabbA.min.x < this._centerA.max.x;
+      const zOverlap = this._aabbA.max.z > this._centerA.min.z && this._aabbA.min.z < this._centerA.max.z;
+      const previousAboveSurface = this._aabbB.min.y >= this._centerA.max.y - 0.2;
+      const feetNearSurface = this._aabbA.min.y <= this._centerA.max.y + 0.18 && this._aabbA.min.y >= this._centerA.max.y - 0.9;
+
+      if (xOverlap && zOverlap && previousAboveSurface && feetNearSurface) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   resolveColliderCollisions(position, previousPosition, collider, colliders) {

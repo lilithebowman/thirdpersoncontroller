@@ -1,6 +1,6 @@
 {
   "debug": {
-    "enabled": false
+    "enabled": true
   },
   "playerSpawns": [[0, 0, 0]],
   "controller": {
@@ -45,34 +45,15 @@
       }
     },
     {
-      "type": "floor",
-      "name": "Ground",
-      "size": [120, 120],
-      "color": "#7fb069",
-      "roughness": 0.96,
-      "metalness": 0.08,
+      "type": "obj",
+      "name": "Cozy Sloth Island.obj",
+      "objPath": "models/Cozy Sloth Island.obj",
+      "mtlPath": "models/Cozy Sloth Island.mtl",
       "position": [0, 0, 0],
-      "rotation": [-90, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [10, 10, 10],
       "collider": {
-        "type": "box",
-        "size": [120, 0.2, 120],
-        "offset": [0, 0.1, 0],
-        "physicsCollision": true
-      }
-    },
-    {
-      "type": "cylinder",
-      "name": "Marker 1",
-      "radiusTop": 0.2,
-      "radiusBottom": 0.2,
-      "height": 0.8,
-      "radialSegments": 12,
-      "color": "#5e9f67",
-      "position": [0, 0.4, 0],
-      "collider": {
-        "type": "box",
-        "size": [0.4, 0.8, 0.4],
-        "offset": [0, 0.4, 0],
+        "type": "mesh",
         "physicsCollision": true
       }
     }

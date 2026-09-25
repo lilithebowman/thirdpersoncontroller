@@ -102,6 +102,7 @@ export class ThirdPersonControllerApp {
     this.distanceCullingHysteresis = 12;
     this.distanceCullables = [];
     this.debugDisplay = new DebugDisplay({ parentElement: this.app, enabled: false });
+    this.respawnY = -1000;
     this.isPointerLocked = false;
     this.raycaster = new THREE.Raycaster();
     this.raycaster.far = 60;
@@ -582,6 +583,15 @@ export class ThirdPersonControllerApp {
       return;
     }
 
+    const respawnThreshold = Number.isFinite(this.respawnY) ? this.respawnY : -1000;
+    if (this.player.position.y < respawnThreshold) {
+      const spawnPosition = this.resolvePlayerSpawnFromManifest(this.currentManifest ?? {});
+      if (spawnPosition) {
+        this.spawnPlayerAt(spawnPosition);
+        this.debugDisplay.Log(`Player fell below ${respawnThreshold} and respawned at the configured spawn point.`);
+      }
+    }
+
     const viewForward = new THREE.Vector3(-Math.sin(this.cameraState.yaw), 0, -Math.cos(this.cameraState.yaw));
     const viewRight = new THREE.Vector3(Math.cos(this.cameraState.yaw), 0, -Math.sin(this.cameraState.yaw));
     const move = new THREE.Vector3();
@@ -622,10 +632,6 @@ export class ThirdPersonControllerApp {
       collider: this.playerCollider,
       colliders: this.worldColliders,
     });
-
-    if (this.isGrounded) {
-      this.player.position.y = this.playerState.groundY;
-    }
   }
 
   updateCamera() {
@@ -733,7 +739,6 @@ export class ThirdPersonControllerApp {
     const floorItem = (items ?? []).find((item) => item && item.type === 'floor');
 
     if (!floorItem) {
-      this.debugDisplay.LogWarning('No floor object found in manifest. Falling back to groundY=0.');
       return 0;
     }
 
@@ -1100,12 +1105,15 @@ export class ThirdPersonControllerApp {
 
   async loadManifestScene() {
     const { manifest, resolvedPath } = await this.fetchManifest(this.manifestPath, this.manifestPath);
+    this.currentManifest = manifest;
     const spawnPosition = this.resolvePlayerSpawnFromManifest(manifest);
 
     const sceneConfig = manifest.scene ?? {};
     const debugConfig = manifest.debug ?? sceneConfig.debug ?? {};
+    const respawnConfig = manifest.respawn ?? {};
     const items = manifest.objects ?? [];
 
+    this.respawnY = Number.isFinite(respawnConfig.fallBelowY) ? respawnConfig.fallBelowY : -1000;
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
     this.debugDisplay.Log(`Debug display ${this.debugDisplay.enabled ? 'enabled' : 'disabled'} from manifest.`);
     this.worldColliders = [];
