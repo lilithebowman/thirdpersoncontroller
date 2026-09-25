@@ -2,7 +2,7 @@
   "debug": {
     "enabled": true
   },
-  "playerSpawns": [[0, 0, 0]],
+  "playerSpawns": [[0, 5, 0]],
   "controller": {
     "jumpImpulse": 8.8,
     "physics": {

@@ -18,7 +18,7 @@ export class SphereCollider extends Collider {
     this.radius = Math.max(0, radius);
   }
 
-  getAABB(position, target) {
+  getBounds(position, target) {
     const center = target.min;
     center.copy(position).add(this.offset);
 
@@ -35,5 +35,18 @@ export class SphereCollider extends Collider {
     );
 
     return target;
+  }
+
+  intersectsBounds(bounds, position) {
+    const center = position.clone().add(this.offset);
+    const closestX = THREE.MathUtils.clamp(center.x, bounds.min.x, bounds.max.x);
+    const closestY = THREE.MathUtils.clamp(center.y, bounds.min.y, bounds.max.y);
+    const closestZ = THREE.MathUtils.clamp(center.z, bounds.min.z, bounds.max.z);
+
+    const dx = center.x - closestX;
+    const dy = center.y - closestY;
+    const dz = center.z - closestZ;
+
+    return dx * dx + dy * dy + dz * dz <= this.radius * this.radius;
   }
 }

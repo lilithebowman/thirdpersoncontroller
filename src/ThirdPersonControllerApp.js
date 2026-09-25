@@ -486,7 +486,7 @@ export class ThirdPersonControllerApp {
       physicsCollision: built.collider.physicsCollision,
       collider: built.collider,
       sceneKey: context.sceneKey ?? null,
-      getAABB: (position, target) => built.collider.getAABB(position, target),
+      getBounds: (position, target) => built.collider.getBounds(position, target),
     });
 
     this.debugDisplay.Log(`Registered ${built.collider.type} for ${item.name ?? item.type}.`);

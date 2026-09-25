@@ -34,7 +34,7 @@ export class MouseInput {
 
   onMouseMove(event) {
     this.lookDeltaX += event.movementX ?? 0;
-    this.lookDeltaY += event.movementY ?? 0;
+    this.lookDeltaY -= event.movementY ?? 0;
   }
 
   onMouseDown(event) {

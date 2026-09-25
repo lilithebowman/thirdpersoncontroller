@@ -23,10 +23,26 @@ export class MeshCollider extends Collider {
     this.mesh = mesh;
   }
 
-  getAABB(position, target) {
+  getBounds(position, target) {
     if (this.mesh) {
       this.mesh.updateMatrixWorld(true);
-      this.bounds.setFromObject(this.mesh);
+
+      this.bounds.makeEmpty();
+      this.mesh.traverse((child) => {
+        if (!child?.isMesh || !child.geometry) {
+          return;
+        }
+
+        const positionAttribute = child.geometry.attributes?.position;
+        if (!positionAttribute) {
+          return;
+        }
+
+        const childBounds = new THREE.Box3();
+        childBounds.setFromBufferAttribute(positionAttribute).applyMatrix4(child.matrixWorld);
+        this.bounds.union(childBounds);
+      });
+
       target.min.copy(this.bounds.min).add(this.offset);
       target.max.copy(this.bounds.max).add(this.offset);
       return target;
@@ -39,26 +55,26 @@ export class MeshCollider extends Collider {
     return target;
   }
 
-  intersectsAABB(aabb, position) {
+  intersectsBounds(bounds, position) {
     if (!this.mesh) {
-      return super.intersectsAABB(aabb, position);
+      return super.intersectsBounds(bounds, position);
     }
 
-    this.getAABB(position, this._tmpAABB);
+    this.getBounds(position, this._tmpBounds);
     const broadPhaseOverlap = !(
-      aabb.max.x <= this._tmpAABB.min.x ||
-      aabb.min.x >= this._tmpAABB.max.x ||
-      aabb.max.y <= this._tmpAABB.min.y ||
-      aabb.min.y >= this._tmpAABB.max.y ||
-      aabb.max.z <= this._tmpAABB.min.z ||
-      aabb.min.z >= this._tmpAABB.max.z
+      bounds.max.x <= this._tmpBounds.min.x ||
+      bounds.min.x >= this._tmpBounds.max.x ||
+      bounds.max.y <= this._tmpBounds.min.y ||
+      bounds.min.y >= this._tmpBounds.max.y ||
+      bounds.max.z <= this._tmpBounds.min.z ||
+      bounds.min.z >= this._tmpBounds.max.z
     );
 
     if (!broadPhaseOverlap) {
       return false;
     }
 
-    const dynamicBox = new THREE.Box3(aabb.min.clone(), aabb.max.clone());
+    const dynamicBox = new THREE.Box3(bounds.min.clone(), bounds.max.clone());
     let intersects = false;
 
     this.mesh.traverse((child) => {

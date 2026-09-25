@@ -20,7 +20,7 @@ export class BoxCollider extends Collider {
     this.halfSize.copy(size).multiplyScalar(0.5);
   }
 
-  getAABB(position, target) {
+  getBounds(position, target) {
     const center = target.min;
     center.copy(position).add(this.offset);
 

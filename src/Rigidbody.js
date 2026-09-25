@@ -20,8 +20,8 @@ export class Rigidbody {
 
     this._tmpForce = new THREE.Vector3();
     this._tmpAcceleration = new THREE.Vector3();
-    this._aabbA = { min: new THREE.Vector3(), max: new THREE.Vector3() };
-    this._aabbB = { min: new THREE.Vector3(), max: new THREE.Vector3() };
+    this._boundsA = { min: new THREE.Vector3(), max: new THREE.Vector3() };
+    this._boundsB = { min: new THREE.Vector3(), max: new THREE.Vector3() };
     this._centerA = new THREE.Vector3();
     this._centerB = new THREE.Vector3();
     this._previousPosition = new THREE.Vector3();
@@ -84,13 +84,16 @@ export class Rigidbody {
       return false;
     }
 
-    collider.getAABB(position, this._aabbA);
-    collider.getAABB(previousPosition, this._aabbB);
+    collider.getBounds(position, this._boundsA);
+    collider.getBounds(previousPosition, this._boundsB);
 
     const movingDown = position.y < previousPosition.y - 1e-6;
     if (!movingDown) {
       return false;
     }
+
+    const playerBottom = this._boundsA.min.y;
+    const previousBottom = this._boundsB.min.y;
 
     for (const worldCollider of colliders) {
       if (!worldCollider || worldCollider.physicsCollision !== true) {
@@ -98,16 +101,17 @@ export class Rigidbody {
       }
 
       const collisionShape = worldCollider.collider ?? worldCollider;
-      if (!collisionShape || typeof collisionShape.getAABB !== 'function') {
+      if (!collisionShape || typeof collisionShape.getBounds !== 'function') {
         continue;
       }
 
-      collisionShape.getAABB(worldCollider.position, this._centerA);
+      const worldBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
+      collisionShape.getBounds(worldCollider.position, worldBounds);
 
-      const xOverlap = this._aabbA.max.x > this._centerA.min.x && this._aabbA.min.x < this._centerA.max.x;
-      const zOverlap = this._aabbA.max.z > this._centerA.min.z && this._aabbA.min.z < this._centerA.max.z;
-      const previousAboveSurface = this._aabbB.min.y >= this._centerA.max.y - 0.2;
-      const feetNearSurface = this._aabbA.min.y <= this._centerA.max.y + 0.18 && this._aabbA.min.y >= this._centerA.max.y - 0.9;
+      const xOverlap = this._boundsA.max.x > worldBounds.min.x && this._boundsA.min.x < worldBounds.max.x;
+      const zOverlap = this._boundsA.max.z > worldBounds.min.z && this._boundsA.min.z < worldBounds.max.z;
+      const previousAboveSurface = previousBottom >= worldBounds.max.y - 0.2;
+      const feetNearSurface = playerBottom <= worldBounds.max.y + 0.18 && playerBottom >= worldBounds.max.y - 0.9;
 
       if (xOverlap && zOverlap && previousAboveSurface && feetNearSurface) {
         return true;
@@ -118,7 +122,7 @@ export class Rigidbody {
   }
 
   resolveColliderCollisions(position, previousPosition, collider, colliders) {
-    collider.getAABB(position, this._aabbA);
+    collider.getBounds(position, this._boundsA);
 
     for (const worldCollider of colliders) {
       if (!worldCollider || worldCollider.physicsCollision !== true) {
@@ -126,46 +130,46 @@ export class Rigidbody {
       }
 
       const collisionShape = worldCollider.collider ?? worldCollider;
-      if (!collisionShape || typeof collisionShape.getAABB !== 'function') {
+      if (!collisionShape || typeof collisionShape.getBounds !== 'function') {
         continue;
       }
 
-      collisionShape.getAABB(worldCollider.position, this._aabbB);
+      collisionShape.getBounds(worldCollider.position, this._boundsB);
 
       if (
-        this._aabbA.max.x <= this._aabbB.min.x ||
-        this._aabbA.min.x >= this._aabbB.max.x ||
-        this._aabbA.max.y <= this._aabbB.min.y ||
-        this._aabbA.min.y >= this._aabbB.max.y ||
-        this._aabbA.max.z <= this._aabbB.min.z ||
-        this._aabbA.min.z >= this._aabbB.max.z
+        this._boundsA.max.x <= this._boundsB.min.x ||
+        this._boundsA.min.x >= this._boundsB.max.x ||
+        this._boundsA.max.y <= this._boundsB.min.y ||
+        this._boundsA.min.y >= this._boundsB.max.y ||
+        this._boundsA.max.z <= this._boundsB.min.z ||
+        this._boundsA.min.z >= this._boundsB.max.z
       ) {
         continue;
       }
 
-      if (typeof collisionShape.intersectsAABB === 'function' && !collisionShape.intersectsAABB(this._aabbA, worldCollider.position)) {
+      if (typeof collisionShape.intersectsBounds === 'function' && !collisionShape.intersectsBounds(this._boundsA, worldCollider.position)) {
         continue;
       }
 
       if (collisionShape.type === 'MeshCollider') {
         this.resolveMeshCollision(position, previousPosition, collider, collisionShape, worldCollider.position);
-        collider.getAABB(position, this._aabbA);
+        collider.getBounds(position, this._boundsA);
         continue;
       }
 
-      const overlapX = Math.min(this._aabbA.max.x, this._aabbB.max.x) - Math.max(this._aabbA.min.x, this._aabbB.min.x);
-      const overlapY = Math.min(this._aabbA.max.y, this._aabbB.max.y) - Math.max(this._aabbA.min.y, this._aabbB.min.y);
-      const overlapZ = Math.min(this._aabbA.max.z, this._aabbB.max.z) - Math.max(this._aabbA.min.z, this._aabbB.min.z);
+      const overlapX = Math.min(this._boundsA.max.x, this._boundsB.max.x) - Math.max(this._boundsA.min.x, this._boundsB.min.x);
+      const overlapY = Math.min(this._boundsA.max.y, this._boundsB.max.y) - Math.max(this._boundsA.min.y, this._boundsB.min.y);
+      const overlapZ = Math.min(this._boundsA.max.z, this._boundsB.max.z) - Math.max(this._boundsA.min.z, this._boundsB.min.z);
 
       this._centerA.set(
-        (this._aabbA.min.x + this._aabbA.max.x) * 0.5,
-        (this._aabbA.min.y + this._aabbA.max.y) * 0.5,
-        (this._aabbA.min.z + this._aabbA.max.z) * 0.5
+        (this._boundsA.min.x + this._boundsA.max.x) * 0.5,
+        (this._boundsA.min.y + this._boundsA.max.y) * 0.5,
+        (this._boundsA.min.z + this._boundsA.max.z) * 0.5
       );
       this._centerB.set(
-        (this._aabbB.min.x + this._aabbB.max.x) * 0.5,
-        (this._aabbB.min.y + this._aabbB.max.y) * 0.5,
-        (this._aabbB.min.z + this._aabbB.max.z) * 0.5
+        (this._boundsB.min.x + this._boundsB.max.x) * 0.5,
+        (this._boundsB.min.y + this._boundsB.max.y) * 0.5,
+        (this._boundsB.min.z + this._boundsB.max.z) * 0.5
       );
 
       if (overlapX <= overlapY && overlapX <= overlapZ) {
@@ -182,7 +186,7 @@ export class Rigidbody {
         this.velocity.z = 0;
       }
 
-      collider.getAABB(position, this._aabbA);
+      collider.getBounds(position, this._boundsA);
     }
   }
 
@@ -217,7 +221,7 @@ export class Rigidbody {
   }
 
   intersectsWorldShapeAt(testPosition, movingCollider, worldCollisionShape, worldPosition) {
-    movingCollider.getAABB(testPosition, this._aabbA);
-    return worldCollisionShape.intersectsAABB(this._aabbA, worldPosition);
+    movingCollider.getBounds(testPosition, this._boundsA);
+    return worldCollisionShape.intersectsBounds(this._boundsA, worldPosition);
   }
 }

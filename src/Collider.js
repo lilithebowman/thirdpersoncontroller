@@ -12,23 +12,23 @@ export class Collider {
     this.type = type;
     this.offset = offset.clone();
     this.physicsCollision = physicsCollision === true;
-    this._tmpAABB = { min: new THREE.Vector3(), max: new THREE.Vector3() };
+    this._tmpBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
   }
 
-  getAABB(_position, _target) {
-    throw new Error('Collider.getAABB must be implemented by subclasses.');
+  getBounds(_position, _target) {
+    throw new Error('Collider.getBounds must be implemented by subclasses.');
   }
 
-  intersectsAABB(aabb, position) {
-    this.getAABB(position, this._tmpAABB);
+  intersectsBounds(bounds, position) {
+    this.getBounds(position, this._tmpBounds);
 
     return !(
-      aabb.max.x <= this._tmpAABB.min.x ||
-      aabb.min.x >= this._tmpAABB.max.x ||
-      aabb.max.y <= this._tmpAABB.min.y ||
-      aabb.min.y >= this._tmpAABB.max.y ||
-      aabb.max.z <= this._tmpAABB.min.z ||
-      aabb.min.z >= this._tmpAABB.max.z
+      bounds.max.x <= this._tmpBounds.min.x ||
+      bounds.min.x >= this._tmpBounds.max.x ||
+      bounds.max.y <= this._tmpBounds.min.y ||
+      bounds.min.y >= this._tmpBounds.max.y ||
+      bounds.max.z <= this._tmpBounds.min.z ||
+      bounds.min.z >= this._tmpBounds.max.z
     );
   }
 }
