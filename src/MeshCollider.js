@@ -109,4 +109,24 @@ export class MeshCollider extends Collider {
 
     return intersects;
   }
+
+  getGroundHeightAt(playerPosition) {
+    if (!this.mesh) {
+      return null;
+    }
+
+    this.mesh.updateMatrixWorld(true);
+
+    const origin = new THREE.Vector3(playerPosition.x, 200, playerPosition.z);
+    const direction = new THREE.Vector3(0, -1, 0);
+    const raycaster = new THREE.Raycaster(origin, direction, 0, 500);
+    const hits = raycaster.intersectObject(this.mesh, true);
+
+    if (!hits.length) {
+      return null;
+    }
+
+    const hit = hits.find((entry) => Math.abs(entry.point.x - playerPosition.x) < 1.5 && Math.abs(entry.point.z - playerPosition.z) < 1.5);
+    return hit ? hit.point.y : hits[0].point.y;
+  }
 }

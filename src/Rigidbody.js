@@ -87,13 +87,9 @@ export class Rigidbody {
     collider.getBounds(position, this._boundsA);
     collider.getBounds(previousPosition, this._boundsB);
 
-    const movingDown = position.y < previousPosition.y - 1e-6;
-    if (!movingDown) {
-      return false;
-    }
-
     const playerBottom = this._boundsA.min.y;
     const previousBottom = this._boundsB.min.y;
+    const feetProbePosition = new THREE.Vector3(position.x, position.y - 0.2, position.z);
 
     for (const worldCollider of colliders) {
       if (!worldCollider || worldCollider.physicsCollision !== true) {
@@ -105,15 +101,31 @@ export class Rigidbody {
         continue;
       }
 
+      let groundY = null;
+      if (typeof collisionShape.getGroundHeightAt === 'function') {
+        groundY = collisionShape.getGroundHeightAt(feetProbePosition, worldCollider.position);
+      }
+
+      if (groundY !== null) {
+        const playerIsAboveSurface = playerBottom >= groundY - 0.35 && playerBottom <= groundY + 0.8;
+        const hasDownwardVelocity = this.velocity.y <= 0.15;
+        const wasAboveSurface = previousBottom >= groundY - 0.2;
+
+        if (playerIsAboveSurface && (hasDownwardVelocity || wasAboveSurface)) {
+          return true;
+        }
+      }
+
       const worldBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
       collisionShape.getBounds(worldCollider.position, worldBounds);
 
       const xOverlap = this._boundsA.max.x > worldBounds.min.x && this._boundsA.min.x < worldBounds.max.x;
       const zOverlap = this._boundsA.max.z > worldBounds.min.z && this._boundsA.min.z < worldBounds.max.z;
-      const previousAboveSurface = previousBottom >= worldBounds.max.y - 0.2;
-      const feetNearSurface = playerBottom <= worldBounds.max.y + 0.18 && playerBottom >= worldBounds.max.y - 0.9;
+      const feetNearSurface = playerBottom <= worldBounds.max.y + 0.25 && playerBottom >= worldBounds.max.y - 0.9;
+      const isSettledOrDescending = this.velocity.y <= 0.1 || previousBottom >= worldBounds.max.y - 0.2;
+      const groundedContact = xOverlap && zOverlap && feetNearSurface && isSettledOrDescending;
 
-      if (xOverlap && zOverlap && previousAboveSurface && feetNearSurface) {
+      if (groundedContact) {
         return true;
       }
     }
