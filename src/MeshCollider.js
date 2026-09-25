@@ -17,6 +17,11 @@ export class MeshCollider extends Collider {
     this._v0 = new THREE.Vector3();
     this._v1 = new THREE.Vector3();
     this._v2 = new THREE.Vector3();
+    this._boundsWorkspace = new THREE.Box3();
+    this._groundRay = new THREE.Raycaster();
+    this._groundDirection = new THREE.Vector3(0, -1, 0);
+    this._groundOrigin = new THREE.Vector3();
+    this._groundHeightCache = { key: null, value: null, time: 0 };
   }
 
   setMesh(mesh) {
@@ -38,9 +43,8 @@ export class MeshCollider extends Collider {
           return;
         }
 
-        const childBounds = new THREE.Box3();
-        childBounds.setFromBufferAttribute(positionAttribute).applyMatrix4(child.matrixWorld);
-        this.bounds.union(childBounds);
+        this._boundsWorkspace.setFromBufferAttribute(positionAttribute).applyMatrix4(child.matrixWorld);
+        this.bounds.union(this._boundsWorkspace);
       });
 
       target.min.copy(this.bounds.min).add(this.offset);
@@ -115,18 +119,24 @@ export class MeshCollider extends Collider {
       return null;
     }
 
-    this.mesh.updateMatrixWorld(true);
-
-    const origin = new THREE.Vector3(playerPosition.x, 200, playerPosition.z);
-    const direction = new THREE.Vector3(0, -1, 0);
-    const raycaster = new THREE.Raycaster(origin, direction, 0, 500);
-    const hits = raycaster.intersectObject(this.mesh, true);
-
-    if (!hits.length) {
-      return null;
+    const cacheKey = `${Math.round(playerPosition.x * 4)}:${Math.round(playerPosition.z * 4)}`;
+    const now = performance.now();
+    if (this._groundHeightCache.key === cacheKey && now - this._groundHeightCache.time < 80) {
+      return this._groundHeightCache.value;
     }
 
-    const hit = hits.find((entry) => Math.abs(entry.point.x - playerPosition.x) < 1.5 && Math.abs(entry.point.z - playerPosition.z) < 1.5);
-    return hit ? hit.point.y : hits[0].point.y;
+    this.mesh.updateMatrixWorld(true);
+    this._groundOrigin.set(playerPosition.x, 200, playerPosition.z);
+    this._groundRay.set(this._groundOrigin, this._groundDirection);
+    this._groundRay.far = 500;
+    this._groundRay.near = 0;
+
+    const hits = this._groundRay.intersectObject(this.mesh, true);
+    const result = hits.length > 0 ? hits[0].point.y : null;
+
+    this._groundHeightCache.key = cacheKey;
+    this._groundHeightCache.value = result;
+    this._groundHeightCache.time = now;
+    return result;
   }
 }

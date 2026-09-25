@@ -26,6 +26,7 @@ export class Rigidbody {
     this._centerB = new THREE.Vector3();
     this._previousPosition = new THREE.Vector3();
     this._candidatePosition = new THREE.Vector3();
+    this._groundProbePosition = new THREE.Vector3();
   }
 
   addForce(force) {
@@ -53,8 +54,8 @@ export class Rigidbody {
         continue;
       }
 
-      const probePosition = new THREE.Vector3(position.x, Math.max(position.y + 3, 15), position.z);
-      const groundY = collisionShape.getGroundHeightAt(probePosition, worldCollider.position);
+      this._groundProbePosition.set(position.x, Math.max(position.y + 3, 15), position.z);
+      const groundY = collisionShape.getGroundHeightAt(this._groundProbePosition, worldCollider.position);
       if (groundY === null || !Number.isFinite(groundY)) {
         continue;
       }
