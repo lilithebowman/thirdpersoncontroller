@@ -2,7 +2,7 @@
   "debug": {
     "enabled": true
   },
-  "playerSpawns": [[0, 5, 0]],
+  "playerSpawns": [[300, 5, 0]],
   "controller": {
     "jumpImpulse": 8.8,
     "physics": {
@@ -46,12 +46,41 @@
     },
     {
       "type": "obj",
-      "name": "Cozy Sloth Island.obj",
-      "objPath": "models/Cozy Sloth Island.obj",
-      "mtlPath": "models/Cozy Sloth Island.mtl",
+      "name": "2026 Booths",
+      "objPath": "models/2026-CozyCon-Cafe/2026-Booths.obj",
+      "mtlPath": "models/2026-CozyCon-Cafe/2026-Booths.mtl",
+      "materialRenderType": "cutout",
       "position": [0, 0, 0],
       "rotation": [0, 0, 0],
-      "scale": [10, 10, 10],
+      "scale": [1, 1, 1],
+      "collider": {
+        "type": "mesh",
+        "physicsCollision": true
+      }
+    },
+    {
+      "type": "obj",
+      "name": "2026 Posters",
+      "objPath": "models/2026-CozyCon-Cafe/2026-Posters.obj",
+      "mtlPath": "models/2026-CozyCon-Cafe/2026-Posters.mtl",
+      "materialRenderType": "cutout",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "collider": {
+        "type": "mesh",
+        "physicsCollision": true
+      }
+    },
+    {
+      "type": "obj",
+      "name": "CosmosStation",
+      "objPath": "models/2026-CozyCon-Cafe/CosmosStation.obj",
+      "mtlPath": "models/2026-CozyCon-Cafe/CosmosStation.mtl",
+      "materialRenderType": "cutout",
+      "position": [0, 5, 0],
+      "rotation": [0, 0, 0],
+      "scale": [3, 3, 3],
       "collider": {
         "type": "mesh",
         "physicsCollision": true

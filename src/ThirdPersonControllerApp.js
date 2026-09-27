@@ -22,6 +22,9 @@ export class ThirdPersonControllerApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
     this.mountSelector = mountSelector;
     this.manifestPath = manifestPath;
+    this.minFPS = 5;
+    this.fogNearDistance = 140;
+    this.fogFarDistance = 900;
 
     this.app = document.querySelector(this.mountSelector);
     if (!this.app) {
@@ -30,7 +33,7 @@ export class ThirdPersonControllerApp {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x8ecae6);
-    this.scene.fog = new THREE.Fog(0x8ecae6, 12, 70);
+    this.scene.fog = new THREE.Fog(0x8ecae6, this.fogNearDistance, this.fogFarDistance);
 
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 4.5, 8.5);
@@ -680,9 +683,9 @@ export class ThirdPersonControllerApp {
   updateAdaptiveFrustum(delta) {
     const fps = this.performanceMonitor.update(delta);
 
-    if (!this.isReducingFrustum && fps < 15) {
+    if (!this.isReducingFrustum && fps < this.minFPS) {
       this.isReducingFrustum = true;
-      this.debugDisplay.LogWarning('FPS dropped below 15. Starting adaptive frustum reduction.');
+      this.debugDisplay.LogWarning(`FPS dropped below ${this.minFPS}. Starting adaptive frustum reduction.`);
     }
 
     if (!this.isReducingFrustum) {
@@ -947,6 +950,7 @@ export class ThirdPersonControllerApp {
           objPath: this.resolveScenePath(objPath, basePath),
           mtlPath: item.mtlPath ? this.resolveScenePath(item.mtlPath, basePath) : undefined,
           materialName: item.material,
+          materialRenderType: item.materialRenderType,
         });
       } catch (error) {
         this.debugDisplay.LogError(`Failed to load object ${objPath}: ${error?.message ?? error}`);
@@ -1152,7 +1156,41 @@ export class ThirdPersonControllerApp {
     this.debugDisplay.Log(`Registered ${this.worldColliders.length} world collider(s).`);
   }
 
-  async loadObjModel({ objPath, mtlPath, materialName }) {
+  isWindowMaterial(material) {
+    const materialName = material?.name ?? '';
+    return typeof materialName === 'string' && /window/i.test(materialName);
+  }
+
+  applyMaterialRenderType(material, renderType) {
+    if (!material || this.isWindowMaterial(material)) {
+      return;
+    }
+
+    const normalizedRenderType = (typeof renderType === 'string' ? renderType : 'cutout').toLowerCase();
+
+    if (normalizedRenderType === 'transparent') {
+      material.transparent = true;
+      material.alphaTest = 0;
+      material.depthWrite = false;
+      material.needsUpdate = true;
+      return;
+    }
+
+    if (normalizedRenderType === 'opaque') {
+      material.transparent = false;
+      material.alphaTest = 0;
+      material.depthWrite = true;
+      material.needsUpdate = true;
+      return;
+    }
+
+    material.transparent = false;
+    material.alphaTest = 0.5;
+    material.depthWrite = true;
+    material.needsUpdate = true;
+  }
+
+  async loadObjModel({ objPath, mtlPath, materialName, materialRenderType = 'cutout' }) {
     const loader = new OBJLoader();
 
     if (mtlPath) {
@@ -1186,6 +1224,19 @@ export class ThirdPersonControllerApp {
         }
       });
     }
+
+    model.traverse((child) => {
+      if (!child.isMesh || !child.material) {
+        return;
+      }
+
+      const materialArray = Array.isArray(child.material) ? child.material : [child.material];
+      materialArray.forEach((entry) => {
+        if (entry) {
+          this.applyMaterialRenderType(entry, materialRenderType);
+        }
+      });
+    });
 
     return model;
   }
