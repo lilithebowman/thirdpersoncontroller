@@ -79,6 +79,13 @@ export class ThirdPersonControllerApp {
     this.cameraPosition = new THREE.Vector3();
     this.headWorldPosition = new THREE.Vector3();
     this.cameraLookDirection = new THREE.Vector3(0, 0, -1);
+    this.headLookLocalAxisUp = new THREE.Vector3(0, 1, 0);
+    this.headLookLocalAxisRight = new THREE.Vector3(1, 0, 0);
+    this.headLookQuaternionYaw = new THREE.Quaternion();
+    this.headLookQuaternionPitch = new THREE.Quaternion();
+    this.headLookQuaternionResult = new THREE.Quaternion();
+    this.playerHeadBoneBaseLocalQuaternion = new THREE.Quaternion();
+    this.firstPersonHeadOverrideActive = false;
     this.playerRotationQuaternion = new THREE.Quaternion();
     this.playerRotationAxis = new THREE.Vector3(0, 1, 0);
     this.playerLookNormal = new THREE.Vector3(0, 0, 1);
@@ -126,6 +133,8 @@ export class ThirdPersonControllerApp {
       firstPersonDistanceThreshold: 0.5,
       minPitch: THREE.MathUtils.degToRad(-85),
       maxPitch: THREE.MathUtils.degToRad(85),
+      headLookYawLimit: THREE.MathUtils.degToRad(85),
+      headLookPitchLimit: THREE.MathUtils.degToRad(70),
       firstPersonNear: 0.02,
       thirdPersonNear: 0.1,
     };
@@ -233,6 +242,11 @@ export class ThirdPersonControllerApp {
     });
     player.add(visual);
     this.playerHeadBone = this.findHeadBone(player);
+    this.firstPersonHeadOverrideActive = false;
+
+    if (this.playerHeadBone) {
+      this.playerHeadBoneBaseLocalQuaternion.copy(this.playerHeadBone.quaternion);
+    }
 
     return player;
   }
@@ -281,6 +295,41 @@ export class ThirdPersonControllerApp {
     }
 
     return target.set(0, this.firstPersonFallbackHeadHeight, 0);
+  }
+
+  applyFirstPersonHeadLookOverride() {
+    if (!this.playerHeadBone) {
+      return;
+    }
+
+    const relativeYaw = THREE.MathUtils.clamp(
+      this.shortestAngleDelta(this.playerYaw, this.cameraState.yaw),
+      -this.cameraState.headLookYawLimit,
+      this.cameraState.headLookYawLimit
+    );
+    const clampedPitch = THREE.MathUtils.clamp(
+      this.cameraState.pitch,
+      -this.cameraState.headLookPitchLimit,
+      this.cameraState.headLookPitchLimit
+    );
+
+    this.headLookQuaternionYaw.setFromAxisAngle(this.headLookLocalAxisUp, relativeYaw);
+    this.headLookQuaternionPitch.setFromAxisAngle(this.headLookLocalAxisRight, clampedPitch);
+
+    this.headLookQuaternionResult.copy(this.playerHeadBoneBaseLocalQuaternion);
+    this.headLookQuaternionResult.multiply(this.headLookQuaternionYaw);
+    this.headLookQuaternionResult.multiply(this.headLookQuaternionPitch);
+    this.playerHeadBone.quaternion.copy(this.headLookQuaternionResult);
+    this.firstPersonHeadOverrideActive = true;
+  }
+
+  clearFirstPersonHeadLookOverride() {
+    if (!this.firstPersonHeadOverrideActive || !this.playerHeadBone) {
+      return;
+    }
+
+    this.playerHeadBone.quaternion.copy(this.playerHeadBoneBaseLocalQuaternion);
+    this.firstPersonHeadOverrideActive = false;
   }
 
   setCameraNearPlane(nextNear) {
@@ -1246,7 +1295,7 @@ export class ThirdPersonControllerApp {
 
     if (Math.abs(deltaY) > 0 && this.isFirstPersonView()) {
       this.cameraState.pitch = THREE.MathUtils.clamp(
-        this.cameraState.pitch - deltaY * 0.0022,
+        this.cameraState.pitch + deltaY * 0.0022,
         this.cameraState.minPitch,
         this.cameraState.maxPitch
       );
@@ -1404,12 +1453,14 @@ export class ThirdPersonControllerApp {
 
     if (this.isFirstPersonView()) {
       this.setCameraNearPlane(this.cameraState.firstPersonNear);
+      this.applyFirstPersonHeadLookOverride();
       this.resolveFirstPersonHeadPosition(this.headWorldPosition);
       this.camera.position.copy(this.headWorldPosition);
       this.camera.rotation.set(this.cameraState.pitch, this.cameraState.yaw, 0, 'YXZ');
       return;
     }
 
+    this.clearFirstPersonHeadLookOverride();
     this.setCameraNearPlane(this.cameraState.thirdPersonNear);
 
     this.cameraPosition.set(
