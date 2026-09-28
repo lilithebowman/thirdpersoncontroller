@@ -128,6 +128,8 @@ export class SceneEditorApp {
         <div class="scene-editor-toolbar__actions">
           <button type="button" data-action="undo">Undo</button>
           <button type="button" data-action="redo">Redo</button>
+          <button type="button" data-action="add-obj">Add OBJ</button>
+          <button type="button" data-action="add-primitive">Add Primitive</button>
           <button type="button" data-action="mode-translate">Move</button>
           <button type="button" data-action="mode-rotate">Rotate</button>
           <button type="button" data-action="mode-scale">Scale</button>
@@ -170,6 +172,8 @@ export class SceneEditorApp {
       const action = button.dataset.action;
       if (action === 'undo') this.undoHistory();
       if (action === 'redo') this.redoHistory();
+      if (action === 'add-obj') await this.addGameObject('obj');
+      if (action === 'add-primitive') await this.addGameObject('primitive');
       if (action === 'mode-translate') this.setTransformMode('translate');
       if (action === 'mode-rotate') this.setTransformMode('rotate');
       if (action === 'mode-scale') this.setTransformMode('scale');
@@ -799,6 +803,14 @@ export class SceneEditorApp {
     this.pointer.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
 
     this.raycaster.setFromCamera(this.pointer, this.camera);
+    const gizmoHits = this.transformControlsHelper
+      ? this.raycaster.intersectObject(this.transformControlsHelper, true)
+      : [];
+
+    if (gizmoHits.length > 0) {
+      return;
+    }
+
     const intersections = this.raycaster.intersectObjects(this.pickables, true);
     if (intersections.length === 0) {
       return;
@@ -1048,6 +1060,109 @@ export class SceneEditorApp {
     }
 
     await this.restoreHistorySnapshot(nextSnapshot);
+  }
+
+  createUniqueGameObjectName(baseName) {
+    const existingNames = new Set();
+
+    const collectNames = (items) => {
+      for (const item of items ?? []) {
+        if (item?.name) {
+          existingNames.add(item.name);
+        }
+        if (Array.isArray(item?.children) && item.children.length > 0) {
+          collectNames(item.children);
+        }
+      }
+    };
+
+    collectNames(this.currentManifest.gameObjects ?? []);
+
+    if (!existingNames.has(baseName)) {
+      return baseName;
+    }
+
+    let suffix = 2;
+    while (existingNames.has(`${baseName} ${suffix}`)) {
+      suffix += 1;
+    }
+
+    return `${baseName} ${suffix}`;
+  }
+
+  createNewGameObject(kind) {
+    const targetPosition = this.selectedNode?.object
+      ? this.selectedNode.object.position.clone()
+      : this.orbitControls.target.clone();
+
+    if (kind === 'primitive') {
+      return {
+        id: `primitive-${crypto.randomUUID()}`,
+        name: this.createUniqueGameObjectName('Primitive Model'),
+        active: true,
+        tag: 'Untagged',
+        layer: 0,
+        static: false,
+        transform: {
+          position: [targetPosition.x, targetPosition.y, targetPosition.z],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+        },
+        components: [
+          {
+            type: 'primitive',
+            primitiveType: 'box',
+            size: [1, 1, 1],
+            color: '#8ecae6',
+          },
+        ],
+        children: [],
+      };
+    }
+
+    return {
+      id: `obj-${crypto.randomUUID()}`,
+      name: this.createUniqueGameObjectName('OBJ Model'),
+      active: true,
+      tag: 'Untagged',
+      layer: 0,
+      static: false,
+      transform: {
+        position: [targetPosition.x, targetPosition.y, targetPosition.z],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+      },
+      components: [
+        {
+          type: 'model',
+          modelType: 'obj',
+          objPath: '/models/2026-CozyCon-Cafe/2026-Booths.obj',
+          mtlPath: '/models/2026-CozyCon-Cafe/2026-Booths.mtl',
+          materialRenderType: 'cutout',
+        },
+      ],
+      children: [],
+    };
+  }
+
+  async addGameObject(kind) {
+    this.pushUndoSnapshot();
+
+    const nextGameObject = this.createNewGameObject(kind);
+    this.currentManifest.gameObjects = [...(this.currentManifest.gameObjects ?? []), nextGameObject];
+    this.currentManifest.objects = gameObjectsToLegacyObjects(this.currentManifest.gameObjects);
+
+    await this.rebuildSceneGraph();
+    this.refreshHierarchy();
+
+    const selectedRecord = this.findRecordById(nextGameObject.id, this.currentManifest.gameObjects ?? []);
+    if (selectedRecord) {
+      this.selectGameObject(selectedRecord, { frameSelection: true });
+    } else {
+      this.requestRender();
+    }
+
+    this.setStatus(`Added ${nextGameObject.name}.`);
   }
 
   convertUnityScene(input) {
