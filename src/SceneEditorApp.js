@@ -54,6 +54,9 @@ export class SceneEditorApp {
     this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
     this.transformControls.addEventListener('dragging-changed', (event) => {
       this.orbitControls.enabled = !event.value;
+      if (event.value) {
+        this.pushUndoSnapshot();
+      }
       this.requestRender();
     });
     this.transformControls.addEventListener('objectChange', () => {
@@ -79,7 +82,6 @@ export class SceneEditorApp {
     this.directionalLight.shadow.mapSize.set(2048, 2048);
     this.directionalLight.shadow.camera.left = -40;
     this.directionalLight.shadow.camera.right = 40;
-    this.directionalLight.shadow.camera.top = 40;
     this.directionalLight.shadow.camera.bottom = -40;
     this.scene.add(this.directionalLight);
 
@@ -92,6 +94,10 @@ export class SceneEditorApp {
     this.currentManifest = normalizeSceneManifest({});
     this.selectedNode = null;
     this.activeTransformMode = 'translate';
+    this.undoStack = [];
+    this.redoStack = [];
+    this.historyLimit = 10;
+    this.isRestoringHistory = false;
     this.isRendering = false;
 
     this.onResize = this.onResize.bind(this);
@@ -117,6 +123,8 @@ export class SceneEditorApp {
           <span>Hierarchy, scene, and inspector</span>
         </div>
         <div class="scene-editor-toolbar__actions">
+          <button type="button" data-action="undo">Undo</button>
+          <button type="button" data-action="redo">Redo</button>
           <button type="button" data-action="mode-translate">Move</button>
           <button type="button" data-action="mode-rotate">Rotate</button>
           <button type="button" data-action="mode-scale">Scale</button>
@@ -157,6 +165,8 @@ export class SceneEditorApp {
       }
 
       const action = button.dataset.action;
+      if (action === 'undo') this.undoHistory();
+      if (action === 'redo') this.redoHistory();
       if (action === 'mode-translate') this.setTransformMode('translate');
       if (action === 'mode-rotate') this.setTransformMode('rotate');
       if (action === 'mode-scale') this.setTransformMode('scale');
@@ -470,7 +480,7 @@ export class SceneEditorApp {
     return wrapper;
   }
 
-  selectGameObject(record) {
+  selectGameObject(record, { frameSelection = true } = {}) {
     const node = this.gameObjectMap.get(record.id);
     if (!node) {
       this.selectedNode = null;
@@ -485,7 +495,9 @@ export class SceneEditorApp {
     this.refreshInspector();
     this.refreshHierarchy();
     this.setStatus(`Selected ${record.name}.`);
-    this.frameSelection();
+    if (frameSelection) {
+      this.frameSelection();
+    }
     this.requestRender();
   }
 
@@ -510,21 +522,25 @@ export class SceneEditorApp {
     form.className = 'scene-editor-inspector';
 
     form.appendChild(this.createTextField('Name', record.name, (value) => {
+      this.pushUndoSnapshot();
       record.name = value || 'GameObject';
       this.selectedNode.object.name = record.name;
       this.refreshHierarchy();
     }));
 
     form.appendChild(this.createCheckboxField('Active', record.active !== false, (value) => {
+      this.pushUndoSnapshot();
       record.active = value;
       this.selectedNode.object.visible = value;
     }));
 
     form.appendChild(this.createTextField('Tag', record.tag ?? '', (value) => {
+      this.pushUndoSnapshot();
       record.tag = value;
     }));
 
     form.appendChild(this.createVectorField('Position', record.transform?.position ?? [0, 0, 0], (value) => {
+      this.pushUndoSnapshot();
       record.transform = record.transform ?? {};
       record.transform.position = value;
       this.applyTransformToObject(this.selectedNode.object, record.transform);
@@ -532,6 +548,7 @@ export class SceneEditorApp {
     }));
 
     form.appendChild(this.createVectorField('Rotation', record.transform?.rotation ?? [0, 0, 0], (value) => {
+      this.pushUndoSnapshot();
       record.transform = record.transform ?? {};
       record.transform.rotation = value;
       this.applyTransformToObject(this.selectedNode.object, record.transform);
@@ -539,6 +556,7 @@ export class SceneEditorApp {
     }));
 
     form.appendChild(this.createVectorField('Scale', record.transform?.scale ?? [1, 1, 1], (value) => {
+      this.pushUndoSnapshot();
       record.transform = record.transform ?? {};
       record.transform.scale = value;
       this.applyTransformToObject(this.selectedNode.object, record.transform);
@@ -569,6 +587,7 @@ export class SceneEditorApp {
     applyRaw.textContent = 'Apply raw JSON';
     applyRaw.addEventListener('click', () => {
       try {
+        this.pushUndoSnapshot();
         const parsed = JSON.parse(rawEditor.value);
         const normalized = normalizeGameObject({
           ...parsed,
@@ -677,6 +696,7 @@ export class SceneEditorApp {
   }
 
   replaceRecord(recordId, nextRecord) {
+    this.pushUndoSnapshot();
     const replaceRecursive = (items) => items.map((item) => {
       if (item.id === recordId) {
         return nextRecord;
@@ -787,6 +807,22 @@ export class SceneEditorApp {
       return;
     }
 
+    if ((event.ctrlKey || event.metaKey) && event.code === 'KeyZ') {
+      event.preventDefault();
+      if (event.shiftKey) {
+        this.redoHistory();
+      } else {
+        this.undoHistory();
+      }
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.code === 'KeyY') {
+      event.preventDefault();
+      this.redoHistory();
+      return;
+    }
+
     if (event.code === 'KeyW') {
       this.setTransformMode('translate');
     }
@@ -848,6 +884,7 @@ export class SceneEditorApp {
   }
 
   async importUnitySceneJson(text) {
+    this.pushUndoSnapshot();
     const parsed = JSON.parse(text);
     const imported = this.convertUnityScene(parsed);
     this.currentManifest.gameObjects = imported;
@@ -860,6 +897,95 @@ export class SceneEditorApp {
       this.refreshInspector();
     }
     this.requestRender();
+  }
+
+  createHistorySnapshot() {
+    return {
+      manifest: JSON.parse(JSON.stringify(this.currentManifest)),
+      selectedGameObjectId: this.selectedNode?.record?.id ?? null,
+    };
+  }
+
+  pushUndoSnapshot() {
+    if (this.isRestoringHistory) {
+      return;
+    }
+
+    const snapshot = this.createHistorySnapshot();
+    const lastSnapshot = this.undoStack.at(-1);
+    if (lastSnapshot
+      && lastSnapshot.selectedGameObjectId === snapshot.selectedGameObjectId
+      && JSON.stringify(lastSnapshot.manifest) === JSON.stringify(snapshot.manifest)) {
+      return;
+    }
+
+    this.undoStack.push(snapshot);
+    if (this.undoStack.length > this.historyLimit) {
+      this.undoStack.shift();
+    }
+
+    this.redoStack = [];
+  }
+
+  async restoreHistorySnapshot(snapshot) {
+    if (!snapshot) {
+      return;
+    }
+
+    this.isRestoringHistory = true;
+    try {
+      this.currentManifest = normalizeSceneManifest(snapshot.manifest);
+      this.currentManifest.objects = gameObjectsToLegacyObjects(this.currentManifest.gameObjects);
+      await this.rebuildSceneGraph();
+      this.refreshHierarchy();
+
+      const selectedRecord = snapshot.selectedGameObjectId
+        ? this.findRecordById(snapshot.selectedGameObjectId, this.currentManifest.gameObjects ?? [])
+        : null;
+
+      if (selectedRecord) {
+        this.selectGameObject(selectedRecord, { frameSelection: false });
+      } else {
+        this.selectedNode = null;
+        this.transformControls.detach();
+        this.refreshInspector();
+      }
+
+      this.setStatus('History restored.');
+      this.requestRender();
+    } finally {
+      this.isRestoringHistory = false;
+    }
+  }
+
+  async undoHistory() {
+    if (this.undoStack.length === 0 || this.isRestoringHistory) {
+      return;
+    }
+
+    const currentSnapshot = this.createHistorySnapshot();
+    const previousSnapshot = this.undoStack.pop();
+    this.redoStack.push(currentSnapshot);
+    if (this.redoStack.length > this.historyLimit) {
+      this.redoStack.shift();
+    }
+
+    await this.restoreHistorySnapshot(previousSnapshot);
+  }
+
+  async redoHistory() {
+    if (this.redoStack.length === 0 || this.isRestoringHistory) {
+      return;
+    }
+
+    const currentSnapshot = this.createHistorySnapshot();
+    const nextSnapshot = this.redoStack.pop();
+    this.undoStack.push(currentSnapshot);
+    if (this.undoStack.length > this.historyLimit) {
+      this.undoStack.shift();
+    }
+
+    await this.restoreHistorySnapshot(nextSnapshot);
   }
 
   convertUnityScene(input) {
