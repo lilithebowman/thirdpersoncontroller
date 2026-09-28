@@ -52,17 +52,22 @@ export class ThirdPersonControllerApp {
     this.playerModelTemplate = null;
     this.playerWalkAnimationClip = null;
     this.playerIdleAnimationClip = null;
+    this.playerJumpAnimationClip = null;
     this.playerAnimationMixer = null;
     this.playerWalkAction = null;
     this.playerIdleAction = null;
+    this.playerJumpAction = null;
     this.playerManifestConfig = {
-      modelPath: '/animations/Action%20Adventure%20Pack/walking.fbx',
+      rigPath: '/animations/Action%20Adventure%20Pack/X%20Bot.fbx',
+      walkPath: '/animations/Action%20Adventure%20Pack/walking.fbx',
       idlePath: '/animations/Action%20Adventure%20Pack/idle.fbx',
+      jumpPath: '/animations/Action%20Adventure%20Pack/jumping up.fbx',
       modelScale: new THREE.Vector3(0.01, 0.01, 0.01),
-      modelRotationDegrees: new THREE.Vector3(0, 180, 0),
+      modelRotationDegrees: new THREE.Vector3(0, 0, 0),
       modelOffset: new THREE.Vector3(0, 0, 0),
       walkClipName: null,
       idleClipName: null,
+      jumpClipName: null,
     };
 
     this.clock = new THREE.Clock();
@@ -207,19 +212,30 @@ export class ThirdPersonControllerApp {
     this.playerAnimationMixer = null;
     this.playerWalkAction = null;
     this.playerIdleAction = null;
+    this.playerJumpAction = null;
 
-    if (this.playerWalkAnimationClip) {
+    if (this.playerWalkAnimationClip || this.playerIdleAnimationClip || this.playerJumpAnimationClip) {
       this.playerAnimationMixer = new THREE.AnimationMixer(visual);
-      this.playerWalkAction = this.playerAnimationMixer.clipAction(this.playerWalkAnimationClip);
-      this.playerWalkAction.play();
-      this.playerWalkAction.enabled = true;
-      this.playerWalkAction.setEffectiveWeight(0);
+      if (this.playerWalkAnimationClip) {
+        this.playerWalkAction = this.playerAnimationMixer.clipAction(this.playerWalkAnimationClip);
+        this.playerWalkAction.play();
+        this.playerWalkAction.enabled = true;
+        this.playerWalkAction.setEffectiveWeight(0);
+      }
 
       if (this.playerIdleAnimationClip) {
         this.playerIdleAction = this.playerAnimationMixer.clipAction(this.playerIdleAnimationClip);
         this.playerIdleAction.play();
         this.playerIdleAction.enabled = true;
         this.playerIdleAction.setEffectiveWeight(1);
+      }
+
+      if (this.playerJumpAnimationClip) {
+        this.playerJumpAction = this.playerAnimationMixer.clipAction(this.playerJumpAnimationClip);
+        this.playerJumpAction.play();
+        this.playerJumpAction.enabled = true;
+        this.playerJumpAction.setEffectiveWeight(0);
+        this.playerJumpAction.clampWhenFinished = false;
       }
     }
 
@@ -447,24 +463,38 @@ export class ThirdPersonControllerApp {
     const colliderConfig = playerConfig.collider ?? {};
     const configuredPath = typeof modelConfig.path === 'string' && modelConfig.path.trim()
       ? modelConfig.path.trim()
+      : '/animations/Action%20Adventure%20Pack/X%20Bot.fbx';
+    const configuredRigPath = typeof modelConfig.rigPath === 'string' && modelConfig.rigPath.trim()
+      ? modelConfig.rigPath.trim()
+      : configuredPath;
+    const configuredWalkPath = typeof modelConfig.walkPath === 'string' && modelConfig.walkPath.trim()
+      ? modelConfig.walkPath.trim()
       : '/animations/Action%20Adventure%20Pack/walking.fbx';
     const configuredIdlePath = typeof modelConfig.idlePath === 'string' && modelConfig.idlePath.trim()
       ? modelConfig.idlePath.trim()
       : '/animations/Action%20Adventure%20Pack/idle.fbx';
+    const configuredJumpPath = typeof modelConfig.jumpPath === 'string' && modelConfig.jumpPath.trim()
+      ? modelConfig.jumpPath.trim()
+      : '/animations/Action%20Adventure%20Pack/jumping up.fbx';
     const colliderSize = this.toVector3(colliderConfig.size, new THREE.Vector3(0.9, 1.9, 0.9));
     const colliderOffset = this.toVector3(colliderConfig.offset, new THREE.Vector3(0, 0.95, 0));
 
     this.playerManifestConfig = {
-      modelPath: configuredPath,
+      rigPath: configuredRigPath,
+      walkPath: configuredWalkPath,
       idlePath: configuredIdlePath,
+      jumpPath: configuredJumpPath,
       modelScale: this.toVector3(modelConfig.scale, new THREE.Vector3(0.01, 0.01, 0.01)),
-      modelRotationDegrees: this.toVector3(modelConfig.rotation, new THREE.Vector3(0, 180, 0)),
+      modelRotationDegrees: this.toVector3(modelConfig.rotation, new THREE.Vector3(0, 0, 0)),
       modelOffset: this.toVector3(modelConfig.offset, new THREE.Vector3(0, 0, 0)),
       walkClipName: typeof modelConfig.walkClipName === 'string' && modelConfig.walkClipName.trim()
         ? modelConfig.walkClipName.trim()
         : null,
       idleClipName: typeof modelConfig.idleClipName === 'string' && modelConfig.idleClipName.trim()
         ? modelConfig.idleClipName.trim()
+        : null,
+      jumpClipName: typeof modelConfig.jumpClipName === 'string' && modelConfig.jumpClipName.trim()
+        ? modelConfig.jumpClipName.trim()
         : null,
       resolvedBasePath: basePath,
     };
@@ -503,64 +533,455 @@ export class ThirdPersonControllerApp {
     return clips[0];
   }
 
+  extractTrackTargetName(trackName) {
+    if (typeof trackName !== 'string' || trackName.length === 0) {
+      return null;
+    }
+
+    const firstDot = trackName.indexOf('.');
+    if (firstDot <= 0) {
+      return null;
+    }
+
+    return trackName.slice(0, firstDot);
+  }
+
+  canonicalizeNodeName(name) {
+    if (typeof name !== 'string' || name.length === 0) {
+      return null;
+    }
+
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const segments = trimmed.split(/[:|/\\]/).filter(Boolean);
+    const base = segments.length > 0 ? segments[segments.length - 1] : trimmed;
+    const canonical = base.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return canonical || null;
+  }
+
+  collectRigNodeNames(root) {
+    const names = new Set();
+    if (!root || typeof root.traverse !== 'function') {
+      return names;
+    }
+
+    root.traverse((child) => {
+      if (child?.name) {
+        names.add(child.name);
+      }
+    });
+
+    return names;
+  }
+
+  collectRigNodeNameMap(root) {
+    const canonicalMap = new Map();
+    if (!root || typeof root.traverse !== 'function') {
+      return canonicalMap;
+    }
+
+    root.traverse((child) => {
+      const canonical = this.canonicalizeNodeName(child?.name);
+      if (!canonical || canonicalMap.has(canonical) || !child?.name) {
+        return;
+      }
+
+      canonicalMap.set(canonical, child.name);
+    });
+
+    return canonicalMap;
+  }
+
+  collectRigBoneNames(root) {
+    const boneNames = new Set();
+    if (!root || typeof root.traverse !== 'function') {
+      return boneNames;
+    }
+
+    root.traverse((child) => {
+      if (child?.isBone && child?.name) {
+        boneNames.add(child.name);
+      }
+    });
+
+    return boneNames;
+  }
+
+  getRootMotionTrackNames(clip) {
+    if (!clip || !Array.isArray(clip.tracks)) {
+      return new Set();
+    }
+
+    const positionTracks = clip.tracks.filter((track) => {
+      if (!track?.name || typeof track.name !== 'string') {
+        return false;
+      }
+
+      return track.name.includes('.position');
+    });
+
+    if (positionTracks.length === 0) {
+      return new Set();
+    }
+
+    const preferredRootTargets = ['root', 'hips', 'pelvis', 'armature'];
+    const rootedTargets = new Set();
+    for (const track of positionTracks) {
+      const targetName = this.extractTrackTargetName(track.name);
+      const canonical = this.canonicalizeNodeName(targetName);
+      if (!canonical) {
+        continue;
+      }
+
+      const isPreferred = preferredRootTargets.some((entry) => canonical.includes(entry));
+      if (isPreferred) {
+        rootedTargets.add(targetName);
+      }
+    }
+
+    if (rootedTargets.size === 0) {
+      const fallbackTarget = this.extractTrackTargetName(positionTracks[0].name);
+      if (fallbackTarget) {
+        rootedTargets.add(fallbackTarget);
+      }
+    }
+
+    const rootTrackNames = new Set();
+    for (const track of positionTracks) {
+      const targetName = this.extractTrackTargetName(track.name);
+      if (targetName && rootedTargets.has(targetName)) {
+        rootTrackNames.add(track.name);
+      }
+    }
+
+    return rootTrackNames;
+  }
+
+  stripRootPositionFromClip(clip, clipLabel) {
+    if (!clip || !Array.isArray(clip.tracks) || clip.tracks.length === 0) {
+      return clip;
+    }
+
+    const rootMotionTrackNames = this.getRootMotionTrackNames(clip);
+    if (rootMotionTrackNames.size === 0) {
+      return clip;
+    }
+
+    const sanitizedTracks = clip.tracks.map((track) => {
+      if (!track || !rootMotionTrackNames.has(track.name) || !track.name.includes('.position')) {
+        return track;
+      }
+
+      const clonedTrack = track.clone();
+      const values = Array.from(clonedTrack.values ?? []);
+      if (values.length < 3) {
+        return clonedTrack;
+      }
+
+      const baseX = values[0];
+      const baseY = values[1];
+      const baseZ = values[2];
+
+      for (let index = 0; index < values.length - 2; index += 3) {
+        values[index] = baseX;
+        values[index + 1] = baseY;
+        values[index + 2] = baseZ;
+      }
+
+      clonedTrack.values = Float32Array.from(values);
+      return clonedTrack;
+    });
+
+    this.debugDisplay.LogWarning(`Stripped root motion from ${clipLabel} clip ${clip.name}.`);
+    return new THREE.AnimationClip(clip.name, clip.duration, sanitizedTracks);
+  }
+
+  prepareClipForRig(clip, rigNodeNames, rigNodeNameMap, clipLabel, {
+    preferBoneTracks = false,
+    rigBoneNames = null,
+    stripRootPosition = false,
+    minQuaternionTracks = 0,
+  } = {}) {
+    if (
+      !clip ||
+      !Array.isArray(clip.tracks) ||
+      clip.tracks.length === 0 ||
+      !(rigNodeNames instanceof Set) ||
+      rigNodeNames.size === 0 ||
+      !(rigNodeNameMap instanceof Map)
+    ) {
+      return null;
+    }
+
+    const mappedTracks = clip.tracks.map((track) => {
+      const targetName = this.extractTrackTargetName(track?.name ?? '');
+      if (!targetName) {
+        return null;
+      }
+
+      let resolvedTargetName = null;
+      if (rigNodeNames.has(targetName)) {
+        resolvedTargetName = targetName;
+      } else {
+        const canonicalTrackTarget = this.canonicalizeNodeName(targetName);
+        if (canonicalTrackTarget && rigNodeNameMap.has(canonicalTrackTarget)) {
+          resolvedTargetName = rigNodeNameMap.get(canonicalTrackTarget);
+        }
+      }
+
+      if (!resolvedTargetName) {
+        return null;
+      }
+
+      if (resolvedTargetName === targetName) {
+        return {
+          track,
+          isBone: rigBoneNames instanceof Set ? rigBoneNames.has(resolvedTargetName) : false,
+        };
+      }
+
+      const clonedTrack = track.clone();
+      clonedTrack.name = `${resolvedTargetName}${track.name.slice(targetName.length)}`;
+      return {
+        track: clonedTrack,
+        isBone: rigBoneNames instanceof Set ? rigBoneNames.has(resolvedTargetName) : false,
+      };
+    }).filter(Boolean);
+
+    let compatibleTracks = mappedTracks;
+    if (preferBoneTracks) {
+      const boneTracks = mappedTracks.filter((entry) => entry.isBone);
+      if (boneTracks.length > 0) {
+        compatibleTracks = boneTracks;
+      }
+    }
+
+    const preparedTracks = compatibleTracks.map((entry) => entry.track);
+
+    if (preparedTracks.length === 0) {
+      this.debugDisplay.LogWarning(`Rejected ${clipLabel} clip ${clip.name}: no tracks target the player rig.`);
+      return null;
+    }
+
+    const compatibilityRatio = preparedTracks.length / clip.tracks.length;
+    if (compatibilityRatio < 0.1) {
+      this.debugDisplay.LogWarning(
+        `Rejected ${clipLabel} clip ${clip.name}: only ${(compatibilityRatio * 100).toFixed(1)}% of tracks match the player rig.`
+      );
+      return null;
+    }
+
+    const quaternionTrackCount = preparedTracks.filter((track) =>
+      typeof track?.name === 'string' && track.name.includes('.quaternion')
+    ).length;
+
+    if (minQuaternionTracks > 0 && quaternionTrackCount < minQuaternionTracks) {
+      this.debugDisplay.LogWarning(
+        `Rejected ${clipLabel} clip ${clip.name}: only ${quaternionTrackCount} quaternion track(s), need at least ${minQuaternionTracks}.`
+      );
+      return null;
+    }
+
+    let preparedClip = null;
+    if (preparedTracks.length === clip.tracks.length) {
+      preparedClip = clip;
+    } else {
+      this.debugDisplay.LogWarning(
+        `Using filtered ${clipLabel} clip ${clip.name}: ${preparedTracks.length}/${clip.tracks.length} tracks match the player rig.`
+      );
+      preparedClip = new THREE.AnimationClip(clip.name, clip.duration, preparedTracks);
+    }
+
+    if (stripRootPosition) {
+      preparedClip = this.stripRootPositionFromClip(preparedClip, clipLabel);
+    }
+
+    return preparedClip;
+  }
+
+  hasRenderableGeometry(root) {
+    if (!root || typeof root.traverse !== 'function') {
+      return false;
+    }
+
+    let foundRenderable = false;
+    root.traverse((child) => {
+      if (foundRenderable) {
+        return;
+      }
+
+      if ((child?.isMesh || child?.isSkinnedMesh) && child.geometry) {
+        foundRenderable = true;
+      }
+    });
+
+    return foundRenderable;
+  }
+
+  applyPlayerMeshSettings(root) {
+    if (!root || typeof root.traverse !== 'function') {
+      return;
+    }
+
+    root.traverse((child) => {
+      if (!child?.isMesh && !child?.isSkinnedMesh) {
+        return;
+      }
+
+      child.castShadow = true;
+      child.receiveShadow = true;
+    });
+  }
+
+  async loadFbxAsset(loader, assetPath, basePath) {
+    const resolvedPath = this.resolveScenePath(assetPath, basePath ?? this.manifestPath);
+    const asset = await loader.loadAsync(resolvedPath);
+    return { asset, resolvedPath };
+  }
+
   async preloadPlayerModel() {
     this.playerModelTemplate = null;
     this.playerWalkAnimationClip = null;
     this.playerIdleAnimationClip = null;
+    this.playerJumpAnimationClip = null;
 
     const {
-      modelPath,
+      rigPath,
+      walkPath,
       idlePath,
+      jumpPath,
       resolvedBasePath,
       walkClipName,
       idleClipName,
+      jumpClipName,
     } = this.playerManifestConfig;
-    if (!modelPath) {
+    if (!rigPath) {
       return;
     }
 
     try {
       const loader = new FBXLoader();
-      const resolvedPath = this.resolveScenePath(modelPath, resolvedBasePath ?? this.manifestPath);
-      const model = await loader.loadAsync(resolvedPath);
+      const defaultRigPath = '/animations/Action%20Adventure%20Pack/X%20Bot.fbx';
 
-      model.traverse((child) => {
-        if (!child?.isMesh && !child?.isSkinnedMesh) {
-          return;
-        }
+      let { asset: rigAsset } = await this.loadFbxAsset(loader, rigPath, resolvedBasePath);
+      if (!this.hasRenderableGeometry(rigAsset)) {
+        this.debugDisplay.LogWarning(`Rig asset ${rigPath} has no renderable meshes. Trying fallback rig ${defaultRigPath}.`);
+        const fallbackLoad = await this.loadFbxAsset(loader, defaultRigPath, resolvedBasePath);
+        rigAsset = fallbackLoad.asset;
+      }
 
-        child.castShadow = true;
-        child.receiveShadow = true;
+      if (this.hasRenderableGeometry(rigAsset)) {
+        this.applyPlayerMeshSettings(rigAsset);
+        this.configureMeshCulling(rigAsset);
+        this.playerModelTemplate = rigAsset;
+      }
+
+      const rigNodeNames = this.collectRigNodeNames(rigAsset);
+      const rigNodeNameMap = this.collectRigNodeNameMap(rigAsset);
+      const rigBoneNames = this.collectRigBoneNames(rigAsset);
+
+      const rigClips = Array.isArray(rigAsset.animations) ? rigAsset.animations : [];
+      const rigWalkClip = this.findAnimationClip(rigClips, walkClipName, /walk/i);
+      const rigIdleClip = this.findAnimationClip(rigClips, idleClipName, /idle/i);
+      const rigJumpClip = this.findAnimationClip(rigClips, jumpClipName, /jump/i);
+      this.playerWalkAnimationClip = this.prepareClipForRig(rigWalkClip, rigNodeNames, rigNodeNameMap, 'rig walk', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
+      });
+      this.playerIdleAnimationClip = this.prepareClipForRig(rigIdleClip, rigNodeNames, rigNodeNameMap, 'rig idle', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
+      });
+      this.playerJumpAnimationClip = this.prepareClipForRig(rigJumpClip, rigNodeNames, rigNodeNameMap, 'rig jump', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
+        minQuaternionTracks: 8,
       });
 
-      this.configureMeshCulling(model);
-      this.playerModelTemplate = model;
-
-      const availableClips = Array.isArray(model.animations) ? model.animations : [];
-      this.playerWalkAnimationClip = this.findAnimationClip(availableClips, walkClipName, /walk/i);
-      this.playerIdleAnimationClip = this.findAnimationClip(availableClips, idleClipName, /idle/i);
+      if (walkPath) {
+        try {
+          const walkAsset = await this.loadFbxAsset(loader, walkPath, resolvedBasePath);
+          const walkClips = Array.isArray(walkAsset.asset.animations) ? walkAsset.asset.animations : [];
+          const externalWalkClip = this.findAnimationClip(walkClips, walkClipName, /walk/i);
+          const preparedWalkClip = this.prepareClipForRig(externalWalkClip, rigNodeNames, rigNodeNameMap, 'external walk', {
+            preferBoneTracks: true,
+            rigBoneNames,
+            stripRootPosition: true,
+          });
+          if (preparedWalkClip) {
+            this.playerWalkAnimationClip = preparedWalkClip;
+          }
+        } catch (walkError) {
+          this.debugDisplay.LogWarning(`Failed to load walking animation ${walkPath}. ${walkError?.message ?? walkError}`);
+        }
+      }
 
       if (idlePath) {
         try {
-          const resolvedIdlePath = this.resolveScenePath(idlePath, resolvedBasePath ?? this.manifestPath);
-          const idleAsset = await loader.loadAsync(resolvedIdlePath);
-          const idleClips = Array.isArray(idleAsset.animations) ? idleAsset.animations : [];
+          const idleAsset = await this.loadFbxAsset(loader, idlePath, resolvedBasePath);
+          const idleClips = Array.isArray(idleAsset.asset.animations) ? idleAsset.asset.animations : [];
           const externalIdleClip = this.findAnimationClip(idleClips, idleClipName, /idle/i);
-          if (externalIdleClip) {
-            this.playerIdleAnimationClip = externalIdleClip;
+          const preparedIdleClip = this.prepareClipForRig(externalIdleClip, rigNodeNames, rigNodeNameMap, 'external idle', {
+            preferBoneTracks: true,
+            rigBoneNames,
+            stripRootPosition: true,
+          });
+          if (preparedIdleClip) {
+            this.playerIdleAnimationClip = preparedIdleClip;
           }
         } catch (idleError) {
           this.debugDisplay.LogWarning(`Failed to load idle animation ${idlePath}. ${idleError?.message ?? idleError}`);
         }
       }
 
+      if (jumpPath) {
+        try {
+          const jumpAsset = await this.loadFbxAsset(loader, jumpPath, resolvedBasePath);
+          const jumpClips = Array.isArray(jumpAsset.asset.animations) ? jumpAsset.asset.animations : [];
+          const externalJumpClip = this.findAnimationClip(jumpClips, jumpClipName, /jump/i);
+          const preparedJumpClip = this.prepareClipForRig(externalJumpClip, rigNodeNames, rigNodeNameMap, 'external jump', {
+            preferBoneTracks: true,
+            rigBoneNames,
+            stripRootPosition: true,
+            minQuaternionTracks: 8,
+          });
+          if (preparedJumpClip) {
+            this.playerJumpAnimationClip = preparedJumpClip;
+          }
+        } catch (jumpError) {
+          this.debugDisplay.LogWarning(`Failed to load jump animation ${jumpPath}. ${jumpError?.message ?? jumpError}`);
+        }
+      }
+
+      if (!this.playerWalkAnimationClip && this.playerIdleAnimationClip) {
+        this.playerWalkAnimationClip = this.playerIdleAnimationClip;
+      }
+
       if (!this.playerIdleAnimationClip && this.playerWalkAnimationClip) {
         this.playerIdleAnimationClip = this.playerWalkAnimationClip;
       }
 
-      this.debugDisplay.Log(`Loaded player model ${modelPath}.`);
+      if (!this.playerJumpAnimationClip && this.playerWalkAnimationClip) {
+        this.playerJumpAnimationClip = this.playerWalkAnimationClip;
+      }
+
+      this.debugDisplay.Log(
+        `Player clips: walk=${this.playerWalkAnimationClip?.name ?? 'none'}, idle=${this.playerIdleAnimationClip?.name ?? 'none'}, jump=${this.playerJumpAnimationClip?.name ?? 'none'}`
+      );
+
+      if (!this.playerModelTemplate) {
+        this.debugDisplay.LogWarning('No renderable meshes found for player rig. Falling back to primitive avatar.');
+      } else {
+        this.debugDisplay.Log(`Loaded player rig ${rigPath}.`);
+      }
     } catch (error) {
-      this.debugDisplay.LogWarning(`Failed to load player model ${modelPath}. Falling back to primitive avatar. ${error?.message ?? error}`);
+      this.debugDisplay.LogWarning(`Failed to load player rig ${rigPath}. Falling back to primitive avatar. ${error?.message ?? error}`);
     }
   }
 
@@ -593,6 +1014,11 @@ export class ThirdPersonControllerApp {
     if (this.playerIdleAction) {
       this.playerIdleAction.setEffectiveWeight(1);
       this.playerIdleAction.time = 0;
+    }
+
+    if (this.playerJumpAction) {
+      this.playerJumpAction.setEffectiveWeight(0);
+      this.playerJumpAction.time = 0;
     }
   }
 
@@ -833,23 +1259,38 @@ export class ThirdPersonControllerApp {
   }
 
   updatePlayerAnimation(delta) {
-    if (!this.playerAnimationMixer || !this.playerWalkAction) {
+    if (!this.playerAnimationMixer) {
       return;
     }
 
-    const isSprinting = this.keyboardInput.isDown('ShiftLeft') || this.keyboardInput.isDown('ShiftRight');
-    const walkSpeed = Math.max(this.playerState.speed, 0.01);
-    const sprintMultiplier = this.playerState.sprintSpeed / walkSpeed;
-    this.playerWalkAction.setEffectiveTimeScale(isSprinting ? sprintMultiplier : 1);
+    const airborneBlendTarget = this.isGrounded ? 0 : 1;
+    let currentJumpWeight = 0;
+    if (this.playerJumpAction) {
+      currentJumpWeight = this.playerJumpAction.getEffectiveWeight();
+      const jumpBlendFactor = Math.min(1, delta * 12);
+      const nextJumpWeight = THREE.MathUtils.lerp(currentJumpWeight, airborneBlendTarget, jumpBlendFactor);
+      this.playerJumpAction.setEffectiveWeight(nextJumpWeight);
+      currentJumpWeight = nextJumpWeight;
+    }
 
-    const targetWalkWeight = this.hasMoveInput ? 1 : 0;
-    const currentWalkWeight = this.playerWalkAction.getEffectiveWeight();
-    const blendFactor = Math.min(1, delta * 10);
-    const nextWalkWeight = THREE.MathUtils.lerp(currentWalkWeight, targetWalkWeight, blendFactor);
+    if (this.playerWalkAction) {
+      const isSprinting = this.keyboardInput.isDown('ShiftLeft') || this.keyboardInput.isDown('ShiftRight');
+      const walkSpeed = Math.max(this.playerState.speed, 0.01);
+      const sprintMultiplier = this.playerState.sprintSpeed / walkSpeed;
+      this.playerWalkAction.setEffectiveTimeScale(isSprinting ? sprintMultiplier : 1);
 
-    this.playerWalkAction.setEffectiveWeight(nextWalkWeight);
-    if (this.playerIdleAction) {
-      this.playerIdleAction.setEffectiveWeight(1 - nextWalkWeight);
+      const targetWalkWeight = this.hasMoveInput ? 1 : 0;
+      const currentWalkWeight = this.playerWalkAction.getEffectiveWeight();
+      const blendFactor = Math.min(1, delta * 10);
+      const nextWalkWeight = THREE.MathUtils.lerp(currentWalkWeight, targetWalkWeight, blendFactor);
+
+      const groundedWeightScale = 1 - currentJumpWeight;
+      this.playerWalkAction.setEffectiveWeight(nextWalkWeight * groundedWeightScale);
+      if (this.playerIdleAction) {
+        this.playerIdleAction.setEffectiveWeight((1 - nextWalkWeight) * groundedWeightScale);
+      }
+    } else if (this.playerIdleAction) {
+      this.playerIdleAction.setEffectiveWeight(1 - currentJumpWeight);
     }
 
     this.playerAnimationMixer.update(delta);
