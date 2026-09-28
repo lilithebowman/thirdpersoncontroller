@@ -610,6 +610,41 @@ export class ThirdPersonControllerApp {
     return boneNames;
   }
 
+  collectCanonicalBoneNames(root) {
+    const names = new Set();
+    if (!root || typeof root.traverse !== 'function') {
+      return names;
+    }
+
+    root.traverse((child) => {
+      if (!child?.isBone || !child?.name) {
+        return;
+      }
+
+      const canonical = this.canonicalizeNodeName(child.name);
+      if (canonical) {
+        names.add(canonical);
+      }
+    });
+
+    return names;
+  }
+
+  computeSetOverlapRatio(sourceSet, targetSet) {
+    if (!(sourceSet instanceof Set) || sourceSet.size === 0 || !(targetSet instanceof Set) || targetSet.size === 0) {
+      return 0;
+    }
+
+    let intersection = 0;
+    for (const entry of sourceSet) {
+      if (targetSet.has(entry)) {
+        intersection += 1;
+      }
+    }
+
+    return intersection / Math.max(sourceSet.size, 1);
+  }
+
   getRootMotionTrackNames(clip) {
     if (!clip || !Array.isArray(clip.tracks)) {
       return new Set();
@@ -882,6 +917,7 @@ export class ThirdPersonControllerApp {
       const rigNodeNames = this.collectRigNodeNames(rigAsset);
       const rigNodeNameMap = this.collectRigNodeNameMap(rigAsset);
       const rigBoneNames = this.collectRigBoneNames(rigAsset);
+      const rigCanonicalBoneNames = this.collectCanonicalBoneNames(rigAsset);
 
       const rigClips = Array.isArray(rigAsset.animations) ? rigAsset.animations : [];
       const rigWalkClip = this.findAnimationClip(rigClips, walkClipName, /walk/i);
@@ -943,16 +979,27 @@ export class ThirdPersonControllerApp {
       if (jumpPath) {
         try {
           const jumpAsset = await this.loadFbxAsset(loader, jumpPath, resolvedBasePath);
+          const jumpCanonicalBoneNames = this.collectCanonicalBoneNames(jumpAsset.asset);
+          const jumpBoneOverlap = this.computeSetOverlapRatio(jumpCanonicalBoneNames, rigCanonicalBoneNames);
+
+          if (jumpBoneOverlap < 0.45) {
+            this.debugDisplay.LogWarning(
+              `Rejected jump asset ${jumpPath}: skeleton overlap ${(jumpBoneOverlap * 100).toFixed(1)}% is below 45%.`
+            );
+          }
+
           const jumpClips = Array.isArray(jumpAsset.asset.animations) ? jumpAsset.asset.animations : [];
           const externalJumpClip = this.findAnimationClip(jumpClips, jumpClipName, /jump/i);
-          const preparedJumpClip = this.prepareClipForRig(externalJumpClip, rigNodeNames, rigNodeNameMap, 'external jump', {
-            preferBoneTracks: true,
-            rigBoneNames,
-            stripRootPosition: true,
-            minQuaternionTracks: 8,
-          });
-          if (preparedJumpClip) {
-            this.playerJumpAnimationClip = preparedJumpClip;
+          if (jumpBoneOverlap >= 0.45) {
+            const preparedJumpClip = this.prepareClipForRig(externalJumpClip, rigNodeNames, rigNodeNameMap, 'external jump', {
+              preferBoneTracks: true,
+              rigBoneNames,
+              stripRootPosition: true,
+              minQuaternionTracks: 8,
+            });
+            if (preparedJumpClip) {
+              this.playerJumpAnimationClip = preparedJumpClip;
+            }
           }
         } catch (jumpError) {
           this.debugDisplay.LogWarning(`Failed to load jump animation ${jumpPath}. ${jumpError?.message ?? jumpError}`);
