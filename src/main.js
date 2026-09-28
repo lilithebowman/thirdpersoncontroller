@@ -7,11 +7,26 @@
 
 import './style.css';
 import { ThirdPersonControllerApp } from './ThirdPersonControllerApp.js';
+import { SceneEditorApp } from './SceneEditorApp.js';
 
-const app = new ThirdPersonControllerApp({
-  mountSelector: '#app',
-  manifestPath: '/scene-manifest.json',
-});
+const route = window.location.pathname.replace(/\/+$/, '') || '/';
+const isEditorRoute = route === '/editor';
+
+document.body.classList.toggle('scene-editor-route', isEditorRoute);
+
+document.title = isEditorRoute
+  ? 'Scene Editor - Third Person Controller'
+  : 'Third Person Controller Demo';
+
+const app = isEditorRoute
+  ? new SceneEditorApp({
+      mountSelector: '#app',
+      manifestPath: '/scene-manifest.json',
+    })
+  : new ThirdPersonControllerApp({
+      mountSelector: '#app',
+      manifestPath: '/scene-manifest.json',
+    });
 
 app.init().catch((error) => {
   if (app.debugDisplay && typeof app.debugDisplay.LogError === 'function') {
