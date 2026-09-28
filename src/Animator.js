@@ -470,6 +470,56 @@ export class Animator {
     return canonicalMap;
   }
 
+  collectRigBoneNames(root) {
+    const boneNames = new Set();
+    if (!root || typeof root.traverse !== 'function') {
+      return boneNames;
+    }
+
+    root.traverse((child) => {
+      if (child?.isBone && child?.name) {
+        boneNames.add(child.name);
+      }
+    });
+
+    return boneNames;
+  }
+
+  collectCanonicalBoneNames(root) {
+    const names = new Set();
+    if (!root || typeof root.traverse !== 'function') {
+      return names;
+    }
+
+    root.traverse((child) => {
+      if (!child?.isBone || !child?.name) {
+        return;
+      }
+
+      const canonical = this.canonicalizeNodeName(child.name);
+      if (canonical) {
+        names.add(canonical);
+      }
+    });
+
+    return names;
+  }
+
+  computeSetOverlapRatio(sourceSet, targetSet) {
+    if (!(sourceSet instanceof Set) || sourceSet.size === 0 || !(targetSet instanceof Set) || targetSet.size === 0) {
+      return 0;
+    }
+
+    let intersection = 0;
+    for (const entry of sourceSet) {
+      if (targetSet.has(entry)) {
+        intersection += 1;
+      }
+    }
+
+    return intersection / Math.max(sourceSet.size, 1);
+  }
+
   getRootMotionTrackNames(clip) {
     if (!clip || !Array.isArray(clip.tracks)) {
       return new Set();
