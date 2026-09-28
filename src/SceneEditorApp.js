@@ -56,14 +56,14 @@ export class SceneEditorApp {
       this.orbitControls.enabled = !event.value;
       if (event.value) {
         this.pushUndoSnapshot();
+      } else if (this.selectedNode) {
+        this.commitSelectedTransform();
       }
       this.requestRender();
     });
     this.transformControls.addEventListener('objectChange', () => {
       if (this.selectedNode) {
-        this.syncGameObjectTransformFromObject(this.selectedNode.record, this.selectedNode.object);
-        this.refreshHierarchy();
-        this.refreshInspector();
+        this.commitSelectedTransform({ preserveHistory: true });
         this.requestRender();
       }
     });
@@ -443,6 +443,20 @@ export class SceneEditorApp {
       THREE.MathUtils.radToDeg(object.rotation.z),
     ];
     record.transform.scale = [object.scale.x, object.scale.y, object.scale.z];
+  }
+
+  commitSelectedTransform({ preserveHistory = false } = {}) {
+    if (!this.selectedNode?.record || !this.selectedNode?.object) {
+      return;
+    }
+
+    if (!preserveHistory) {
+      this.pushUndoSnapshot();
+    }
+
+    this.syncGameObjectTransformFromObject(this.selectedNode.record, this.selectedNode.object);
+    this.refreshHierarchy();
+    this.refreshInspector();
   }
 
   refreshHierarchy() {
