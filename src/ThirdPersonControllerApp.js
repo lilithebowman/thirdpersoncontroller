@@ -39,6 +39,7 @@ export class ThirdPersonControllerApp {
     this.scene.fog = new THREE.Fog(0x8ecae6, this.fogNearDistance, this.fogFarDistance);
 
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.camera.rotation.order = 'YXZ';
     this.camera.position.set(0, 4.5, 8.5);
     this.minimumAdaptiveCameraFar = 10;
 
@@ -76,6 +77,8 @@ export class ThirdPersonControllerApp {
     this.mouseInput = new MouseInput({ domElement: this.renderer.domElement });
     this.cameraTarget = new THREE.Vector3();
     this.cameraPosition = new THREE.Vector3();
+    this.headWorldPosition = new THREE.Vector3();
+    this.cameraLookDirection = new THREE.Vector3(0, 0, -1);
     this.playerRotationQuaternion = new THREE.Quaternion();
     this.playerRotationAxis = new THREE.Vector3(0, 1, 0);
     this.playerLookNormal = new THREE.Vector3(0, 0, 1);
@@ -114,11 +117,17 @@ export class ThirdPersonControllerApp {
 
     this.cameraState = {
       yaw: 0,
+      pitch: 0,
       distance: 7.5,
       height: 4.5,
-      minDistance: 2.5,
+      minDistance: 0.35,
       maxDistance: 24,
       zoomStep: 0.01,
+      firstPersonDistanceThreshold: 0.5,
+      minPitch: THREE.MathUtils.degToRad(-85),
+      maxPitch: THREE.MathUtils.degToRad(85),
+      firstPersonNear: 0.02,
+      thirdPersonNear: 0.1,
     };
 
     this.materialCache = new Map();
@@ -164,6 +173,8 @@ export class ThirdPersonControllerApp {
     this.hitMarker.visible = false;
     this.scene.add(this.mouseBeam);
     this.scene.add(this.hitMarker);
+    this.playerHeadBone = null;
+    this.firstPersonFallbackHeadHeight = 1.6;
     this.isRunning = false;
     this.inputEnabledAt = 0;
 
@@ -221,8 +232,68 @@ export class ThirdPersonControllerApp {
       return fallback;
     });
     player.add(visual);
+    this.playerHeadBone = this.findHeadBone(player);
 
     return player;
+  }
+
+  findHeadBone(root) {
+    if (!root || typeof root.traverse !== 'function') {
+      return null;
+    }
+
+    let bestMatch = null;
+    root.traverse((child) => {
+      if (bestMatch || !child?.isBone || !child?.name) {
+        return;
+      }
+
+      const canonical = this.canonicalizeNodeName(child.name);
+      if (!canonical) {
+        return;
+      }
+
+      if (canonical.includes('head')) {
+        bestMatch = child;
+      }
+    });
+
+    return bestMatch;
+  }
+
+  isFirstPersonView() {
+    return this.cameraState.distance <= this.cameraState.firstPersonDistanceThreshold;
+  }
+
+  resolveFirstPersonHeadPosition(target = new THREE.Vector3()) {
+    if (this.playerHeadBone) {
+      this.playerHeadBone.getWorldPosition(target);
+      return target;
+    }
+
+    if (this.player) {
+      target.set(
+        this.player.position.x,
+        this.player.position.y + this.firstPersonFallbackHeadHeight,
+        this.player.position.z
+      );
+      return target;
+    }
+
+    return target.set(0, this.firstPersonFallbackHeadHeight, 0);
+  }
+
+  setCameraNearPlane(nextNear) {
+    if (!Number.isFinite(nextNear) || nextNear <= 0) {
+      return;
+    }
+
+    if (Math.abs(this.camera.near - nextNear) < 1e-4) {
+      return;
+    }
+
+    this.camera.near = nextNear;
+    this.camera.updateProjectionMatrix();
   }
 
   attachEvents() {
@@ -1173,7 +1244,13 @@ export class ThirdPersonControllerApp {
       this.cameraState.yaw = this.normalizeAngle(this.cameraState.yaw);
     }
 
-    if (Math.abs(deltaY) > 0) {
+    if (Math.abs(deltaY) > 0 && this.isFirstPersonView()) {
+      this.cameraState.pitch = THREE.MathUtils.clamp(
+        this.cameraState.pitch - deltaY * 0.0022,
+        this.cameraState.minPitch,
+        this.cameraState.maxPitch
+      );
+    } else if (Math.abs(deltaY) > 0) {
       this.cameraState.height = THREE.MathUtils.clamp(
         this.cameraState.height - deltaY * 0.01,
         2.4,
@@ -1318,6 +1395,22 @@ export class ThirdPersonControllerApp {
     if (!this.player) {
       return;
     }
+
+    this.cameraState.distance = THREE.MathUtils.clamp(
+      this.cameraState.distance,
+      this.cameraState.minDistance,
+      this.cameraState.maxDistance
+    );
+
+    if (this.isFirstPersonView()) {
+      this.setCameraNearPlane(this.cameraState.firstPersonNear);
+      this.resolveFirstPersonHeadPosition(this.headWorldPosition);
+      this.camera.position.copy(this.headWorldPosition);
+      this.camera.rotation.set(this.cameraState.pitch, this.cameraState.yaw, 0, 'YXZ');
+      return;
+    }
+
+    this.setCameraNearPlane(this.cameraState.thirdPersonNear);
 
     this.cameraPosition.set(
       Math.sin(this.cameraState.yaw) * this.cameraState.distance,
