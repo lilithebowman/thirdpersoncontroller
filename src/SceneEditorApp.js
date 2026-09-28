@@ -890,11 +890,8 @@ export class SceneEditorApp {
   animate() {
     requestAnimationFrame(this.animate);
     this.orbitControls.update();
-
-    if (this.isRendering) {
-      this.renderer.render(this.scene, this.camera);
-      this.isRendering = false;
-    }
+    this.renderer.render(this.scene, this.camera);
+    this.isRendering = false;
   }
 
   async importUnitySceneJson(text) {
