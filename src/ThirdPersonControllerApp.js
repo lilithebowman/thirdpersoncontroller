@@ -1415,10 +1415,15 @@ export class ThirdPersonControllerApp {
       this.playerTargetYaw = this.normalizeAngle(Math.atan2(move.x, move.z));
     }
 
-    const yawDelta = this.shortestAngleDelta(this.playerYaw, this.playerTargetYaw);
-    const yawStep = yawDelta * Math.min(1, delta * this.playerState.rotationSpeed);
-    this.playerYaw = this.normalizeAngle(this.playerYaw + yawStep);
-    this.playerTargetYaw = this.normalizeAngle(this.playerTargetYaw);
+    if (this.isFirstPersonView()) {
+      this.playerYaw = this.normalizeAngle(this.cameraState.yaw);
+      this.playerTargetYaw = this.playerYaw;
+    } else {
+      const yawDelta = this.shortestAngleDelta(this.playerYaw, this.playerTargetYaw);
+      const yawStep = yawDelta * Math.min(1, delta * this.playerState.rotationSpeed);
+      this.playerYaw = this.normalizeAngle(this.playerYaw + yawStep);
+      this.playerTargetYaw = this.normalizeAngle(this.playerTargetYaw);
+    }
 
     this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
     this.player.quaternion.copy(this.playerRotationQuaternion);

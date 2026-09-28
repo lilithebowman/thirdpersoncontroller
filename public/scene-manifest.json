@@ -1,6 +1,6 @@
 {
   "debug": {
-    "enabled": true
+    "enabled": false
   },
   "playerSpawns": [[300, -5, 0]],
   "player": {
