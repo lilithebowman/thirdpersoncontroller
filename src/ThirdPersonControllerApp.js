@@ -10,6 +10,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { Animator } from './Animator.js';
 import { KeyboardInput } from './KeyboardInput.js';
 import { MouseInput } from './MouseInput.js';
 import { DebugDisplay } from './DebugDisplay.js';
@@ -127,6 +128,11 @@ export class ThirdPersonControllerApp {
     this.distanceCullingHysteresis = 12;
     this.distanceCullables = [];
     this.debugDisplay = new DebugDisplay({ parentElement: this.app, enabled: false });
+    this.animator = new Animator({
+      resolveScenePath: this.resolveScenePath.bind(this),
+      configureMeshCulling: this.configureMeshCulling.bind(this),
+      debugDisplay: this.debugDisplay,
+    });
     this.respawnY = -1000;
     this.isPointerLocked = false;
     this.raycaster = new THREE.Raycaster();
@@ -195,49 +201,22 @@ export class ThirdPersonControllerApp {
 
   createPlayer() {
     const player = new THREE.Group();
-    const visual = this.playerModelTemplate
-      ? cloneSkinned(this.playerModelTemplate)
-      : this.createFallbackPlayerVisual();
+    const visual = this.animator.createPlayerVisual(() => {
+      const fallback = this.playerModelTemplate
+        ? cloneSkinned(this.playerModelTemplate)
+        : this.createFallbackPlayerVisual();
 
-    const { modelScale, modelRotationDegrees, modelOffset } = this.playerManifestConfig;
-    visual.scale.copy(modelScale);
-    visual.rotation.set(
-      THREE.MathUtils.degToRad(modelRotationDegrees.x),
-      THREE.MathUtils.degToRad(modelRotationDegrees.y),
-      THREE.MathUtils.degToRad(modelRotationDegrees.z)
-    );
-    visual.position.copy(modelOffset);
+      const { modelScale, modelRotationDegrees, modelOffset } = this.playerManifestConfig;
+      fallback.scale.copy(modelScale);
+      fallback.rotation.set(
+        THREE.MathUtils.degToRad(modelRotationDegrees.x),
+        THREE.MathUtils.degToRad(modelRotationDegrees.y),
+        THREE.MathUtils.degToRad(modelRotationDegrees.z)
+      );
+      fallback.position.copy(modelOffset);
+      return fallback;
+    });
     player.add(visual);
-
-    this.playerAnimationMixer = null;
-    this.playerWalkAction = null;
-    this.playerIdleAction = null;
-    this.playerJumpAction = null;
-
-    if (this.playerWalkAnimationClip || this.playerIdleAnimationClip || this.playerJumpAnimationClip) {
-      this.playerAnimationMixer = new THREE.AnimationMixer(visual);
-      if (this.playerWalkAnimationClip) {
-        this.playerWalkAction = this.playerAnimationMixer.clipAction(this.playerWalkAnimationClip);
-        this.playerWalkAction.play();
-        this.playerWalkAction.enabled = true;
-        this.playerWalkAction.setEffectiveWeight(0);
-      }
-
-      if (this.playerIdleAnimationClip) {
-        this.playerIdleAction = this.playerAnimationMixer.clipAction(this.playerIdleAnimationClip);
-        this.playerIdleAction.play();
-        this.playerIdleAction.enabled = true;
-        this.playerIdleAction.setEffectiveWeight(1);
-      }
-
-      if (this.playerJumpAnimationClip) {
-        this.playerJumpAction = this.playerAnimationMixer.clipAction(this.playerJumpAnimationClip);
-        this.playerJumpAction.play();
-        this.playerJumpAction.enabled = true;
-        this.playerJumpAction.setEffectiveWeight(0);
-        this.playerJumpAction.clampWhenFinished = false;
-      }
-    }
 
     return player;
   }
@@ -501,6 +480,8 @@ export class ThirdPersonControllerApp {
 
     this.playerCollider.setSize(colliderSize);
     this.playerCollider.offset.copy(colliderOffset);
+
+    this.animator.applyModelConfig(modelConfig, basePath);
 
     if (typeof colliderConfig.physicsCollision === 'boolean') {
       this.playerCollider.physicsCollision = colliderConfig.physicsCollision;
@@ -1067,6 +1048,8 @@ export class ThirdPersonControllerApp {
       this.playerJumpAction.setEffectiveWeight(0);
       this.playerJumpAction.time = 0;
     }
+
+    this.animator.resetActions();
   }
 
   toVector3(values, fallback = new THREE.Vector3()) {
@@ -1306,41 +1289,13 @@ export class ThirdPersonControllerApp {
   }
 
   updatePlayerAnimation(delta) {
-    if (!this.playerAnimationMixer) {
-      return;
-    }
-
-    const airborneBlendTarget = this.isGrounded ? 0 : 1;
-    let currentJumpWeight = 0;
-    if (this.playerJumpAction) {
-      currentJumpWeight = this.playerJumpAction.getEffectiveWeight();
-      const jumpBlendFactor = Math.min(1, delta * 12);
-      const nextJumpWeight = THREE.MathUtils.lerp(currentJumpWeight, airborneBlendTarget, jumpBlendFactor);
-      this.playerJumpAction.setEffectiveWeight(nextJumpWeight);
-      currentJumpWeight = nextJumpWeight;
-    }
-
-    if (this.playerWalkAction) {
-      const isSprinting = this.keyboardInput.isDown('ShiftLeft') || this.keyboardInput.isDown('ShiftRight');
-      const walkSpeed = Math.max(this.playerState.speed, 0.01);
-      const sprintMultiplier = this.playerState.sprintSpeed / walkSpeed;
-      this.playerWalkAction.setEffectiveTimeScale(isSprinting ? sprintMultiplier : 1);
-
-      const targetWalkWeight = this.hasMoveInput ? 1 : 0;
-      const currentWalkWeight = this.playerWalkAction.getEffectiveWeight();
-      const blendFactor = Math.min(1, delta * 10);
-      const nextWalkWeight = THREE.MathUtils.lerp(currentWalkWeight, targetWalkWeight, blendFactor);
-
-      const groundedWeightScale = 1 - currentJumpWeight;
-      this.playerWalkAction.setEffectiveWeight(nextWalkWeight * groundedWeightScale);
-      if (this.playerIdleAction) {
-        this.playerIdleAction.setEffectiveWeight((1 - nextWalkWeight) * groundedWeightScale);
-      }
-    } else if (this.playerIdleAction) {
-      this.playerIdleAction.setEffectiveWeight(1 - currentJumpWeight);
-    }
-
-    this.playerAnimationMixer.update(delta);
+    this.animator.update(delta, {
+      isGrounded: this.isGrounded,
+      hasMoveInput: this.hasMoveInput,
+      isSprinting: this.keyboardInput.isDown('ShiftLeft') || this.keyboardInput.isDown('ShiftRight'),
+      walkSpeed: this.playerState.speed,
+      sprintSpeed: this.playerState.sprintSpeed,
+    });
   }
 
   updateCamera() {
@@ -1847,7 +1802,7 @@ export class ThirdPersonControllerApp {
 
     this.applyPerformanceConfig(manifest);
     this.applyPlayerConfig(manifest, resolvedPath);
-    await this.preloadPlayerModel();
+    await this.animator.preload();
 
     if (!spawnPosition) {
       const message = 'No valid player spawns were defined in scene-manifest.json under playerSpawns.';
