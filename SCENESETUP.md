@@ -14,6 +14,20 @@ This document explains how to configure `public/scene-manifest.json` for the thi
     "enabled": true
   },
   "playerSpawns": [[0, 0, 0]],
+  "player": {
+    "model": {
+      "path": "/animations/Action%20Adventure%20Pack/walking.fbx",
+      "idlePath": "/animations/Action%20Adventure%20Pack/idle.fbx",
+      "scale": [0.01, 0.01, 0.01],
+      "rotation": [0, 180, 0],
+      "offset": [0, 0, 0]
+    },
+    "collider": {
+      "size": [0.9, 1.9, 0.9],
+      "offset": [0, 0.95, 0],
+      "physicsCollision": true
+    }
+  },
   "controller": {
     "jumpImpulse": 8.8,
     "physics": {
@@ -44,6 +58,14 @@ Example:
 ```json
 "playerSpawns": [[0, 0, 0], [4, 0, -2]]
 ```
+
+### `player`
+
+- `player.model.path` points to the rigged character FBX used for rendering.
+- `player.model.idlePath` optionally points to a separate FBX clip used for idle animation fallback.
+- `player.model.scale`, `rotation`, and `offset` control how the model is attached to the controller root.
+- `player.collider.size` and `player.collider.offset` configure the player physics body dimensions.
+- `player.collider.physicsCollision` toggles whether player collider resolves against world colliders.
 
 ### `objects`
 

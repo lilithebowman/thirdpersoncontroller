@@ -6,8 +6,10 @@
  */
 
 import * as THREE from 'three';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { KeyboardInput } from './KeyboardInput.js';
 import { MouseInput } from './MouseInput.js';
 import { DebugDisplay } from './DebugDisplay.js';
@@ -47,6 +49,21 @@ export class ThirdPersonControllerApp {
     this.app.appendChild(this.renderer.domElement);
 
     this.player = null;
+    this.playerModelTemplate = null;
+    this.playerWalkAnimationClip = null;
+    this.playerIdleAnimationClip = null;
+    this.playerAnimationMixer = null;
+    this.playerWalkAction = null;
+    this.playerIdleAction = null;
+    this.playerManifestConfig = {
+      modelPath: '/animations/Action%20Adventure%20Pack/walking.fbx',
+      idlePath: '/animations/Action%20Adventure%20Pack/idle.fbx',
+      modelScale: new THREE.Vector3(0.01, 0.01, 0.01),
+      modelRotationDegrees: new THREE.Vector3(0, 180, 0),
+      modelOffset: new THREE.Vector3(0, 0, 0),
+      walkClipName: null,
+      idleClipName: null,
+    };
 
     this.clock = new THREE.Clock();
     this.keyboardInput = new KeyboardInput();
@@ -148,8 +165,8 @@ export class ThirdPersonControllerApp {
     this.attachEvents();
   }
 
-  createPlayer() {
-    const player = new THREE.Group();
+  createFallbackPlayerVisual() {
+    const visual = new THREE.Group();
 
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(1, 1, 1),
@@ -158,7 +175,7 @@ export class ThirdPersonControllerApp {
     body.position.y = 0.55;
     body.castShadow = true;
     body.receiveShadow = true;
-    player.add(body);
+    visual.add(body);
 
     const head = new THREE.Mesh(
       new THREE.BoxGeometry(0.6, 0.6, 0.6),
@@ -166,7 +183,45 @@ export class ThirdPersonControllerApp {
     );
     head.position.y = 1.3;
     head.castShadow = true;
-    player.add(head);
+    visual.add(head);
+
+    return visual;
+  }
+
+  createPlayer() {
+    const player = new THREE.Group();
+    const visual = this.playerModelTemplate
+      ? cloneSkinned(this.playerModelTemplate)
+      : this.createFallbackPlayerVisual();
+
+    const { modelScale, modelRotationDegrees, modelOffset } = this.playerManifestConfig;
+    visual.scale.copy(modelScale);
+    visual.rotation.set(
+      THREE.MathUtils.degToRad(modelRotationDegrees.x),
+      THREE.MathUtils.degToRad(modelRotationDegrees.y),
+      THREE.MathUtils.degToRad(modelRotationDegrees.z)
+    );
+    visual.position.copy(modelOffset);
+    player.add(visual);
+
+    this.playerAnimationMixer = null;
+    this.playerWalkAction = null;
+    this.playerIdleAction = null;
+
+    if (this.playerWalkAnimationClip) {
+      this.playerAnimationMixer = new THREE.AnimationMixer(visual);
+      this.playerWalkAction = this.playerAnimationMixer.clipAction(this.playerWalkAnimationClip);
+      this.playerWalkAction.play();
+      this.playerWalkAction.enabled = true;
+      this.playerWalkAction.setEffectiveWeight(0);
+
+      if (this.playerIdleAnimationClip) {
+        this.playerIdleAction = this.playerAnimationMixer.clipAction(this.playerIdleAnimationClip);
+        this.playerIdleAction.play();
+        this.playerIdleAction.enabled = true;
+        this.playerIdleAction.setEffectiveWeight(1);
+      }
+    }
 
     return player;
   }
@@ -386,19 +441,159 @@ export class ThirdPersonControllerApp {
     return null;
   }
 
-  spawnPlayerAt(spawnPosition) {
-    if (this.player) {
-      this.scene.remove(this.player);
+  applyPlayerConfig(manifest, basePath) {
+    const playerConfig = manifest.player ?? {};
+    const modelConfig = playerConfig.model ?? {};
+    const colliderConfig = playerConfig.collider ?? {};
+    const configuredPath = typeof modelConfig.path === 'string' && modelConfig.path.trim()
+      ? modelConfig.path.trim()
+      : '/animations/Action%20Adventure%20Pack/walking.fbx';
+    const configuredIdlePath = typeof modelConfig.idlePath === 'string' && modelConfig.idlePath.trim()
+      ? modelConfig.idlePath.trim()
+      : '/animations/Action%20Adventure%20Pack/idle.fbx';
+    const colliderSize = this.toVector3(colliderConfig.size, new THREE.Vector3(0.9, 1.9, 0.9));
+    const colliderOffset = this.toVector3(colliderConfig.offset, new THREE.Vector3(0, 0.95, 0));
+
+    this.playerManifestConfig = {
+      modelPath: configuredPath,
+      idlePath: configuredIdlePath,
+      modelScale: this.toVector3(modelConfig.scale, new THREE.Vector3(0.01, 0.01, 0.01)),
+      modelRotationDegrees: this.toVector3(modelConfig.rotation, new THREE.Vector3(0, 180, 0)),
+      modelOffset: this.toVector3(modelConfig.offset, new THREE.Vector3(0, 0, 0)),
+      walkClipName: typeof modelConfig.walkClipName === 'string' && modelConfig.walkClipName.trim()
+        ? modelConfig.walkClipName.trim()
+        : null,
+      idleClipName: typeof modelConfig.idleClipName === 'string' && modelConfig.idleClipName.trim()
+        ? modelConfig.idleClipName.trim()
+        : null,
+      resolvedBasePath: basePath,
+    };
+
+    this.playerCollider.setSize(colliderSize);
+    this.playerCollider.offset.copy(colliderOffset);
+
+    if (typeof colliderConfig.physicsCollision === 'boolean') {
+      this.playerCollider.physicsCollision = colliderConfig.physicsCollision;
     }
 
-    this.player = this.createPlayer();
+    this.debugDisplay.Log(
+      `Player collider: size=(${colliderSize.x.toFixed(2)}, ${colliderSize.y.toFixed(2)}, ${colliderSize.z.toFixed(2)}), offset=(${colliderOffset.x.toFixed(2)}, ${colliderOffset.y.toFixed(2)}, ${colliderOffset.z.toFixed(2)}), collision=${this.playerCollider.physicsCollision}`
+    );
+  }
+
+  findAnimationClip(clips, preferredName, fallbackNamePattern) {
+    if (!Array.isArray(clips) || clips.length === 0) {
+      return null;
+    }
+
+    if (preferredName) {
+      const namedClip = THREE.AnimationClip.findByName(clips, preferredName);
+      if (namedClip) {
+        return namedClip;
+      }
+    }
+
+    if (fallbackNamePattern) {
+      const patternClip = clips.find((clip) => fallbackNamePattern.test(clip?.name ?? ''));
+      if (patternClip) {
+        return patternClip;
+      }
+    }
+
+    return clips[0];
+  }
+
+  async preloadPlayerModel() {
+    this.playerModelTemplate = null;
+    this.playerWalkAnimationClip = null;
+    this.playerIdleAnimationClip = null;
+
+    const {
+      modelPath,
+      idlePath,
+      resolvedBasePath,
+      walkClipName,
+      idleClipName,
+    } = this.playerManifestConfig;
+    if (!modelPath) {
+      return;
+    }
+
+    try {
+      const loader = new FBXLoader();
+      const resolvedPath = this.resolveScenePath(modelPath, resolvedBasePath ?? this.manifestPath);
+      const model = await loader.loadAsync(resolvedPath);
+
+      model.traverse((child) => {
+        if (!child?.isMesh && !child?.isSkinnedMesh) {
+          return;
+        }
+
+        child.castShadow = true;
+        child.receiveShadow = true;
+      });
+
+      this.configureMeshCulling(model);
+      this.playerModelTemplate = model;
+
+      const availableClips = Array.isArray(model.animations) ? model.animations : [];
+      this.playerWalkAnimationClip = this.findAnimationClip(availableClips, walkClipName, /walk/i);
+      this.playerIdleAnimationClip = this.findAnimationClip(availableClips, idleClipName, /idle/i);
+
+      if (idlePath) {
+        try {
+          const resolvedIdlePath = this.resolveScenePath(idlePath, resolvedBasePath ?? this.manifestPath);
+          const idleAsset = await loader.loadAsync(resolvedIdlePath);
+          const idleClips = Array.isArray(idleAsset.animations) ? idleAsset.animations : [];
+          const externalIdleClip = this.findAnimationClip(idleClips, idleClipName, /idle/i);
+          if (externalIdleClip) {
+            this.playerIdleAnimationClip = externalIdleClip;
+          }
+        } catch (idleError) {
+          this.debugDisplay.LogWarning(`Failed to load idle animation ${idlePath}. ${idleError?.message ?? idleError}`);
+        }
+      }
+
+      if (!this.playerIdleAnimationClip && this.playerWalkAnimationClip) {
+        this.playerIdleAnimationClip = this.playerWalkAnimationClip;
+      }
+
+      this.debugDisplay.Log(`Loaded player model ${modelPath}.`);
+    } catch (error) {
+      this.debugDisplay.LogWarning(`Failed to load player model ${modelPath}. Falling back to primitive avatar. ${error?.message ?? error}`);
+    }
+  }
+
+  spawnPlayerAt(spawnPosition, { recreate = false } = {}) {
+    if (!this.player || recreate) {
+      if (this.player) {
+        this.scene.remove(this.player);
+      }
+
+      this.player = this.createPlayer();
+      this.scene.add(this.player);
+    }
+
     this.player.position.copy(spawnPosition);
     this.playerYaw = 0;
     this.playerTargetYaw = 0;
     this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
     this.player.quaternion.copy(this.playerRotationQuaternion);
     this.playerRigidbody.velocity.set(0, 0, 0);
-    this.scene.add(this.player);
+
+    if (this.playerAnimationMixer) {
+      this.playerAnimationMixer.setTime(0);
+    }
+
+    if (this.playerWalkAction) {
+      this.playerWalkAction.setEffectiveWeight(0);
+      this.playerWalkAction.time = 0;
+    }
+
+    if (this.playerIdleAction) {
+      this.playerIdleAction.setEffectiveWeight(1);
+      this.playerIdleAction.time = 0;
+    }
   }
 
   toVector3(values, fallback = new THREE.Vector3()) {
@@ -637,6 +832,29 @@ export class ThirdPersonControllerApp {
     });
   }
 
+  updatePlayerAnimation(delta) {
+    if (!this.playerAnimationMixer || !this.playerWalkAction) {
+      return;
+    }
+
+    const isSprinting = this.keyboardInput.isDown('ShiftLeft') || this.keyboardInput.isDown('ShiftRight');
+    const walkSpeed = Math.max(this.playerState.speed, 0.01);
+    const sprintMultiplier = this.playerState.sprintSpeed / walkSpeed;
+    this.playerWalkAction.setEffectiveTimeScale(isSprinting ? sprintMultiplier : 1);
+
+    const targetWalkWeight = this.hasMoveInput ? 1 : 0;
+    const currentWalkWeight = this.playerWalkAction.getEffectiveWeight();
+    const blendFactor = Math.min(1, delta * 10);
+    const nextWalkWeight = THREE.MathUtils.lerp(currentWalkWeight, targetWalkWeight, blendFactor);
+
+    this.playerWalkAction.setEffectiveWeight(nextWalkWeight);
+    if (this.playerIdleAction) {
+      this.playerIdleAction.setEffectiveWeight(1 - nextWalkWeight);
+    }
+
+    this.playerAnimationMixer.update(delta);
+  }
+
   updateCamera() {
     if (!this.player) {
       return;
@@ -718,6 +936,11 @@ export class ThirdPersonControllerApp {
 
     for (const entry of this.distanceCullables) {
       if (!entry?.root) {
+        continue;
+      }
+
+      if (entry.ignoreCulling) {
+        entry.root.visible = true;
         continue;
       }
 
@@ -823,8 +1046,12 @@ export class ThirdPersonControllerApp {
     });
   }
 
-  registerDistanceCullable(root, sceneKey = null) {
+  registerDistanceCullable(root, sceneKey = null, { ignoreCulling = false } = {}) {
     if (!this.distanceCullingEnabled || !root) {
+      return;
+    }
+
+    if (ignoreCulling) {
       return;
     }
 
@@ -843,11 +1070,16 @@ export class ThirdPersonControllerApp {
       center: boundingSphere.center.clone(),
       radius: boundingSphere.radius,
       sceneKey,
+      ignoreCulling,
     });
   }
 
-  registerDistanceCullablesForObj(root, sceneKey = null) {
+  registerDistanceCullablesForObj(root, sceneKey = null, { ignoreCulling = false } = {}) {
     if (!this.distanceCullingEnabled || !root || typeof root.traverse !== 'function') {
+      return;
+    }
+
+    if (ignoreCulling) {
       return;
     }
 
@@ -856,7 +1088,7 @@ export class ThirdPersonControllerApp {
         return;
       }
 
-      this.registerDistanceCullable(child, sceneKey);
+      this.registerDistanceCullable(child, sceneKey, { ignoreCulling });
     });
   }
 
@@ -919,7 +1151,7 @@ export class ThirdPersonControllerApp {
           }
 
           if (item.type !== 'floor') {
-            this.registerDistanceCullable(mesh, sceneKey);
+            this.registerDistanceCullable(mesh, sceneKey, { ignoreCulling: item.ignoreCulling === true });
           }
 
           if (item.type === 'floor') {
@@ -983,7 +1215,7 @@ export class ThirdPersonControllerApp {
         this.scene.add(model);
       }
 
-      this.registerDistanceCullablesForObj(model, sceneKey);
+      this.registerDistanceCullablesForObj(model, sceneKey, { ignoreCulling: item.ignoreCulling === true });
       this.registerColliderFromManifestItem(item, this.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), {
         mesh: model,
         sceneKey,
@@ -1126,13 +1358,15 @@ export class ThirdPersonControllerApp {
     this.loadedSubScenePaths.clear();
 
     this.applyPerformanceConfig(manifest);
+    this.applyPlayerConfig(manifest, resolvedPath);
+    await this.preloadPlayerModel();
 
     if (!spawnPosition) {
       const message = 'No valid player spawns were defined in scene-manifest.json under playerSpawns.';
       console.error(message);
       this.debugDisplay.LogError(message);
     } else {
-      this.spawnPlayerAt(spawnPosition);
+      this.spawnPlayerAt(spawnPosition, { recreate: true });
       this.debugDisplay.Log(`Spawned player at (${spawnPosition.x.toFixed(2)}, ${spawnPosition.y.toFixed(2)}, ${spawnPosition.z.toFixed(2)}).`);
     }
 
@@ -1266,6 +1500,7 @@ export class ThirdPersonControllerApp {
     this.updateMouseLook();
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta);
+    this.updatePlayerAnimation(delta);
     this.updateCamera();
     this.updateSceneStreams();
     this.updateDistanceCulling();
