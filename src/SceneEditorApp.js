@@ -31,6 +31,7 @@ export class SceneEditorApp {
     this.toolbarRoot = this.mount.querySelector('[data-role="toolbar-root"]');
     this.statusRoot = this.mount.querySelector('[data-role="status-root"]');
     this.jsonInput = this.mount.querySelector('[data-role="json-input"]');
+    this.hierarchyContextMenuRoot = this.mount.querySelector('[data-role="hierarchy-context-menu"]');
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x18212f);
@@ -100,20 +101,25 @@ export class SceneEditorApp {
     this.historyLimit = 10;
     this.isRestoringHistory = false;
     this.isRendering = false;
+    this.hierarchyContextMenuRecordId = null;
 
     this.onResize = this.onResize.bind(this);
     this.onPointerDown = this.onPointerDown.bind(this);
     this.onSceneWheel = this.onSceneWheel.bind(this);
     this.onKeyDown = this.onKeyDown.bind(this);
+    this.onDocumentPointerDown = this.onDocumentPointerDown.bind(this);
     this.animate = this.animate.bind(this);
 
     window.addEventListener('resize', this.onResize);
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
     this.viewportRoot.addEventListener('wheel', this.onSceneWheel, { passive: false });
     window.addEventListener('keydown', this.onKeyDown);
+    document.addEventListener('pointerdown', this.onDocumentPointerDown, true);
+    window.addEventListener('blur', () => this.closeHierarchyContextMenu());
 
     this.setTransformMode('translate');
     this.bindToolbarActions();
+    this.bindHierarchyContextMenuActions();
   }
 
   createShell() {
@@ -157,6 +163,7 @@ export class SceneEditorApp {
           <div class="scene-editor-panel__body" data-role="inspector-root"></div>
         </aside>
       </main>
+      <div class="scene-editor-context-menu" data-role="hierarchy-context-menu" hidden></div>
     `;
 
     return shell;
@@ -200,6 +207,80 @@ export class SceneEditorApp {
     });
   }
 
+  bindHierarchyContextMenuActions() {
+    this.hierarchyContextMenuRoot.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+    });
+
+    this.hierarchyContextMenuRoot.addEventListener('click', async (event) => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) {
+        return;
+      }
+
+      const action = button.dataset.action;
+      const recordId = this.hierarchyContextMenuRecordId;
+      this.closeHierarchyContextMenu();
+
+      if (!recordId) {
+        return;
+      }
+
+      if (action === 'add-child-obj') await this.addChildGameObject(recordId, 'obj');
+      if (action === 'add-child-primitive') await this.addChildGameObject(recordId, 'primitive');
+      if (action === 'clone') await this.cloneGameObjectById(recordId);
+      if (action === 'delete') this.confirmDeleteSelectedGameObject(this.findRecordById(recordId, this.currentManifest.gameObjects ?? []));
+    });
+  }
+
+  onDocumentPointerDown(event) {
+    if (this.hierarchyContextMenuRoot.hidden) {
+      return;
+    }
+
+    if (this.hierarchyContextMenuRoot.contains(event.target)) {
+      return;
+    }
+
+    this.closeHierarchyContextMenu();
+  }
+
+  openHierarchyContextMenu(clientX, clientY, record) {
+    if (!record || !this.hierarchyContextMenuRoot) {
+      return;
+    }
+
+    this.hierarchyContextMenuRecordId = record.id;
+    this.hierarchyContextMenuRoot.innerHTML = `
+      <button type="button" data-action="add-child-obj">Add Child OBJ</button>
+      <button type="button" data-action="add-child-primitive">Add Child Primitive</button>
+      <button type="button" data-action="clone">Clone</button>
+      <button type="button" data-action="delete">Delete</button>
+    `;
+
+    this.hierarchyContextMenuRoot.hidden = false;
+    const menuRect = this.hierarchyContextMenuRoot.getBoundingClientRect();
+    const clampPadding = 8;
+    const maxLeft = window.innerWidth - menuRect.width - clampPadding;
+    const maxTop = window.innerHeight - menuRect.height - clampPadding;
+    const left = Math.min(Math.max(clientX, clampPadding), Math.max(clampPadding, maxLeft));
+    const top = Math.min(Math.max(clientY, clampPadding), Math.max(clampPadding, maxTop));
+
+    this.hierarchyContextMenuRoot.style.left = `${left}px`;
+    this.hierarchyContextMenuRoot.style.top = `${top}px`;
+  }
+
+  closeHierarchyContextMenu() {
+    if (!this.hierarchyContextMenuRoot) {
+      return;
+    }
+
+    this.hierarchyContextMenuRoot.hidden = true;
+    this.hierarchyContextMenuRoot.style.left = '';
+    this.hierarchyContextMenuRoot.style.top = '';
+    this.hierarchyContextMenuRecordId = null;
+  }
+
   setStatus(message) {
     if (this.statusRoot) {
       this.statusRoot.textContent = message;
@@ -239,6 +320,9 @@ export class SceneEditorApp {
   }
 
   async rebuildSceneGraph() {
+    this.transformControls.detach();
+    this.selectedNode = null;
+
     for (const child of [...this.scene.children]) {
       if (child === this.transformControlsHelper || child === this.grid || child === this.ambientLight || child === this.directionalLight) {
         continue;
@@ -269,6 +353,7 @@ export class SceneEditorApp {
     group.userData.gameObjectId = record.id;
     group.userData.gameObjectRecord = record;
     parentObject.add(group);
+    this.gameObjectMap.set(record.id, group);
 
     this.applyTransformToObject(group, record.transform);
 
@@ -475,6 +560,7 @@ export class SceneEditorApp {
     }
 
     this.hierarchyRoot.innerHTML = '';
+    this.closeHierarchyContextMenu();
     const list = document.createElement('div');
     list.className = 'scene-editor-tree';
 
@@ -492,6 +578,11 @@ export class SceneEditorApp {
     node.style.paddingLeft = `${12 + depth * 16}px`;
     node.textContent = record.name;
     node.addEventListener('click', () => this.selectGameObject(record));
+    node.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      this.selectGameObject(record, { frameSelection: false });
+      this.openHierarchyContextMenu(event.clientX, event.clientY, record);
+    });
 
     const wrapper = document.createElement('div');
     wrapper.className = 'scene-editor-tree__group';
@@ -515,6 +606,7 @@ export class SceneEditorApp {
     }
 
     this.selectedNode = { record, object: node };
+    this.closeHierarchyContextMenu();
     this.transformControls.attach(node);
     this.refreshInspector();
     this.refreshHierarchy();
@@ -884,6 +976,11 @@ export class SceneEditorApp {
       return;
     }
 
+    if (event.code === 'Escape') {
+      this.closeHierarchyContextMenu();
+      return;
+    }
+
     if (event.code === 'Delete') {
       event.preventDefault();
       this.confirmDeleteSelectedGameObject();
@@ -919,20 +1016,104 @@ export class SceneEditorApp {
     }
   }
 
-  confirmDeleteSelectedGameObject() {
-    const selectedRecord = this.selectedNode?.record;
-    if (!selectedRecord) {
+  confirmDeleteSelectedGameObject(record = this.selectedNode?.record) {
+    if (!record) {
       this.setStatus('Select a GameObject before deleting.');
       return;
     }
 
-    const shouldDelete = window.confirm(`Delete \"${selectedRecord.name}\" from the hierarchy?`);
+    const shouldDelete = window.confirm(`Delete \"${record.name}\" from the hierarchy?`);
     if (!shouldDelete) {
       this.setStatus('Delete canceled.');
       return;
     }
 
-    this.deleteGameObjectById(selectedRecord.id);
+    this.deleteGameObjectById(record.id);
+  }
+
+  async addChildGameObject(parentRecordId, kind) {
+    const parentRecord = this.findRecordById(parentRecordId, this.currentManifest.gameObjects ?? []);
+    if (!parentRecord) {
+      return;
+    }
+
+    this.pushUndoSnapshot();
+
+    const childRecord = this.createNewGameObject(kind);
+    childRecord.transform = {
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+    };
+
+    parentRecord.children = [...(parentRecord.children ?? []), childRecord];
+    this.currentManifest.objects = gameObjectsToLegacyObjects(this.currentManifest.gameObjects);
+
+    await this.rebuildSceneGraph();
+    this.refreshHierarchy();
+
+    const nextSelection = this.findRecordById(childRecord.id, this.currentManifest.gameObjects ?? []);
+    if (nextSelection) {
+      this.selectGameObject(nextSelection, { frameSelection: true });
+    } else {
+      this.requestRender();
+    }
+  }
+
+  async cloneGameObjectById(recordId) {
+    const location = this.findRecordLocationById(recordId, this.currentManifest.gameObjects ?? []);
+    if (!location) {
+      return;
+    }
+
+    this.pushUndoSnapshot();
+
+    const clone = this.cloneGameObjectRecord(location.record);
+    clone.name = this.createUniqueGameObjectName(`${location.record.name} Copy`);
+    location.list.splice(location.index + 1, 0, clone);
+
+    this.currentManifest.objects = gameObjectsToLegacyObjects(this.currentManifest.gameObjects);
+
+    await this.rebuildSceneGraph();
+    this.refreshHierarchy();
+
+    const nextSelection = this.findRecordById(clone.id, this.currentManifest.gameObjects ?? []);
+    if (nextSelection) {
+      this.selectGameObject(nextSelection, { frameSelection: true });
+    } else {
+      this.requestRender();
+    }
+  }
+
+  findRecordLocationById(recordId, items) {
+    const search = (list) => {
+      for (let index = 0; index < list.length; index += 1) {
+        const item = list[index];
+        if (item.id === recordId) {
+          return { list, index, record: item };
+        }
+
+        const childMatch = search(item.children ?? []);
+        if (childMatch) {
+          return childMatch;
+        }
+      }
+
+      return null;
+    };
+
+    return search(items ?? []);
+  }
+
+  cloneGameObjectRecord(record) {
+    const clone = JSON.parse(JSON.stringify(record));
+    const assignIds = (item) => {
+      item.id = `clone-${crypto.randomUUID()}`;
+      item.children = (item.children ?? []).map((child) => assignIds(child));
+      return item;
+    };
+
+    return assignIds(clone);
   }
 
   async deleteGameObjectById(recordId) {

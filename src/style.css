@@ -313,6 +313,41 @@ canvas {
   background: rgba(140, 194, 236, 0.13);
 }
 
+.scene-editor-context-menu {
+  position: fixed;
+  z-index: 140;
+  display: grid;
+  gap: 6px;
+  min-width: 190px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(8, 14, 22, 0.96);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.scene-editor-context-menu[hidden] {
+  display: none;
+}
+
+.scene-editor-context-menu button {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e9f6ff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.scene-editor-context-menu button:hover {
+  border-color: rgba(140, 194, 236, 0.38);
+  background: rgba(140, 194, 236, 0.16);
+}
+
 .scene-editor-empty-state {
   padding: 16px;
   border: 1px dashed rgba(255, 255, 255, 0.14);
