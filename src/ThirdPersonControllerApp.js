@@ -183,7 +183,9 @@ export class ThirdPersonControllerApp {
     this.scene.add(this.mouseBeam);
     this.scene.add(this.hitMarker);
     this.playerHeadBone = null;
+    this.playerEyeBones = [];
     this.firstPersonFallbackHeadHeight = 1.6;
+    this.firstPersonHeadForwardOffset = 0.08;
     this.isRunning = false;
     this.inputEnabledAt = 0;
 
@@ -242,6 +244,7 @@ export class ThirdPersonControllerApp {
     });
     player.add(visual);
     this.playerHeadBone = this.findHeadBone(player);
+    this.playerEyeBones = this.findEyeBones(player);
     this.firstPersonHeadOverrideActive = false;
 
     if (this.playerHeadBone) {
@@ -275,13 +278,69 @@ export class ThirdPersonControllerApp {
     return bestMatch;
   }
 
+  findEyeBones(root) {
+    if (!root || typeof root.traverse !== 'function') {
+      return [];
+    }
+
+    const eyeBones = [];
+    root.traverse((child) => {
+      if (!child?.isBone || !child?.name) {
+        return;
+      }
+
+      const canonical = this.canonicalizeNodeName(child.name);
+      if (!canonical) {
+        return;
+      }
+
+      const looksLikeEye = canonical.includes('eye')
+        && !canonical.includes('eyelid')
+        && !canonical.includes('eyebrow');
+
+      if (looksLikeEye) {
+        eyeBones.push(child);
+      }
+    });
+
+    return eyeBones;
+  }
+
   isFirstPersonView() {
     return this.cameraState.distance <= this.cameraState.firstPersonDistanceThreshold;
   }
 
-  resolveFirstPersonHeadPosition(target = new THREE.Vector3()) {
+  computeFirstPersonLookDirection(target = new THREE.Vector3()) {
+    const pitch = this.cameraState.pitch;
+    const yaw = this.cameraState.yaw;
+    const pitchCos = Math.cos(pitch);
+
+    target.set(
+      -Math.sin(yaw) * pitchCos,
+      Math.sin(pitch),
+      -Math.cos(yaw) * pitchCos
+    ).normalize();
+
+    return target;
+  }
+
+  resolveFirstPersonHeadPosition(target = new THREE.Vector3(), lookDirection = null) {
+    if (Array.isArray(this.playerEyeBones) && this.playerEyeBones.length > 0) {
+      target.set(0, 0, 0);
+      for (const eyeBone of this.playerEyeBones) {
+        eyeBone.getWorldPosition(this.headWorldPosition);
+        target.add(this.headWorldPosition);
+      }
+
+      target.multiplyScalar(1 / this.playerEyeBones.length);
+      return target;
+    }
+
     if (this.playerHeadBone) {
       this.playerHeadBone.getWorldPosition(target);
+      if (lookDirection instanceof THREE.Vector3) {
+        target.addScaledVector(lookDirection, this.firstPersonHeadForwardOffset);
+      }
       return target;
     }
 
@@ -302,8 +361,10 @@ export class ThirdPersonControllerApp {
       return;
     }
 
+    const firstPersonFacingYaw = this.normalizeAngle(this.cameraState.yaw + Math.PI);
+
     const relativeYaw = THREE.MathUtils.clamp(
-      this.shortestAngleDelta(this.playerYaw, this.cameraState.yaw),
+      this.shortestAngleDelta(this.playerYaw, firstPersonFacingYaw),
       -this.cameraState.headLookYawLimit,
       this.cameraState.headLookYawLimit
     );
@@ -1416,7 +1477,7 @@ export class ThirdPersonControllerApp {
     }
 
     if (this.isFirstPersonView()) {
-      this.playerYaw = this.normalizeAngle(this.cameraState.yaw);
+      this.playerYaw = this.normalizeAngle(this.cameraState.yaw + Math.PI);
       this.playerTargetYaw = this.playerYaw;
     } else {
       const yawDelta = this.shortestAngleDelta(this.playerYaw, this.playerTargetYaw);
@@ -1459,7 +1520,8 @@ export class ThirdPersonControllerApp {
     if (this.isFirstPersonView()) {
       this.setCameraNearPlane(this.cameraState.firstPersonNear);
       this.applyFirstPersonHeadLookOverride();
-      this.resolveFirstPersonHeadPosition(this.headWorldPosition);
+      this.computeFirstPersonLookDirection(this.cameraLookDirection);
+      this.resolveFirstPersonHeadPosition(this.headWorldPosition, this.cameraLookDirection);
       this.camera.position.copy(this.headWorldPosition);
       this.camera.rotation.set(this.cameraState.pitch, this.cameraState.yaw, 0, 'YXZ');
       return;
