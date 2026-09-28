@@ -34,9 +34,9 @@ export class SceneEditorApp {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x18212f);
-    this.scene.fog = new THREE.Fog(0x18212f, 120, 1000);
+    this.scene.fog = null;
 
-    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 5000);
+    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1000);
     this.camera.position.set(14, 12, 18);
     this.camera.lookAt(0, 2, 0);
 
@@ -49,6 +49,7 @@ export class SceneEditorApp {
     this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
     this.orbitControls.enableDamping = true;
     this.orbitControls.dampingFactor = 0.08;
+    this.orbitControls.enableZoom = false;
     this.orbitControls.target.set(0, 2, 0);
 
     this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
@@ -57,7 +58,7 @@ export class SceneEditorApp {
       if (event.value) {
         this.pushUndoSnapshot();
       } else if (this.selectedNode) {
-        this.commitSelectedTransform();
+        this.commitSelectedTransform({ frameSelection: true });
       }
       this.requestRender();
     });
@@ -102,11 +103,13 @@ export class SceneEditorApp {
 
     this.onResize = this.onResize.bind(this);
     this.onPointerDown = this.onPointerDown.bind(this);
+    this.onSceneWheel = this.onSceneWheel.bind(this);
     this.onKeyDown = this.onKeyDown.bind(this);
     this.animate = this.animate.bind(this);
 
     window.addEventListener('resize', this.onResize);
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
+    this.viewportRoot.addEventListener('wheel', this.onSceneWheel, { passive: false });
     window.addEventListener('keydown', this.onKeyDown);
 
     this.setTransformMode('translate');
@@ -217,9 +220,7 @@ export class SceneEditorApp {
       ? new THREE.Color(manifest.scene.background)
       : this.scene.background;
 
-    if (manifest.scene?.fog) {
-      this.scene.fog = new THREE.Fog(new THREE.Color(manifest.scene.fog), 120, 1000);
-    }
+    this.scene.fog = null;
 
     await this.rebuildSceneGraph();
     this.refreshHierarchy();
@@ -394,6 +395,7 @@ export class SceneEditorApp {
         return;
       }
 
+      child.frustumCulled = false;
       child.castShadow = true;
       child.receiveShadow = true;
 
@@ -445,7 +447,7 @@ export class SceneEditorApp {
     record.transform.scale = [object.scale.x, object.scale.y, object.scale.z];
   }
 
-  commitSelectedTransform({ preserveHistory = false } = {}) {
+  commitSelectedTransform({ preserveHistory = false, frameSelection = false } = {}) {
     if (!this.selectedNode?.record || !this.selectedNode?.object) {
       return;
     }
@@ -457,6 +459,10 @@ export class SceneEditorApp {
     this.syncGameObjectTransformFromObject(this.selectedNode.record, this.selectedNode.object);
     this.refreshHierarchy();
     this.refreshInspector();
+
+    if (frameSelection) {
+      this.frameSelection();
+    }
   }
 
   refreshHierarchy() {
@@ -756,12 +762,28 @@ export class SceneEditorApp {
       return;
     }
 
-    const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    const distance = Math.max(size.length() * 0.75, 4);
+    const sphere = box.getBoundingSphere(new THREE.Sphere());
+    const radius = Number.isFinite(sphere.radius) && sphere.radius > 0
+      ? sphere.radius
+      : box.getSize(new THREE.Vector3()).length() * 0.5;
+    const halfFovRadians = THREE.MathUtils.degToRad(this.camera.fov * 0.5);
+    const fitDistance = radius > 0 && halfFovRadians > 0
+      ? radius / Math.sin(halfFovRadians)
+      : 4;
+    const distance = Math.min(Math.max(fitDistance * 1.35, radius * 2.5, 8), 1000);
+    const viewDirection = new THREE.Vector3();
+
+    this.camera.getWorldDirection(viewDirection);
+    if (viewDirection.lengthSq() < 1e-6) {
+      viewDirection.set(1, 0.35, 1).normalize();
+    }
 
     this.orbitControls.target.copy(center);
-    this.camera.position.copy(center).add(new THREE.Vector3(distance, distance * 0.7, distance));
+    this.camera.position.copy(center).addScaledVector(viewDirection.normalize().negate(), distance);
+    this.camera.near = Math.max(0.05, distance * 0.01);
+    this.camera.far = 1000;
+    this.camera.updateProjectionMatrix();
     this.camera.lookAt(center);
     this.orbitControls.update();
     this.requestRender();
@@ -786,6 +808,35 @@ export class SceneEditorApp {
     if (target) {
       this.selectGameObject(target);
     }
+  }
+
+  onSceneWheel(event) {
+    if (!this.viewportRoot.contains(event.target)) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const zoomFactor = Math.exp(event.deltaY * 0.0012);
+    const target = this.orbitControls.target.clone();
+    const offset = this.camera.position.clone().sub(target);
+    const currentDistance = offset.length();
+
+    if (currentDistance <= 1e-6) {
+      offset.set(0, 0, 1);
+    }
+
+    const nextDistance = THREE.MathUtils.clamp(
+      (currentDistance > 1e-6 ? currentDistance : 1) * zoomFactor,
+      0.75,
+      1000
+    );
+
+    offset.normalize().multiplyScalar(nextDistance);
+    this.camera.position.copy(target).add(offset);
+    this.camera.updateProjectionMatrix();
+    this.orbitControls.update();
+    this.requestRender();
   }
 
   resolveGameObjectFromObject(object) {
