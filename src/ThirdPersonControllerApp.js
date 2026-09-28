@@ -116,6 +116,9 @@ export class ThirdPersonControllerApp {
       yaw: 0,
       distance: 7.5,
       height: 4.5,
+      minDistance: 2.5,
+      maxDistance: 24,
+      zoomStep: 0.01,
     };
 
     this.materialCache = new Map();
@@ -165,6 +168,7 @@ export class ThirdPersonControllerApp {
     this.inputEnabledAt = 0;
 
     this.onResize = this.onResize.bind(this);
+    this.onMouseWheel = this.onMouseWheel.bind(this);
     this.tick = this.tick.bind(this);
 
     this.playerYaw = 0;
@@ -223,6 +227,7 @@ export class ThirdPersonControllerApp {
 
   attachEvents() {
     window.addEventListener('resize', this.onResize);
+    this.renderer.domElement.addEventListener('wheel', this.onMouseWheel, { passive: false });
     this.renderer.domElement.addEventListener('click', () => {
       if (!this.isPointerLocked) {
         this.renderer.domElement.requestPointerLock();
@@ -242,6 +247,17 @@ export class ThirdPersonControllerApp {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  onMouseWheel(event) {
+    event.preventDefault();
+
+    const zoomDelta = event.deltaY * this.cameraState.zoomStep;
+    this.cameraState.distance = THREE.MathUtils.clamp(
+      this.cameraState.distance + zoomDelta,
+      this.cameraState.minDistance,
+      this.cameraState.maxDistance
+    );
   }
 
   normalizeAngle(angle) {
