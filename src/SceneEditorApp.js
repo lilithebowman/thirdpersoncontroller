@@ -884,6 +884,12 @@ export class SceneEditorApp {
       return;
     }
 
+    if (event.code === 'Delete') {
+      event.preventDefault();
+      this.confirmDeleteSelectedGameObject();
+      return;
+    }
+
     if ((event.ctrlKey || event.metaKey) && event.code === 'KeyZ') {
       event.preventDefault();
       if (event.shiftKey) {
@@ -910,6 +916,68 @@ export class SceneEditorApp {
 
     if (event.code === 'KeyR') {
       this.setTransformMode('scale');
+    }
+  }
+
+  confirmDeleteSelectedGameObject() {
+    const selectedRecord = this.selectedNode?.record;
+    if (!selectedRecord) {
+      this.setStatus('Select a GameObject before deleting.');
+      return;
+    }
+
+    const shouldDelete = window.confirm(`Delete \"${selectedRecord.name}\" from the hierarchy?`);
+    if (!shouldDelete) {
+      this.setStatus('Delete canceled.');
+      return;
+    }
+
+    this.deleteGameObjectById(selectedRecord.id);
+  }
+
+  async deleteGameObjectById(recordId) {
+    const removeRecursive = (items) => {
+      let removed = false;
+      const nextItems = [];
+
+      for (const item of items ?? []) {
+        if (item.id === recordId) {
+          removed = true;
+          continue;
+        }
+
+        const childResult = removeRecursive(item.children ?? []);
+        if (childResult.removed) {
+          removed = true;
+          nextItems.push({ ...item, children: childResult.items });
+        } else {
+          nextItems.push(item);
+        }
+      }
+
+      return { items: nextItems, removed };
+    };
+
+    const result = removeRecursive(this.currentManifest.gameObjects ?? []);
+    if (!result.removed) {
+      return;
+    }
+
+    this.pushUndoSnapshot();
+    this.currentManifest.gameObjects = result.items;
+    this.currentManifest.objects = gameObjectsToLegacyObjects(this.currentManifest.gameObjects);
+    this.selectedNode = null;
+    this.transformControls.detach();
+
+    await this.rebuildSceneGraph();
+    this.refreshHierarchy();
+
+    if (this.gameObjectOrder.length > 0) {
+      this.selectGameObject(this.gameObjectOrder[0], { frameSelection: false });
+    } else {
+      this.refreshInspector();
+      this.setStatus('All GameObjects deleted.');
+      this.requestRender();
     }
   }
 
