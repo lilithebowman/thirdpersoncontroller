@@ -28,6 +28,7 @@ import { PlayerCharacter } from './PlayerCharacter.js';
 import { SceneLoader } from './SceneLoader.js';
 import { Skybox } from './Skybox.js';
 import { Loader } from './Loader.js';
+import { MultiplayerService } from './MultiplayerService.js';
 
 export class ThirdPersonControllerApp {
   /**
@@ -168,6 +169,11 @@ export class ThirdPersonControllerApp {
     this.playerRotationAxis = new THREE.Vector3(0, 1, 0);
     this.hasMoveInput = false;
     this.isGrounded = true;
+
+    this.multiplayerService = new MultiplayerService({
+      onRemotePlayersUpdate: (players) => this.handleRemotePlayersUpdate(players),
+    });
+    this.remotePlayerMeshes = new Map();
 
     this.onResize = this.onResize.bind(this);
     this.onMouseWheel = this.onMouseWheel.bind(this);
@@ -598,6 +604,13 @@ export class ThirdPersonControllerApp {
       collider: this.playerCollider,
       colliders: this.worldColliders,
     });
+
+    this.multiplayerService.updateLocalTransform({
+      position: playerRoot.position,
+      rotation: playerRoot.quaternion,
+      yaw: this.playerYaw,
+      animationState: this.hasMoveInput ? (this.keyboardInput.isDown('ShiftLeft') ? 'sprint' : 'walk') : 'idle',
+    });
   }
 
   updatePlayerAnimation(delta) {
@@ -638,6 +651,7 @@ export class ThirdPersonControllerApp {
     this.keyboardInput.clear();
     this.inputEnabledAt = performance.now() + 150;
     this.isRunning = true;
+    this.multiplayerService.start();
     this.renderer.setAnimationLoop(this.tick);
   }
 
@@ -669,6 +683,7 @@ export class ThirdPersonControllerApp {
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta);
     this.updatePlayerAnimation(delta);
+    this.updateRemotePlayerMeshes(delta);
     this.cameraController.update(this.playerCharacter.root, { isPresenting: this.renderer.xr.isPresenting });
 
     if (this.cameraController.isFirstPerson() || this.renderer.xr.isPresenting) {
@@ -679,6 +694,72 @@ export class ThirdPersonControllerApp {
     }
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  handleRemotePlayersUpdate(players) {
+    const activeGuids = new Set(players.map((p) => p.guid));
+
+    for (const [guid, meshGroup] of this.remotePlayerMeshes.entries()) {
+      if (!activeGuids.has(guid)) {
+        this.scene.remove(meshGroup);
+        meshGroup.traverse((child) => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+            else child.material.dispose();
+          }
+        });
+        this.remotePlayerMeshes.delete(guid);
+      }
+    }
+
+    for (const p of players) {
+      let meshGroup = this.remotePlayerMeshes.get(p.guid);
+      if (!meshGroup) {
+        meshGroup = this.createRemotePlayerVisual();
+        this.scene.add(meshGroup);
+        this.remotePlayerMeshes.set(p.guid, meshGroup);
+      }
+
+      meshGroup.userData.targetPosition = new THREE.Vector3(p.position.x, p.position.y, p.position.z);
+      if (p.rotation) {
+        meshGroup.userData.targetQuaternion = new THREE.Quaternion(p.rotation.x, p.rotation.y, p.rotation.z, p.rotation.w);
+      }
+    }
+  }
+
+  createRemotePlayerVisual() {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.6, metalness: 0.2 })
+    );
+    body.position.y = 0.55;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.6, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 })
+    );
+    head.position.y = 1.3;
+    head.castShadow = true;
+    group.add(head);
+
+    return group;
+  }
+
+  updateRemotePlayerMeshes(delta) {
+    const lerpFactor = Math.min(1, delta * 12);
+    for (const [guid, meshGroup] of this.remotePlayerMeshes.entries()) {
+      if (meshGroup.userData.targetPosition) {
+        meshGroup.position.lerp(meshGroup.userData.targetPosition, lerpFactor);
+      }
+      if (meshGroup.userData.targetQuaternion) {
+        meshGroup.quaternion.slerp(meshGroup.userData.targetQuaternion, lerpFactor);
+      }
+    }
   }
 
   async init() {

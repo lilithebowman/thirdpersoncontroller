@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { multiplayerPlugin } from './server/multiplayerPlugin.js';
 
 function assetMetaPlugin() {
   return {
@@ -140,7 +141,7 @@ function assetMetaPlugin() {
 }
 
 export default defineConfig({
-  plugins: [assetMetaPlugin()],
+  plugins: [assetMetaPlugin(), multiplayerPlugin()],
   server: {
     host: '0.0.0.0',
     port: 5173,
