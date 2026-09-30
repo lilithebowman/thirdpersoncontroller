@@ -11,6 +11,7 @@
  */
 
 import * as THREE from 'three';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { Animator } from './Animator.js';
 import { KeyboardInput } from './KeyboardInput.js';
 import { MouseInput } from './MouseInput.js';
@@ -58,6 +59,8 @@ export class ThirdPersonControllerApp {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.xr.enabled = true;
+    document.body.appendChild(VRButton.createButton(this.renderer));
     this.app.appendChild(this.renderer.domElement);
 
     this.clock = new THREE.Clock();
@@ -204,6 +207,9 @@ export class ThirdPersonControllerApp {
 
   onMouseWheel(event) {
     event.preventDefault();
+    if (this.renderer.xr.isPresenting) {
+      return;
+    }
     const zoomDelta = event.deltaY * this.cameraController.state.zoomStep;
     this.cameraController.state.distance = THREE.MathUtils.clamp(
       this.cameraController.state.distance + zoomDelta,
@@ -426,6 +432,8 @@ export class ThirdPersonControllerApp {
 
     const playerConfig = manifest.player ?? {};
     this.animator.applyModelConfig(playerConfig.model ?? {}, resolvedPath);
+    const eyePosition = this.sceneLoader.toVector3(playerConfig.eyePosition, new THREE.Vector3(0, 1.6, 0));
+    this.cameraController.setEyePosition(eyePosition);
     await this.animator.preload();
 
     if (spawnPosition) {

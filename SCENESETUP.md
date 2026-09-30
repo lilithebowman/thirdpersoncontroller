@@ -66,6 +66,7 @@ Example:
 - `player.model.scale`, `rotation`, and `offset` control how the model is attached to the controller root.
 - `player.collider.size` and `player.collider.offset` configure the player physics body dimensions.
 - `player.collider.physicsCollision` toggles whether player collider resolves against world colliders.
+- `player.eyePosition` specifies the first-person camera eye position offset relative to the player root.
 
 ### `objects`
 

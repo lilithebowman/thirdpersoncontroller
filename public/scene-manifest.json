@@ -19,7 +19,8 @@
       "size": [0.9, 1.9, 0.9],
       "offset": [0, 0.95, 0],
       "physicsCollision": true
-    }
+    },
+    "eyePosition": [0, 1.6, 0]
   },
   "controller": {
     "jumpImpulse": 8.8,

@@ -16,14 +16,16 @@ export class CameraController {
    * Creates a CameraController instance.
    * @param {Object} options - Configuration options
    * @param {THREE.PerspectiveCamera} options.camera - Three.js perspective camera
+   * @param {THREE.Vector3} [options.eyePosition=new THREE.Vector3(0, 1.6, 0)] - First-person eye position offset
    */
-  constructor({ camera } = {}) {
+  constructor({ camera, eyePosition = new THREE.Vector3(0, 1.6, 0) } = {}) {
     if (!camera) {
       throw new Error('CameraController requires a THREE.PerspectiveCamera.');
     }
 
     this.camera = camera;
     this.camera.rotation.order = 'YXZ';
+    this.eyePosition = eyePosition.clone();
 
     this.state = {
       yaw: 0,
@@ -61,6 +63,16 @@ export class CameraController {
    */
   isFirstPerson() {
     return this.state.distance <= this.state.firstPersonDistanceThreshold;
+  }
+
+  /**
+   * Sets or updates the eye position offset for first-person view.
+   * @param {THREE.Vector3} eyePosition - New eye position offset
+   */
+  setEyePosition(eyePosition) {
+    if (eyePosition instanceof THREE.Vector3) {
+      this.eyePosition.copy(eyePosition);
+    }
   }
 
   /**
@@ -182,8 +194,10 @@ export class CameraController {
   /**
    * Updates camera position and orientation relative to the player.
    * @param {THREE.Group} player - Player object
+   * @param {Object} [options={}] - Update options
+   * @param {boolean} [options.isPresenting=false] - Whether WebXR VR session is presenting
    */
-  update(player) {
+  update(player, { isPresenting = false } = {}) {
     if (!player) {
       return;
     }
@@ -194,11 +208,16 @@ export class CameraController {
       this.state.maxDistance
     );
 
-    if (this.isFirstPerson()) {
+    if (this.isFirstPerson() || isPresenting) {
       this.setNearPlane(this.state.firstPersonNear);
       this.computeFirstPersonLookDirection(this.cameraLookDirection);
-      this.resolveHeadPosition(this.headWorldPosition, player.userData.headBone, player.userData.eyeBones, player);
-      this.camera.position.copy(this.headWorldPosition);
+      if (isPresenting) {
+        return;
+      }
+      this.cameraPosition.copy(this.eyePosition);
+      this.cameraPosition.applyQuaternion(player.quaternion);
+      this.cameraPosition.add(player.position);
+      this.camera.position.copy(this.cameraPosition);
       this.camera.rotation.set(this.state.pitch, this.state.yaw, 0, 'YXZ');
       return;
     }
