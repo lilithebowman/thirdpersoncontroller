@@ -119,6 +119,11 @@ export class Animator {
     return new THREE.Vector3(x, y, z);
   }
 
+  /**
+   * Apply the provided model configuration to the animator, resolving paths and setting default values as needed.
+   * @param {Object} modelConfig - The configuration object for the model.
+   * @param {string} basePath - The base path for resolving model assets.
+   */
   applyModelConfig(modelConfig = {}, basePath = '/scene-manifest.json') {
     const configuredPath = typeof modelConfig.path === 'string' && modelConfig.path.trim()
       ? modelConfig.path.trim()
@@ -140,6 +145,7 @@ export class Animator {
       ? modelConfig.jumpPath.trim()
       : '/animations/Action%20Adventure%20Pack/jumping up.fbx';
 
+    /* Apply the resolved model configuration to the animator. */
     this.modelConfig = {
       rigPath: configuredRigPath,
       walkPath: configuredWalkPath,
@@ -161,10 +167,19 @@ export class Animator {
     };
   }
 
+  /**
+   * Get the resolved model configuration for this animator instance.
+   * @returns {Object} The resolved model configuration.
+   */
   getModelConfig() {
     return this.modelConfig;
   }
 
+  /**
+   * Create the visual representation of the player character, using the model template if available, or falling back to a provided factory function.
+   * @param {Function} fallbackFactory - A factory function to create a fallback visual if the model template is not available.
+   * @returns {THREE.Object3D} The created player visual.
+   */
   createPlayerVisual(fallbackFactory) {
     const visual = this.modelTemplate
       ? cloneSkinned(this.modelTemplate)
