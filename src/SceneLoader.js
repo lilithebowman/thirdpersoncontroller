@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { assetMetaService } from './AssetMetaService.js';
 
 export class SceneLoader {
   /**
@@ -89,19 +90,8 @@ export class SceneLoader {
     if (!objPath) {
       return null;
     }
-    const resolvedPath = typeof this.resolveScenePath === 'function'
-      ? this.resolveScenePath(`${objPath}.meta.json`)
-      : new URL(`${objPath}.meta.json`, window.location.origin).toString();
-
-    try {
-      const response = await fetch(resolvedPath);
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {
-      // Ignore missing meta
-    }
-    return null;
+    const status = await assetMetaService.checkMetaStatus(objPath);
+    return status.meta;
   }
 
   /**
@@ -115,8 +105,8 @@ export class SceneLoader {
       return this.assetCache.get(cacheKey).clone(true);
     }
 
-    const meta = await this.loadAssetMeta(objPath);
-    const subMeshOverrides = meta?.subMeshOverrides ?? {};
+    const metaStatus = await assetMetaService.checkMetaStatus(objPath);
+    let meta = metaStatus.meta;
 
     const loader = new OBJLoader();
     if (mtlPath) {
@@ -127,6 +117,20 @@ export class SceneLoader {
     }
 
     const model = await loader.loadAsync(objPath);
+
+    // If meta is missing or dirty, collect sub-mesh names and generate meta via service
+    if (!metaStatus.exists || metaStatus.dirty) {
+      const subMeshNames = [];
+      model.traverse((child) => {
+        if (child.isMesh && child.name) {
+          subMeshNames.push(child.name);
+        }
+      });
+      meta = await assetMetaService.generateMeta(objPath, subMeshNames);
+    }
+
+    const subMeshOverrides = meta?.subMeshOverrides ?? {};
+
     model.traverse((child) => {
       if (!child.isMesh) {
         return;

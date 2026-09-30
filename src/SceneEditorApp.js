@@ -9,6 +9,7 @@ import {
   normalizeSceneManifest,
 } from './sceneManifest.js';
 import { Loader } from './Loader.js';
+import { assetMetaService } from './AssetMetaService.js';
 
 export class SceneEditorApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -481,16 +482,8 @@ export class SceneEditorApp {
     if (!objPath) {
       return null;
     }
-    const resolvedPath = new URL(objPath + '.meta.json', window.location.origin).toString();
-    try {
-      const response = await fetch(resolvedPath);
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {
-      // Ignore missing meta
-    }
-    return null;
+    const status = await assetMetaService.checkMetaStatus(objPath);
+    return status.meta;
   }
 
   async loadObjModel({ objPath, mtlPath, materialName, materialRenderType = 'cutout' }) {
@@ -499,8 +492,8 @@ export class SceneEditorApp {
       return this.assetCache.get(cacheKey).clone(true);
     }
 
-    const meta = await this.loadAssetMeta(objPath);
-    const subMeshOverrides = meta?.subMeshOverrides ?? {};
+    const metaStatus = await assetMetaService.checkMetaStatus(objPath);
+    let meta = metaStatus.meta;
 
     const loader = new OBJLoader();
     if (mtlPath) {
@@ -511,6 +504,19 @@ export class SceneEditorApp {
     }
 
     const model = await loader.loadAsync(objPath);
+
+    if (!metaStatus.exists || metaStatus.dirty) {
+      const subMeshNames = [];
+      model.traverse((child) => {
+        if (child.isMesh && child.name) {
+          subMeshNames.push(child.name);
+        }
+      });
+      meta = await assetMetaService.generateMeta(objPath, subMeshNames);
+    }
+
+    const subMeshOverrides = meta?.subMeshOverrides ?? {};
+
     model.traverse((child) => {
       if (!child.isMesh) {
         return;
