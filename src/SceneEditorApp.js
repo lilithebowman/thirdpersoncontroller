@@ -477,11 +477,30 @@ export class SceneEditorApp {
     return null;
   }
 
+  async loadAssetMeta(objPath) {
+    if (!objPath) {
+      return null;
+    }
+    const resolvedPath = new URL(objPath + '.meta.json', window.location.origin).toString();
+    try {
+      const response = await fetch(resolvedPath);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      // Ignore missing meta
+    }
+    return null;
+  }
+
   async loadObjModel({ objPath, mtlPath, materialName, materialRenderType = 'cutout' }) {
     const cacheKey = `${objPath}|${mtlPath ?? ''}|${materialName ?? ''}|${materialRenderType}`;
     if (this.assetCache.has(cacheKey)) {
       return this.assetCache.get(cacheKey).clone(true);
     }
+
+    const meta = await this.loadAssetMeta(objPath);
+    const subMeshOverrides = meta?.subMeshOverrides ?? {};
 
     const loader = new OBJLoader();
     if (mtlPath) {
@@ -497,14 +516,19 @@ export class SceneEditorApp {
         return;
       }
 
+      const override = subMeshOverrides[child.name] ?? {};
       child.frustumCulled = false;
-      child.castShadow = true;
-      child.receiveShadow = true;
+      child.castShadow = override.castShadow ?? true;
+      child.receiveShadow = override.receiveShadow ?? true;
+      if (override.visible !== undefined) {
+        child.visible = override.visible;
+      }
 
+      const renderType = override.materialRenderType ?? materialRenderType;
       if (child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach((material) => {
-          if (material && materialRenderType === 'transparent') {
+          if (material && renderType === 'transparent') {
             material.transparent = true;
             material.depthWrite = false;
           }
@@ -514,6 +538,64 @@ export class SceneEditorApp {
 
     this.assetCache.set(cacheKey, model);
     return model.clone(true);
+  }
+
+  extractSubMeshes(record) {
+    const object = this.gameObjectMap.get(record.id);
+    if (!object) {
+      this.setStatus('GameObject instance not found in scene.');
+      return;
+    }
+
+    const subMeshes = [];
+    object.traverse((child) => {
+      if (child !== object && child.isMesh) {
+        subMeshes.push(child);
+      }
+    });
+
+    if (subMeshes.length === 0) {
+      this.setStatus('No sub-meshes found inside this GameObject.');
+      return;
+    }
+
+    this.pushUndoSnapshot();
+    record.children = record.children ?? [];
+
+    let addedCount = 0;
+    subMeshes.forEach((mesh, index) => {
+      const meshName = mesh.name || `SubMesh_${index + 1}`;
+      const exists = record.children.some((c) => c.name === meshName);
+      if (!exists) {
+        const childRecord = {
+          id: `${record.id}-${slugify(meshName)}-${index + 1}`,
+          name: meshName,
+          active: true,
+          tag: 'Untagged',
+          layer: 0,
+          static: false,
+          transform: {
+            position: [mesh.position.x, mesh.position.y, mesh.position.z],
+            rotation: [THREE.MathUtils.radToDeg(mesh.rotation.x), THREE.MathUtils.radToDeg(mesh.rotation.y), THREE.MathUtils.radToDeg(mesh.rotation.z)],
+            scale: [mesh.scale.x, mesh.scale.y, mesh.scale.z],
+          },
+          components: [
+            {
+              type: 'model',
+              modelType: 'submesh',
+              subMeshName: meshName,
+              materialRenderType: 'cutout',
+            }
+          ],
+          children: []
+        };
+        record.children.push(childRecord);
+        addedCount++;
+      }
+    });
+
+    this.replaceRecord(record.id, record);
+    this.setStatus(`Extracted ${addedCount} sub-mesh child GameObject(s).`);
   }
 
   collectPickables(object) {
@@ -698,6 +780,18 @@ export class SceneEditorApp {
 
     for (const component of record.components ?? []) {
       form.appendChild(this.createComponentSummary(component));
+    }
+
+    const hasModel = (record.components ?? []).some((c) => c?.type === 'model');
+    if (hasModel) {
+      const extractBtn = document.createElement('button');
+      extractBtn.type = 'button';
+      extractBtn.className = 'scene-editor-apply';
+      extractBtn.textContent = 'Extract Sub-Meshes to Children';
+      extractBtn.addEventListener('click', () => {
+        this.extractSubMeshes(record);
+      });
+      form.appendChild(extractBtn);
     }
 
     const rawTitle = document.createElement('h3');

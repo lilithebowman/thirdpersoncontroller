@@ -299,8 +299,6 @@ canvas {
   color: #e6f4ff;
   letter-spacing: 0.04em;
 }
-  border-color: rgba(255, 255, 255, 0.4);
-}
 
 .scene-editor-app {
   width: 100vw;

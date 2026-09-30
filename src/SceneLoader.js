@@ -85,6 +85,25 @@ export class SceneLoader {
     return new THREE.Vector3(x, y, z);
   }
 
+  async loadAssetMeta(objPath) {
+    if (!objPath) {
+      return null;
+    }
+    const resolvedPath = typeof this.resolveScenePath === 'function'
+      ? this.resolveScenePath(`${objPath}.meta.json`)
+      : new URL(`${objPath}.meta.json`, window.location.origin).toString();
+
+    try {
+      const response = await fetch(resolvedPath);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      // Ignore missing meta
+    }
+    return null;
+  }
+
   /**
    * Loads an OBJ model with optional MTL materials and caching.
    * @param {Object} options - Load options
@@ -95,6 +114,9 @@ export class SceneLoader {
     if (this.assetCache.has(cacheKey)) {
       return this.assetCache.get(cacheKey).clone(true);
     }
+
+    const meta = await this.loadAssetMeta(objPath);
+    const subMeshOverrides = meta?.subMeshOverrides ?? {};
 
     const loader = new OBJLoader();
     if (mtlPath) {
@@ -110,14 +132,19 @@ export class SceneLoader {
         return;
       }
 
+      const override = subMeshOverrides[child.name] ?? {};
       child.frustumCulled = false;
-      child.castShadow = true;
-      child.receiveShadow = true;
+      child.castShadow = override.castShadow ?? true;
+      child.receiveShadow = override.receiveShadow ?? true;
+      if (override.visible !== undefined) {
+        child.visible = override.visible;
+      }
 
+      const renderType = override.materialRenderType ?? materialRenderType;
       if (child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach((material) => {
-          if (material && materialRenderType === 'transparent') {
+          if (material && renderType === 'transparent') {
             material.transparent = true;
             material.depthWrite = false;
           }
