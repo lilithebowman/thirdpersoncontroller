@@ -148,9 +148,17 @@ export class SceneLoader {
       if (child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach((material) => {
-          if (material && renderType === 'transparent') {
-            material.transparent = true;
-            material.depthWrite = false;
+          if (material) {
+            if (renderType === 'transparent') {
+              material.transparent = true;
+              material.depthWrite = false;
+            } else if (renderType === 'cutout') {
+              material.transparent = true;
+              material.alphaTest = 0.5;
+              if (material.map) {
+                material.alphaMap = material.map;
+              }
+            }
           }
         });
       }
