@@ -2,8 +2,10 @@
  * MeshCollider.js
  *
  * Class: MeshCollider
- * Purpose: Implements a mesh-backed collider that uses broad-phase AABB checks,
- *          detailed triangle intersection testing, and raycast-based ground height sampling.
+ * Purpose: Implements a multi-mesh based triangle collider which performs broad-phase
+ *          broad-phase AABB checks, narrow-phase triangle intersection tests, and ground height sampling.
+ * 
+ * Notes: Designed for static or dynamic meshes with multiple child meshes.
  * Inherits: Collider
  */
 
@@ -31,6 +33,8 @@ export class MeshCollider extends Collider {
     this._groundDirection = new THREE.Vector3(0, -1, 0);
     this._groundOrigin = new THREE.Vector3();
     this._groundHeightCache = { key: null, value: null, time: 0 };
+    this._meshWorldPos = new THREE.Vector3();
+    this._translationDelta = new THREE.Vector3();
   }
 
   /**
@@ -44,11 +48,11 @@ export class MeshCollider extends Collider {
   /**
    * Computes the world-space bounding box for the mesh collider by traversing
    * child meshes and unioning their transformed buffer attributes.
-   * @param {THREE.Vector3} position - World position fallback if mesh is absent
+   * @param {THREE.Vector3|null} [position=null] - World position fallback or override
    * @param {THREE.Box3} target - Target box to populate
    * @returns {THREE.Box3} Populated bounds object
    */
-  getBounds(position, target) {
+  getBounds(position = null, target) {
     if (this.mesh) {
       this.mesh.updateMatrixWorld(true);
 
@@ -67,16 +71,27 @@ export class MeshCollider extends Collider {
         this.bounds.union(this._boundsWorkspace);
       });
 
+      if (position) {
+        this.mesh.getWorldPosition(this._meshWorldPos);
+        this._translationDelta.copy(position).sub(this._meshWorldPos);
+        this.bounds.min.add(this._translationDelta);
+        this.bounds.max.add(this._translationDelta);
+      }
+
       target.min.copy(this.bounds.min).add(this.offset);
       target.max.copy(this.bounds.max).add(this.offset);
       return target;
     }
 
-    const center = target.min;
-    center.copy(position).add(this.offset);
-    target.min.copy(center);
-    target.max.copy(center);
-    return target;
+    if (position) {
+      const center = target.min;
+      center.copy(position).add(this.offset);
+      target.min.copy(center);
+      target.max.copy(center);
+      return target;
+    }
+
+    return super.getBounds(position, target);
   }
 
   /**
@@ -86,10 +101,10 @@ export class MeshCollider extends Collider {
    * 2. Narrow-phase triangle traversal: iterates over geometry triangles, transforms vertices
    *    to world space, and tests triangle-box intersection.
    * @param {THREE.Box3} bounds - Dynamic AABB bounds to test
-   * @param {THREE.Vector3} position - World position of the mesh collider
+   * @param {THREE.Vector3|null} [position=null] - World position of the mesh collider
    * @returns {boolean} True if any triangle intersects the dynamic AABB
    */
-  intersectsBounds(bounds, position) {
+  intersectsBounds(bounds, position = null) {
     if (!this.mesh) {
       return super.intersectsBounds(bounds, position);
     }
@@ -106,6 +121,13 @@ export class MeshCollider extends Collider {
 
     if (!broadPhaseOverlap) {
       return false;
+    }
+
+    this.mesh.getWorldPosition(this._meshWorldPos);
+    if (position) {
+      this._translationDelta.copy(position).sub(this._meshWorldPos);
+    } else {
+      this._translationDelta.set(0, 0, 0);
     }
 
     const dynamicBox = new THREE.Box3(bounds.min.clone(), bounds.max.clone());
@@ -129,9 +151,9 @@ export class MeshCollider extends Collider {
         const i1 = index ? index.getX(triangleIndex * 3 + 1) : triangleIndex * 3 + 1;
         const i2 = index ? index.getX(triangleIndex * 3 + 2) : triangleIndex * 3 + 2;
 
-        this._v0.fromBufferAttribute(positionAttribute, i0).applyMatrix4(child.matrixWorld).add(this.offset);
-        this._v1.fromBufferAttribute(positionAttribute, i1).applyMatrix4(child.matrixWorld).add(this.offset);
-        this._v2.fromBufferAttribute(positionAttribute, i2).applyMatrix4(child.matrixWorld).add(this.offset);
+        this._v0.fromBufferAttribute(positionAttribute, i0).applyMatrix4(child.matrixWorld).add(this._translationDelta).add(this.offset);
+        this._v1.fromBufferAttribute(positionAttribute, i1).applyMatrix4(child.matrixWorld).add(this._translationDelta).add(this.offset);
+        this._v2.fromBufferAttribute(positionAttribute, i2).applyMatrix4(child.matrixWorld).add(this._translationDelta).add(this.offset);
 
         this._triangle.set(this._v0, this._v1, this._v2);
         if (dynamicBox.intersectsTriangle(this._triangle)) {
@@ -148,27 +170,41 @@ export class MeshCollider extends Collider {
    * Samples the ground height (Y coordinate) below a given player position using raycasting.
    * Includes spatial caching (80ms TTL) to avoid expensive raycasts on every frame.
    * @param {THREE.Vector3} playerPosition - Current player position
+   * @param {THREE.Vector3|null} [position=null] - World position of the mesh collider
    * @returns {number|null} Ground Y coordinate or null if no hit
    */
-  getGroundHeightAt(playerPosition) {
+  getGroundHeightAt(playerPosition, position = null) {
     if (!this.mesh) {
       return null;
     }
 
-    const cacheKey = `${Math.round(playerPosition.x * 4)}:${Math.round(playerPosition.z * 4)}`;
+    const cacheKey = `${Math.round(playerPosition.x * 4)}:${Math.round(playerPosition.z * 4)}:${position ? `${Math.round(position.x * 4)},${Math.round(position.z * 4)}` : ''}`;
     const now = performance.now();
     if (this._groundHeightCache.key === cacheKey && now - this._groundHeightCache.time < 80) {
       return this._groundHeightCache.value;
     }
 
     this.mesh.updateMatrixWorld(true);
-    this._groundOrigin.set(playerPosition.x, 200, playerPosition.z);
+    this.mesh.getWorldPosition(this._meshWorldPos);
+    if (position) {
+      this._translationDelta.copy(position).sub(this._meshWorldPos);
+    } else {
+      this._translationDelta.set(0, 0, 0);
+    }
+
+    this._groundOrigin.set(playerPosition.x, Math.max(playerPosition.y + 100, 200), playerPosition.z);
+    this._groundOrigin.sub(this._translationDelta);
+
     this._groundRay.set(this._groundOrigin, this._groundDirection);
-    this._groundRay.far = 500;
+    this._groundRay.far = 1000;
     this._groundRay.near = 0;
 
     const hits = this._groundRay.intersectObject(this.mesh, true);
-    const result = hits.length > 0 ? hits[0].point.y : null;
+    let result = null;
+    if (hits.length > 0) {
+      const hitPoint = hits[0].point.clone().add(this._translationDelta).add(this.offset);
+      result = hitPoint.y;
+    }
 
     this._groundHeightCache.key = cacheKey;
     this._groundHeightCache.value = result;

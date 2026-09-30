@@ -18,6 +18,8 @@ import { DebugDisplay } from './DebugDisplay.js';
 import { Rigidbody } from './Rigidbody.js';
 import { Force } from './Force.js';
 import { BoxCollider } from './BoxCollider.js';
+import { SphereCollider } from './SphereCollider.js';
+import { MeshCollider } from './MeshCollider.js';
 import { PerformanceMonitor } from './PerformanceMonitor.js';
 import { GameMenu } from './GameMenu.js';
 import { CameraController } from './CameraController.js';
@@ -309,6 +311,20 @@ export class ThirdPersonControllerApp {
       return {
         position,
         collider: new BoxCollider({ size, offset, physicsCollision }),
+      };
+    }
+    if (colliderConfig.type === 'sphere') {
+      const radius = colliderConfig.radius ?? 0.5;
+      return {
+        position,
+        collider: new SphereCollider({ radius, offset, physicsCollision }),
+      };
+    }
+    if (colliderConfig.type === 'mesh') {
+      const mesh = context.mesh ?? null;
+      return {
+        position,
+        collider: new MeshCollider({ mesh, offset, physicsCollision }),
       };
     }
     return null;
