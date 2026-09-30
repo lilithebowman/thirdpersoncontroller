@@ -63,7 +63,7 @@ public class SceneManifestExporterWindow : EditorWindow
 			string modelsFolder = Path.Combine(exportPath, "models");
 			Directory.CreateDirectory(modelsFolder);
 
-			List<Dictionary<string, object>> exportedGameObjects = new List<string, object>();
+			List<Dictionary<string, object>> exportedGameObjects = new List<Dictionary<string, object>>();
 
 			// Process root and children recursively
 			Dictionary<string, object> rootDict = ProcessGameObject(selectedRoot, null, exportPath, modelsFolder);
@@ -84,7 +84,7 @@ public class SceneManifestExporterWindow : EditorWindow
 			sceneDict["fog"] = "#000000";
 			manifest["scene"] = sceneDict;
 
-			manifest["gameObjects"] = exportedGameObjects;
+			manifest["gameObjects"] = new List<object>(exportedGameObjects);
 
 			EditorUtility.DisplayProgressBar("Exporting Scene Manifest", "Writing scene-manifest.json...", 0.8f);
 
@@ -144,8 +144,9 @@ public class SceneManifestExporterWindow : EditorWindow
 									light.type == LightType.Spot ? "spot" :
 									light.type == LightType.Area ? "hemisphere" : "directional";
 			lightComp["color"] = ColorUtility.ToHtmlStringRGB(light.color);
+			lightComp["groundColor"] = "#222222";
 			lightComp["intensity"] = light.intensity;
-			lightComp["range"] = light.range;
+			lightComp["distance"] = light.range;
 			lightComp["castShadow"] = light.shadows != LightShadows.None;
 			components.Add(lightComp);
 		}
@@ -175,7 +176,6 @@ public class SceneManifestExporterWindow : EditorWindow
 			if (meshRenderer != null && meshRenderer.sharedMaterial != null)
 			{
 				Material mat = meshRenderer.sharedMaterial;
-				string matName = Slugify(mat.name) + ".mtl";
 				modelComp["material"] = mat.name;
 			}
 
@@ -185,7 +185,7 @@ public class SceneManifestExporterWindow : EditorWindow
 		dict["components"] = components;
 
 		// Children
-		List<object> children = new List<object>();
+		List<Dictionary<string, object>> children = new List<Dictionary<string, object>>();
 		foreach (Transform child in obj.transform)
 		{
 			if (child != null)
@@ -281,6 +281,40 @@ public class SceneManifestExporterWindow : EditorWindow
 		else if (obj is List<object>)
 		{
 			List<object> list = (List<object>)obj;
+			if (list.Count == 0) return "[]";
+
+			StringBuilder sb = new StringBuilder();
+			sb.AppendLine("[");
+			for (int i = 0; i < list.Count; i++)
+			{
+				sb.Append(nextIndentStr);
+				sb.Append(SerializeToJson(list[i], indent + 1));
+				if (i < list.Count - 1) sb.AppendLine(",");
+				else sb.AppendLine();
+			}
+			sb.Append(indentStr + "]");
+			return sb.ToString();
+		}
+		else if (obj is List<float>)
+		{
+			List<float> list = (List<float>)obj;
+			if (list.Count == 0) return "[]";
+
+			StringBuilder sb = new StringBuilder();
+			sb.AppendLine("[");
+			for (int i = 0; i < list.Count; i++)
+			{
+				sb.Append(nextIndentStr);
+				sb.Append(SerializeToJson(list[i], indent + 1));
+				if (i < list.Count - 1) sb.AppendLine(",");
+				else sb.AppendLine();
+			}
+			sb.Append(indentStr + "]");
+			return sb.ToString();
+		}
+		else if (obj is List<Dictionary<string, object>>)
+		{
+			List<Dictionary<string, object>> list = (List<Dictionary<string, object>>)obj;
 			if (list.Count == 0) return "[]";
 
 			StringBuilder sb = new StringBuilder();
