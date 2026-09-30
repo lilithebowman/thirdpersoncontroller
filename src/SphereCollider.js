@@ -38,19 +38,20 @@ export class SphereCollider extends Collider {
    * @returns {THREE.Box3} The populated target bounds object
    */
   getBounds(position, target) {
-    const center = target.min;
-    center.copy(position).add(this.offset);
+    const centerX = position.x + this.offset.x;
+    const centerY = position.y + this.offset.y;
+    const centerZ = position.z + this.offset.z;
 
     target.min.set(
-      center.x - this.radius,
-      center.y - this.radius,
-      center.z - this.radius
+      centerX - this.radius,
+      centerY - this.radius,
+      centerZ - this.radius
     );
 
     target.max.set(
-      center.x + this.radius,
-      center.y + this.radius,
-      center.z + this.radius
+      centerX + this.radius,
+      centerY + this.radius,
+      centerZ + this.radius
     );
 
     return target;

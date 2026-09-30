@@ -40,19 +40,20 @@ export class BoxCollider extends Collider {
    * @returns {Object} The populated target bounds object
    */
   getBounds(position, target) {
-    const center = target.min;
-    center.copy(position).add(this.offset);
+    const centerX = position.x + this.offset.x;
+    const centerY = position.y + this.offset.y;
+    const centerZ = position.z + this.offset.z;
 
     target.min.set(
-      center.x - this.halfSize.x,
-      center.y - this.halfSize.y,
-      center.z - this.halfSize.z
+      centerX - this.halfSize.x,
+      centerY - this.halfSize.y,
+      centerZ - this.halfSize.z
     );
 
     target.max.set(
-      center.x + this.halfSize.x,
-      center.y + this.halfSize.y,
-      center.z + this.halfSize.z
+      centerX + this.halfSize.x,
+      centerY + this.halfSize.y,
+      centerZ + this.halfSize.z
     );
 
     return target;
