@@ -1,15 +1,29 @@
 /**
- * Animator.js
- *
- * Owns player model animation config, FBX clip loading/validation, and
- * per-frame blending for idle/walk/jump states.
- */
+* Animator.js
+*
+* Responsibilities:
+* - Owns player model and animation configuration.
+* - Loads FBX rigs and animation clips.
+* - Validates animation compatibility against the player skeleton.
+* - Removes root motion from imported clips when desired.
+* - Creates animation mixers/actions for runtime player instances.
+* - Performs smooth state blending between idle, walk, and jump states.
+*/
 
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 export class Animator {
+  /**
+   * @param {Object} options
+   * @param {Function} options.resolveScenePath
+   * Converts asset-relative paths into loadable URLs.
+   * @param {Function} options.configureMeshCulling
+   * Optional callback used to apply mesh-culling configuration.
+   * @param {Object|null} options.debugDisplay
+   * Optional logging surface supporting Log() and LogWarning().
+   */
   constructor({ resolveScenePath, configureMeshCulling, debugDisplay = null } = {}) {
     if (typeof resolveScenePath !== 'function') {
       throw new Error('Animator requires resolveScenePath callback.');
@@ -19,16 +33,32 @@ export class Animator {
     this.configureMeshCulling = typeof configureMeshCulling === 'function' ? configureMeshCulling : () => {};
     this.debugDisplay = debugDisplay;
 
+    /**
+     * Template rig used as the source model.
+     * Each player instance receives a cloned copy.
+     */
     this.modelTemplate = null;
+
+    /**
+     * Prepared animation clips that have already been
+     * mapped and validated against the player rig.
+     */
     this.walkClip = null;
     this.idleClip = null;
     this.jumpClip = null;
 
+    /**
+     * Runtime animation state for a spawned player visual.
+     */
     this.mixer = null;
     this.walkAction = null;
     this.idleAction = null;
     this.jumpAction = null;
 
+    /**
+     * Default player animation/model configuration.
+     * Can be overridden through applyModelConfig().
+     */
     this.modelConfig = {
       rigPath: '/animations/Action%20Adventure%20Pack/X%20Bot.fbx',
       walkPath: '/animations/Action%20Adventure%20Pack/walking.fbx',
@@ -44,22 +74,38 @@ export class Animator {
     };
   }
 
+  /**
+   * Write an informational message to the debug display.
+   */
   setDebugDisplay(debugDisplay) {
     this.debugDisplay = debugDisplay;
   }
 
+  /**
+   * Log an informational message to the debug display.
+   */
   log(message) {
     if (this.debugDisplay && typeof this.debugDisplay.Log === 'function') {
       this.debugDisplay.Log(message);
     }
   }
 
+  /**
+   * Log a warning message to the debug display.
+   */
   warn(message) {
     if (this.debugDisplay && typeof this.debugDisplay.LogWarning === 'function') {
       this.debugDisplay.LogWarning(message);
     }
   }
 
+  /**
+   * toVector3 converts an array of values to a THREE.Vector3 instance.
+   * If the input is invalid, it returns a clone of the provided fallback vector.
+   * @param {Array<number>} values - The array of values to convert.
+   * @param {THREE.Vector3} [fallback=new THREE.Vector3()] - The fallback vector to use if the input is invalid.
+   * @returns {THREE.Vector3} The resulting THREE.Vector3 instance.
+   */
   toVector3(values, fallback = new THREE.Vector3()) {
     if (!Array.isArray(values) || values.length < 3) {
       return fallback.clone();

@@ -1,7 +1,8 @@
 # Copilot Instructions
 
 ## Project purpose
-This project is a browser-based 3D prototype for a third-person character controller in Three.js. It is intentionally lightweight and built for rapid iteration while a future rigged character replaces the current cube placeholder.
+This project is a browser-based 3D prototype for a third-person character controller in Three.js. It is intentionally lightweight and built fot extendability. As such, documentation and proper testing procedures shall be followed to ensure code quality and maintainability.
+  
 
 ## Coding standards
 - Use modern JavaScript modules and keep logic organized by responsibility.
@@ -29,3 +30,9 @@ This project is a browser-based 3D prototype for a third-person character contro
 ## Validation
 - Before claiming the project is complete, run the build command and confirm it succeeds.
 - If scene or loader changes are made, verify that the app still loads in a browser and the manifest is respected.
+
+## Documentation expectations for JavaScript code
+- FBX, OBJ, animation-retargeting, skeleton-mapping, root-motion, and manifest-loading code must be documented at a level where a developer unfamiliar with the implementation can safely modify it.
+- Validation and rejection logic should explain the conditions being checked and the reason those checks exist.
+- Fallback behavior should always be documented.
+- Runtime update loops should clearly explain how state transitions and blending are calculated.
