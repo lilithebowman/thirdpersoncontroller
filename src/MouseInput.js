@@ -3,6 +3,10 @@
  *
  * Tracks mouse movement for camera look and click events for view-centered
  * raycasts.
+ *
+ * Mouse & Look Controls:
+ * - Mouse Look: Delta X/Y movement updates camera and character orientation when pointer is locked or active.
+ * - Mouse Click: Left-click requests selection or raycast interaction in the scene.
  */
 
 export class MouseInput {

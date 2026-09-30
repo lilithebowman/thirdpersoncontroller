@@ -3,6 +3,12 @@
  *
  * Integrates velocity and accumulated forces, applies gravity and damping, and
  * resolves ground and collider overlaps for the player controller.
+ *
+ * Physics & Collision Architecture:
+ * - Integrates external forces and gravity into linear velocity using delta time.
+ * - Performs ground height sampling via world collider raycasts / bounding checks.
+ * - Resolves axis-aligned bounding box (AABB) overlap and positional correction
+ *   against static environment colliders (`BoxCollider`, `SphereCollider`, `MeshCollider`).
  */
 
 import * as THREE from 'three';

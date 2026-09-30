@@ -3,6 +3,11 @@
  *
  * Tracks keyboard down and pressed state, and clears input when focus is lost
  * or the document becomes hidden.
+ *
+ * Input Mapping & Controls Reference:
+ * - Movement: WASD or Arrow keys (W/Up: forward, S/Down: backward, A/Left: strafe left, D/Right: strafe right).
+ * - Sprinting: Shift key (enables speed multiplier when movement keys are held).
+ * - Jumping: Space bar (applies jump impulse when grounded).
  */
 
 export class KeyboardInput {
