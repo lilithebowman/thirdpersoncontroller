@@ -582,7 +582,7 @@ export class ThirdPersonControllerApp {
     this.keyboardInput.clear();
     this.inputEnabledAt = performance.now() + 150;
     this.isRunning = true;
-    this.tick();
+    this.renderer.setAnimationLoop(this.tick);
   }
 
   tick() {
@@ -590,7 +590,6 @@ export class ThirdPersonControllerApp {
       return;
     }
 
-    requestAnimationFrame(this.tick);
     const delta = Math.min(this.clock.getDelta(), 0.05);
 
     if (this.keyboardInput.consumePress('Escape')) {
@@ -606,13 +605,17 @@ export class ThirdPersonControllerApp {
       this.isPointerLocked = true;
     }
 
+    if (this.renderer.xr.isPresenting) {
+      this.cameraController.state.distance = this.cameraController.state.firstPersonDistanceThreshold;
+    }
+
     this.updateMouseLook();
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta);
     this.updatePlayerAnimation(delta);
-    this.cameraController.update(this.playerCharacter.root);
+    this.cameraController.update(this.playerCharacter.root, { isPresenting: this.renderer.xr.isPresenting });
 
-    if (this.cameraController.isFirstPerson()) {
+    if (this.cameraController.isFirstPerson() || this.renderer.xr.isPresenting) {
       this.cameraController.headLookBaseLocalQuaternion?.copy?.(this.playerCharacter.headBone?.quaternion ?? new THREE.Quaternion());
       this.cameraController.applyHeadLookOverride(this.playerCharacter.headBone, this.playerYaw);
     } else {
