@@ -508,8 +508,12 @@ export class ThirdPersonControllerApp {
       const speed = this.keyboardInput.isDown('ShiftLeft') || this.keyboardInput.isDown('ShiftRight')
         ? this.playerState.sprintSpeed
         : this.playerState.speed;
-      playerRoot.position.addScaledVector(move, speed * delta);
+      this.playerRigidbody.velocity.x = move.x * speed;
+      this.playerRigidbody.velocity.z = move.z * speed;
       this.playerTargetYaw = THREE.MathUtils.euclideanModulo(Math.atan2(move.x, move.z) + Math.PI, Math.PI * 2) - Math.PI;
+    } else {
+      this.playerRigidbody.velocity.x = 0;
+      this.playerRigidbody.velocity.z = 0;
     }
 
     if (this.cameraController.isFirstPerson()) {

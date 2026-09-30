@@ -9,6 +9,7 @@ import assert from 'node:assert';
 import * as THREE from 'three';
 import { Rigidbody } from './Rigidbody.js';
 import { BoxCollider } from './BoxCollider.js';
+import { MeshCollider } from './MeshCollider.js';
 
 test('Rigidbody integrates velocity and gravity', () => {
   const rb = new Rigidbody({ mass: 2, gravity: new THREE.Vector3(0, -10, 0), linearDamping: 0.1 });
@@ -31,4 +32,24 @@ test('Rigidbody respects ground plane and clamping', () => {
   assert.strictEqual(isGrounded, true);
   assert.strictEqual(position.y, 0);
   assert.strictEqual(rb.velocity.y, 0);
+});
+
+test('Rigidbody resolves collisions against MeshCollider walls', () => {
+  const rb = new Rigidbody({ mass: 1, gravity: new THREE.Vector3(0, 0, 0), enablePhysicsCollision: true });
+  const playerCollider = new BoxCollider({ size: new THREE.Vector3(1, 1, 1), offset: new THREE.Vector3(0, 0.5, 0) });
+  const position = new THREE.Vector3(0, 0, 2);
+
+  const geometry = new THREE.BoxGeometry(10, 10, 2);
+  const material = new THREE.MeshBasicMaterial();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(0, 0, 0);
+  mesh.updateMatrixWorld(true);
+
+  const meshCollider = new MeshCollider({ mesh });
+  const worldColliders = [{ position: new THREE.Vector3(0, 0, 0), physicsCollision: true, collider: meshCollider }];
+
+  rb.velocity.set(0, 0, -10);
+  rb.integrate(position, 0.05, { groundY: -10, collider: playerCollider, colliders: worldColliders });
+
+  assert.ok(position.z > 0.5);
 });
