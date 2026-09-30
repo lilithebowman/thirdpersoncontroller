@@ -538,14 +538,8 @@ export class SceneEditorApp {
             if (renderType === 'transparent') {
               material.transparent = true;
               material.depthWrite = false;
-            } else if (renderType === 'cutout') {
-              material.transparent = true;
+            } else {
               material.alphaTest = 0.5;
-              if (material.map) {
-                if (material.map.format === THREE.RGBAFormat) {
-                  material.alphaMap = material.map;
-                }
-              }
             }
           }
         });
