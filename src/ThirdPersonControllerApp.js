@@ -60,7 +60,6 @@ export class ThirdPersonControllerApp {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.xr.enabled = true;
-    document.body.appendChild(VRButton.createButton(this.renderer));
     this.app.appendChild(this.renderer.domElement);
 
     this.clock = new THREE.Clock();
@@ -429,6 +428,34 @@ export class ThirdPersonControllerApp {
 
     this.respawnY = Number.isFinite(respawnConfig.fallBelowY) ? respawnConfig.fallBelowY : -1000;
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
+
+    this.renderer.xr.enabled = true;
+    const existingVrButton = document.getElementById('VRButton');
+    if (!existingVrButton) {
+      const vrButton = VRButton.createButton(this.renderer);
+      if (vrButton) {
+        const isDebugEnabled = debugConfig.enabled === true;
+        if ('xr' in navigator && navigator.xr?.isSessionSupported) {
+          navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+            if (supported || isDebugEnabled) {
+              if (!document.getElementById('VRButton')) {
+                document.body.appendChild(vrButton);
+              }
+            }
+          }).catch(() => {
+            if (isDebugEnabled) {
+              if (!document.getElementById('VRButton')) {
+                document.body.appendChild(vrButton);
+              }
+            }
+          });
+        } else {
+          if (isDebugEnabled) {
+            document.body.appendChild(vrButton);
+          }
+        }
+      }
+    }
 
     const playerConfig = manifest.player ?? {};
     this.animator.applyModelConfig(playerConfig.model ?? {}, resolvedPath);
