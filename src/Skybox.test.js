@@ -50,3 +50,21 @@ test('Skybox handles texture config gracefully', async () => {
   await skybox.apply({ type: 'texture', texture: 'models/2026-CozyCon-Cafe/PlanetaryEarth4k.hdr' });
   assert.ok(true);
 });
+
+test('Skybox handles multi-texture config gracefully', async () => {
+  const scene = new THREE.Scene();
+  const skybox = new Skybox({ scene, resolveScenePath: (p) => p });
+
+  await skybox.apply({
+    type: 'multi-texture',
+    textures: {
+      up: { texture: 'models/2026-CozyCon-Cafe/PlanetaryEarth4k/01_up.png' },
+      left: { texture: 'models/2026-CozyCon-Cafe/PlanetaryEarth4k/02_left.png' },
+      right: { texture: 'models/2026-CozyCon-Cafe/PlanetaryEarth4k/03_right.png' },
+      front: { texture: 'models/2026-CozyCon-Cafe/PlanetaryEarth4k/04_front.png' },
+      back: { texture: 'models/2026-CozyCon-Cafe/PlanetaryEarth4k/05_back.png' },
+      down: { texture: 'models/2026-CozyCon-Cafe/PlanetaryEarth4k/06_down.png' }
+    }
+  });
+  assert.ok(true);
+});

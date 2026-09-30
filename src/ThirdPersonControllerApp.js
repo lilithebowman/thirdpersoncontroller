@@ -478,18 +478,21 @@ export class ThirdPersonControllerApp {
       this.spawnPlayerAt(spawnPosition);
     }
 
-    this.skybox = new Skybox({
-      scene: this.scene,
-      resolveScenePath: this.resolveScenePath.bind(this),
-      debugDisplay: this.debugDisplay,
-    });
-    await this.skybox.apply(sceneConfig.skybox ?? manifest.skybox);
-
     if (sceneConfig.background) {
       this.scene.background = new THREE.Color(sceneConfig.background);
       if (this.scene.fog) {
         this.scene.fog.color = new THREE.Color(sceneConfig.background);
       }
+    }
+
+    this.skybox = new Skybox({
+      scene: this.scene,
+      resolveScenePath: this.resolveScenePath.bind(this),
+      debugDisplay: this.debugDisplay,
+    });
+    const skyboxConfig = sceneConfig.skybox ?? manifest.skybox;
+    if (skyboxConfig && (typeof skyboxConfig === 'object' && Object.keys(skyboxConfig).length > 0)) {
+      await this.skybox.apply(skyboxConfig);
     }
 
     await this.processManifestObjects(items);

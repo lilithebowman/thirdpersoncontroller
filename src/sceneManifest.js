@@ -138,12 +138,14 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
     }));
   }
 
-  if (item.type === 'skybox') {
+  if (item.type === 'skybox' || item.skyboxType || item.textures || item.texture) {
     gameObject.components.push(normalizeComponent({
       type: 'skybox',
       skyboxType: item.skyboxType ?? item.type ?? 'color',
       color: item.color ?? undefined,
       paths: cloneValue(item.paths) ?? undefined,
+      textures: cloneValue(item.textures) ?? undefined,
+      texture: item.texture ?? item.path ?? item.url ?? undefined,
     }));
   }
 
@@ -329,6 +331,8 @@ function gameObjectToLegacyItems(gameObject) {
         skyboxType: component.skyboxType ?? 'color',
         color: component.color ?? undefined,
         paths: cloneValue(component.paths) ?? undefined,
+        textures: cloneValue(component.textures) ?? undefined,
+        texture: component.texture ?? undefined,
         position: transform.position ?? [0, 0, 0],
         rotation: transform.rotation ?? [0, 0, 0],
         scale: transform.scale ?? [1, 1, 1],

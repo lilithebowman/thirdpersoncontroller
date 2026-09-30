@@ -39,11 +39,31 @@
     }
   },
   "scene": {
-    "background": "#8ecae6",
-    "fog": "#8ecae6",
+    "background": "#112233",
+    "fog": "#000000",
     "skybox": {
-      "type": "texture",
-      "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k.hdr"
+      "type": "multi-texture",
+      "textures": {
+        "up": {
+          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/01_up.png"
+        },
+        "left": {
+          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/02_left.png"
+        },
+        "front": {
+          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/03_back.png"
+        },
+        "right": {
+          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/04_right.png"
+        },
+        "back": {
+          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/05_front.png"
+        },
+        "down": {
+          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/06_down.png",
+          "rotation": 180
+        }
+      }
     }
   },
   "gameObjects": [
