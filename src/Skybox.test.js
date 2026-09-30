@@ -42,3 +42,11 @@ test('Skybox handles missing or empty config gracefully', async () => {
   await skybox.apply({});
   assert.ok(true); // Should not throw
 });
+
+test('Skybox handles texture config gracefully', async () => {
+  const scene = new THREE.Scene();
+  const skybox = new Skybox({ scene, resolveScenePath: (p) => p });
+
+  await skybox.apply({ type: 'texture', texture: 'models/2026-CozyCon-Cafe/PlanetaryEarth4k.hdr' });
+  assert.ok(true);
+});

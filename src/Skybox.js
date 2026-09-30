@@ -42,12 +42,15 @@ export class Skybox {
       return;
     }
 
-    const type = (config.type ?? config.skyboxType ?? 'color').toLowerCase();
+    const type = (config.type ?? config.skyboxType ?? '').toLowerCase();
+    const texturePath = config.texture ?? config.path ?? config.url;
 
     try {
-      if (type === 'cubemap' || type === 'cube') {
+      if (type === 'cubemap' || type === 'cube' || Array.isArray(config.paths) || Array.isArray(config.urls)) {
         await this.loadCubeTexture(config.paths ?? config.urls ?? []);
-      } else if (type === 'color' || type === 'solid') {
+      } else if (type === 'texture' || type === 'hdr' || type === 'equirectangular' || type === 'image' || texturePath) {
+        await this.loadTextureSkybox(texturePath, config);
+      } else if (type === 'color' || type === 'solid' || config.color !== undefined || config.background !== undefined) {
         const colorValue = config.color ?? config.background ?? 0x8ecae6;
         this.scene.background = new THREE.Color(colorValue);
       } else if (type === 'mesh' || type === 'geometry') {
@@ -57,6 +60,8 @@ export class Skybox {
           this.scene.background = new THREE.Color(config.color);
         } else if (config.paths) {
           await this.loadCubeTexture(config.paths);
+        } else if (texturePath) {
+          await this.loadTextureSkybox(texturePath, config);
         } else {
           this.scene.background = new THREE.Color(0x8ecae6);
         }
@@ -93,6 +98,54 @@ export class Skybox {
     this.scene.background = cubeTexture;
     this.scene.environment = cubeTexture;
     return cubeTexture;
+  }
+
+  /**
+   * Loads a single 2D or HDR equirectangular texture skybox.
+   * @param {string} texturePath - Path to texture image or .hdr file
+   * @param {Object} [config={}] - Additional texture configuration options
+   * @returns {Promise<THREE.Texture|null>}
+   */
+  async loadTextureSkybox(texturePath, config = {}) {
+    if (!texturePath) {
+      return null;
+    }
+
+    const resolvedPath = typeof this.resolveScenePath === 'function'
+      ? this.resolveScenePath(texturePath)
+      : texturePath;
+
+    const lowerPath = resolvedPath.toLowerCase();
+    const isHdr = lowerPath.endsWith('.hdr') || lowerPath.endsWith('.exr') || config.type === 'hdr';
+
+    let texture = null;
+    if (isHdr) {
+      let loader = null;
+      try {
+        const { HDRLoader } = await import('three/examples/jsm/loaders/HDRLoader.js');
+        loader = new HDRLoader();
+      } catch {
+        const { RGBELoader } = await import('three/examples/jsm/loaders/RGBELoader.js');
+        loader = new RGBELoader();
+      }
+      texture = await loader.loadAsync(resolvedPath);
+    } else {
+      const loader = new THREE.TextureLoader();
+      texture = await loader.loadAsync(resolvedPath);
+    }
+
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    if (config.colorSpace && THREE[config.colorSpace]) {
+      texture.colorSpace = THREE[config.colorSpace];
+    } else if (isHdr) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+    }
+
+    this.scene.background = texture;
+    if (config.setEnvironment !== false) {
+      this.scene.environment = texture;
+    }
+    return texture;
   }
 
   /**

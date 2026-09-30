@@ -42,8 +42,8 @@
     "background": "#8ecae6",
     "fog": "#8ecae6",
     "skybox": {
-      "type": "color",
-      "color": "#8ecae6"
+      "type": "texture",
+      "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k.hdr"
     }
   },
   "gameObjects": [
