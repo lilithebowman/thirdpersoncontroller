@@ -27,6 +27,7 @@ import { CameraController } from './CameraController.js';
 import { PlayerCharacter } from './PlayerCharacter.js';
 import { SceneLoader } from './SceneLoader.js';
 import { Skybox } from './Skybox.js';
+import { Loader } from './Loader.js';
 
 export class ThirdPersonControllerApp {
   /**
@@ -89,6 +90,13 @@ export class ThirdPersonControllerApp {
       mountElement: this.app,
       onRespawn: () => this.respawnPlayer(),
       onLog: (msg) => this.debugDisplay.Log(msg),
+    });
+
+    this.loader = new Loader({
+      mountElement: this.app,
+      message: 'Loading 3D assets & scene...',
+      type: 'spinner',
+      visible: false,
     });
 
     this.force = new Force();
@@ -674,7 +682,12 @@ export class ThirdPersonControllerApp {
   }
 
   async init() {
-    await this.loadManifestScene();
-    this.start();
+    this.loader.show('Loading 3D assets & scene...');
+    try {
+      await this.loadManifestScene();
+      this.start();
+    } finally {
+      this.loader.hide();
+    }
   }
 }

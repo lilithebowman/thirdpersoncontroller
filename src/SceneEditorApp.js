@@ -8,6 +8,7 @@ import {
   normalizeGameObject,
   normalizeSceneManifest,
 } from './sceneManifest.js';
+import { Loader } from './Loader.js';
 
 export class SceneEditorApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -32,6 +33,13 @@ export class SceneEditorApp {
     this.statusRoot = this.mount.querySelector('[data-role="status-root"]');
     this.jsonInput = this.mount.querySelector('[data-role="json-input"]');
     this.hierarchyContextMenuRoot = this.mount.querySelector('[data-role="hierarchy-context-menu"]');
+
+    this.loader = new Loader({
+      mountElement: this.app,
+      message: 'Loading scene editor...',
+      type: 'spinner',
+      visible: false,
+    });
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x18212f);
@@ -288,9 +296,14 @@ export class SceneEditorApp {
   }
 
   async init() {
-    await this.loadManifest();
-    this.onResize();
-    this.animate();
+    this.loader.show('Loading scene editor...');
+    try {
+      await this.loadManifest();
+      this.onResize();
+      this.animate();
+    } finally {
+      this.loader.hide();
+    }
   }
 
   async loadManifest() {
