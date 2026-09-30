@@ -10,6 +10,7 @@ import {
 } from './sceneManifest.js';
 import { Loader } from './Loader.js';
 import { assetMetaService } from './AssetMetaService.js';
+import { MaterialRenderService } from './MaterialRenderService.js';
 
 export class SceneEditorApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
@@ -516,31 +517,7 @@ export class SceneEditorApp {
     }
 
     const subMeshOverrides = meta?.subMeshOverrides ?? {};
-
-    model.traverse((child) => {
-      if (!child.isMesh) {
-        return;
-      }
-
-      const override = subMeshOverrides[child.name] ?? {};
-      child.frustumCulled = false;
-      child.castShadow = override.castShadow ?? true;
-      child.receiveShadow = override.receiveShadow ?? true;
-      if (override.visible !== undefined) {
-        child.visible = override.visible;
-      }
-
-      const renderType = override.materialRenderType ?? materialRenderType;
-      if (child.material) {
-        const materials = Array.isArray(child.material) ? child.material : [child.material];
-        materials.forEach((material) => {
-          if (material && renderType === 'transparent') {
-            material.transparent = true;
-            material.depthWrite = false;
-          }
-        });
-      }
-    });
+    MaterialRenderService.configureModelMaterials(model, subMeshOverrides, materialRenderType);
 
     this.assetCache.set(cacheKey, model);
     return model.clone(true);
