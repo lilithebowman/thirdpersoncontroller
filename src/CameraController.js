@@ -209,14 +209,43 @@ export class CameraController {
     );
 
     if (this.isFirstPerson() || isPresenting) {
-      this.setNearPlane(this.state.firstPersonNear);
+      this.cameraPosition.copy(this.eyePosition);
+      this.cameraPosition.applyQuaternion(player.quaternion);
+      this.cameraPosition.add(player.position);
+
+      let near = this.state.firstPersonNear;
+      if (player) {
+        player.updateMatrixWorld(false);
+        const box = new THREE.Box3().setFromObject(player);
+        if (!box.isEmpty()) {
+          const corners = [
+            new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+            new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+            new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+            new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+            new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+            new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+            new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+            new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+          ];
+          let maxDist = 0;
+          for (const corner of corners) {
+            const dist = this.cameraPosition.distanceTo(corner);
+            if (dist > maxDist) {
+              maxDist = dist;
+            }
+          }
+          if (maxDist > 0) {
+            near = Math.max(near, maxDist + 0.05);
+          }
+        }
+      }
+
+      this.setNearPlane(near);
       this.computeFirstPersonLookDirection(this.cameraLookDirection);
       if (isPresenting) {
         return;
       }
-      this.cameraPosition.copy(this.eyePosition);
-      this.cameraPosition.applyQuaternion(player.quaternion);
-      this.cameraPosition.add(player.position);
       this.camera.position.copy(this.cameraPosition);
       this.camera.rotation.set(this.state.pitch, this.state.yaw, 0, 'YXZ');
       return;
