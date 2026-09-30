@@ -542,7 +542,9 @@ export class SceneEditorApp {
               material.transparent = true;
               material.alphaTest = 0.5;
               if (material.map) {
-                material.alphaMap = material.map;
+                if (material.map.format === THREE.RGBAFormat) {
+                  material.alphaMap = material.map;
+                }
               }
             }
           }

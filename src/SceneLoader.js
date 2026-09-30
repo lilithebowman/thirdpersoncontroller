@@ -156,7 +156,14 @@ export class SceneLoader {
               material.transparent = true;
               material.alphaTest = 0.5;
               if (material.map) {
-                material.alphaMap = material.map;
+                // If the texture has an alpha channel (RGBA), use it as alphaMap.
+                // Otherwise, do not assign alphaMap so it does not fallback to brightness/luminance.
+                if (material.map.format === THREE.RGBAFormat) {
+                  material.alphaMap = material.map;
+                } else {
+                  material.transparent = false;
+                  material.alphaTest = 0;
+                 }
               }
             }
           }
