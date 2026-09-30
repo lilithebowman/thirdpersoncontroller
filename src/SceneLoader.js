@@ -152,21 +152,8 @@ export class SceneLoader {
             if (renderType === 'transparent') {
               material.transparent = true;
               material.depthWrite = false;
-            } else if (renderType === 'cutout') {
-              material.transparent = true;
-              material.alphaTest = 0.5;
-            }
-            
-            // Ensure only textures with alpha channel are used as alphaMap
-            if (material.map) {
-              // If the texture has an alpha channel (RGBA), use it as alphaMap.
-              // Otherwise, do not assign alphaMap so it does not fallback to brightness/luminance.
-              if (material.map.format === THREE.RGBAFormat) {
-                material.alphaMap = material.map;
-              } else {
-                material.transparent = false;
-                material.alphaTest = 0;
-              }
+            } else {
+                material.alphaTest = 0.5;
             }
           }
         });
