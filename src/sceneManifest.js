@@ -1,5 +1,19 @@
+/**
+ * sceneManifest.js
+ *
+ * Module: Scene Manifest Normalizer & Converters
+ * Purpose: Provides parsing, normalization, and bidirectional conversion between legacy
+ *          flat object manifests and the robust hierarchical GameObject/component structure
+ *          used by the scene editor and runtime.
+ */
+
 const DEFAULT_MANIFEST_VERSION = 2;
 
+/**
+ * Clones a value using structuredClone when available, falling back to JSON serialization.
+ * @param {*} value - Value to clone
+ * @returns {*} Cloned value
+ */
 function cloneValue(value) {
   if (typeof structuredClone === 'function') {
     return structuredClone(value);

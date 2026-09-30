@@ -1,23 +1,42 @@
 /**
  * SphereCollider.js
  *
- * Implements a sphere collider with configurable radius, offset, and AABB
- * generation for the physics system.
+ * Class: SphereCollider
+ * Purpose: Implements a sphere collider with configurable radius, offset, and
+ *          AABB bounding generation and sphere-box intersection logic.
+ * Inherits: Collider
  */
 
 import * as THREE from 'three';
 import { Collider } from './Collider.js';
 
 export class SphereCollider extends Collider {
+  /**
+   * Creates a SphereCollider instance.
+   * @param {Object} options - Configuration options
+   * @param {number} [options.radius=0.5] - Radius of the sphere
+   * @param {THREE.Vector3} [options.offset=new THREE.Vector3()] - Center offset relative to parent transform
+   * @param {boolean} [options.physicsCollision=true] - Whether collider resolves physical overlaps
+   */
   constructor({ radius = 0.5, offset = new THREE.Vector3(), physicsCollision = true } = {}) {
     super({ type: 'SphereCollider', offset, physicsCollision });
     this.radius = Math.max(0, radius);
   }
 
+  /**
+   * Sets the sphere radius.
+   * @param {number} radius - New radius value (clamped >= 0)
+   */
   setRadius(radius) {
     this.radius = Math.max(0, radius);
   }
 
+  /**
+   * Computes the axis-aligned bounding box (AABB) enclosing the sphere in world space.
+   * @param {THREE.Vector3} position - World position of the object
+   * @param {THREE.Box3} target - Target box to populate with min and max
+   * @returns {THREE.Box3} The populated target bounds object
+   */
   getBounds(position, target) {
     const center = target.min;
     center.copy(position).add(this.offset);
@@ -37,6 +56,14 @@ export class SphereCollider extends Collider {
     return target;
   }
 
+  /**
+   * Tests intersection between this sphere and a target AABB bounds.
+   * Logic: Finds the closest point on the AABB to the sphere center and checks
+   * if the squared distance is less than or equal to the squared radius.
+   * @param {THREE.Box3} bounds - Target AABB bounds
+   * @param {THREE.Vector3} position - World position of this sphere collider
+   * @returns {boolean} True if intersecting, false otherwise
+   */
   intersectsBounds(bounds, position) {
     const center = position.clone().add(this.offset);
     const closestX = THREE.MathUtils.clamp(center.x, bounds.min.x, bounds.max.x);

@@ -1,13 +1,20 @@
 /**
  * DebugDisplay.js
  *
- * Renders the on-page debug overlay and message log used to inspect runtime
- * state while the controller is running.
+ * Class: DebugDisplay
+ * Purpose: Renders the on-page debug overlay and message console used to inspect runtime
+ *          states (position, rotation, velocity, FPS, ground status) during gameplay.
  */
 
 import * as THREE from 'three';
 
 export class DebugDisplay {
+  /**
+   * Creates a DebugDisplay instance.
+   * @param {Object} options - Configuration options
+   * @param {HTMLElement} [options.parentElement] - DOM element to mount the debug UI into
+   * @param {boolean} [options.enabled=false] - Whether debug display is initially visible
+   */
   constructor({ parentElement, enabled = false } = {}) {
     this.parentElement = parentElement;
     this.enabled = Boolean(enabled);

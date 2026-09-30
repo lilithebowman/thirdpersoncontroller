@@ -1,14 +1,23 @@
 /**
  * MeshCollider.js
  *
- * Implements a mesh-backed collider that uses broad-phase AABB checks and
- * triangle intersection tests against scene geometry.
+ * Class: MeshCollider
+ * Purpose: Implements a mesh-backed collider that uses broad-phase AABB checks,
+ *          detailed triangle intersection testing, and raycast-based ground height sampling.
+ * Inherits: Collider
  */
 
 import * as THREE from 'three';
 import { Collider } from './Collider.js';
 
 export class MeshCollider extends Collider {
+  /**
+   * Creates a MeshCollider instance.
+   * @param {Object} options - Configuration options
+   * @param {THREE.Object3D|null} [options.mesh=null] - Source Three.js mesh for collision geometry
+   * @param {THREE.Vector3} [options.offset=new THREE.Vector3()] - Position offset relative to parent transform
+   * @param {boolean} [options.physicsCollision=true] - Whether collider resolves physical overlaps
+   */
   constructor({ mesh = null, offset = new THREE.Vector3(), physicsCollision = true } = {}) {
     super({ type: 'MeshCollider', offset, physicsCollision });
     this.mesh = mesh;
@@ -24,10 +33,21 @@ export class MeshCollider extends Collider {
     this._groundHeightCache = { key: null, value: null, time: 0 };
   }
 
+  /**
+   * Sets or updates the source mesh for collision.
+   * @param {THREE.Object3D} mesh - New collision mesh
+   */
   setMesh(mesh) {
     this.mesh = mesh;
   }
 
+  /**
+   * Computes the world-space bounding box for the mesh collider by traversing
+   * child meshes and unioning their transformed buffer attributes.
+   * @param {THREE.Vector3} position - World position fallback if mesh is absent
+   * @param {THREE.Box3} target - Target box to populate
+   * @returns {THREE.Box3} Populated bounds object
+   */
   getBounds(position, target) {
     if (this.mesh) {
       this.mesh.updateMatrixWorld(true);
@@ -59,6 +79,16 @@ export class MeshCollider extends Collider {
     return target;
   }
 
+  /**
+   * Tests intersection between a dynamic AABB and this mesh collider.
+   * Logic:
+   * 1. Broad-phase AABB test to quickly reject non-overlapping colliders.
+   * 2. Narrow-phase triangle traversal: iterates over geometry triangles, transforms vertices
+   *    to world space, and tests triangle-box intersection.
+   * @param {THREE.Box3} bounds - Dynamic AABB bounds to test
+   * @param {THREE.Vector3} position - World position of the mesh collider
+   * @returns {boolean} True if any triangle intersects the dynamic AABB
+   */
   intersectsBounds(bounds, position) {
     if (!this.mesh) {
       return super.intersectsBounds(bounds, position);
@@ -114,6 +144,12 @@ export class MeshCollider extends Collider {
     return intersects;
   }
 
+  /**
+   * Samples the ground height (Y coordinate) below a given player position using raycasting.
+   * Includes spatial caching (80ms TTL) to avoid expensive raycasts on every frame.
+   * @param {THREE.Vector3} playerPosition - Current player position
+   * @returns {number|null} Ground Y coordinate or null if no hit
+   */
   getGroundHeightAt(playerPosition) {
     if (!this.mesh) {
       return null;
