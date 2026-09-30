@@ -157,27 +157,38 @@ public class SceneManifestExporterWindow : EditorWindow
 		if (meshFilter != null && meshFilter.sharedMesh != null)
 		{
 			string meshName = meshFilter.sharedMesh.name;
-			string modelFileName = Slugify(meshName) + ".obj";
+			string safeMeshName = Slugify(meshName);
+			string modelFileName = safeMeshName + ".obj";
+			string mtlFileName = safeMeshName + ".mtl";
 			string modelRelativePath = "models/" + modelFileName;
+			string mtlRelativePath = "models/" + mtlFileName;
 			string fullModelPath = Path.Combine(modelsFolder, modelFileName);
+			string fullMtlPath = Path.Combine(modelsFolder, mtlFileName);
+
+			Material sharedMat = meshRenderer != null && meshRenderer.sharedMaterial != null ? meshRenderer.sharedMaterial : null;
+
+			// Export MTL if material exists
+			if (sharedMat != null && !File.Exists(fullMtlPath))
+			{
+				ExportMaterialToMtl(sharedMat, fullMtlPath, modelsFolder);
+			}
 
 			// Export mesh to OBJ if not already exported
 			if (!File.Exists(fullModelPath))
 			{
-				ExportMeshToObj(meshFilter.sharedMesh, meshRenderer, fullModelPath);
+				ExportMeshToObj(meshFilter.sharedMesh, sharedMat != null ? mtlFileName : null, fullModelPath);
 			}
 
 			Dictionary<string, object> modelComp = new Dictionary<string, object>();
 			modelComp["type"] = "model";
 			modelComp["modelType"] = "obj";
 			modelComp["objPath"] = modelRelativePath;
-			modelComp["ignoreCulling"] = false;
-
-			if (meshRenderer != null && meshRenderer.sharedMaterial != null)
+			if (sharedMat != null)
 			{
-				Material mat = meshRenderer.sharedMaterial;
-				modelComp["material"] = mat.name;
+				modelComp["mtlPath"] = mtlRelativePath;
+				modelComp["material"] = sharedMat.name;
 			}
+			modelComp["ignoreCulling"] = false;
 
 			components.Add(modelComp);
 		}
@@ -198,30 +209,38 @@ public class SceneManifestExporterWindow : EditorWindow
 		return dict;
 	}
 
-	private void ExportMeshToObj(Mesh mesh, MeshRenderer renderer, string filePath)
+	private void ExportMeshToObj(Mesh mesh, string mtlFileName, string filePath)
 	{
 		StringBuilder sb = new StringBuilder();
 		sb.AppendLine("# Exported from Unity for ThirdPersonController");
+		if (!string.IsNullOrEmpty(mtlFileName))
+		{
+			sb.AppendLine("mtllib " + mtlFileName);
+		}
 		sb.AppendLine("g " + mesh.name);
 
 		foreach (Vector3 v in mesh.vertices)
 		{
 			// Unity coordinates (Left-Handed) to WebGL / Three.js (Right-Handed): flip Z
-			sb.AppendLine(string.Format("v {0} {1} {2}", v.x, v.y, -v.z));
+			sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "v {0} {1} {2}", v.x, v.y, -v.z));
 		}
 
 		foreach (Vector3 n in mesh.normals)
 		{
-			sb.AppendLine(string.Format("vn {0} {1} {2}", n.x, n.y, -n.z));
+			sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "vn {0} {1} {2}", n.x, n.y, -n.z));
 		}
 
 		foreach (Vector2 uv in mesh.uv)
 		{
-			sb.AppendLine(string.Format("vt {0} {1}", uv.x, uv.y));
+			sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "vt {0} {1}", uv.x, uv.y));
 		}
 
 		for (int sub = 0; sub < mesh.subMeshCount; sub++)
 		{
+			if (!string.IsNullOrEmpty(mtlFileName))
+			{
+				sb.AppendLine("usemtl material_" + sub);
+			}
 			int[] triangles = mesh.GetTriangles(sub);
 			for (int i = 0; i < triangles.Length; i += 3)
 			{
@@ -235,6 +254,59 @@ public class SceneManifestExporterWindow : EditorWindow
 		}
 
 		File.WriteAllText(filePath, sb.ToString());
+	}
+
+	private void ExportMaterialToMtl(Material mat, string mtlFilePath, string modelsFolder)
+	{
+		StringBuilder sb = new StringBuilder();
+		sb.AppendLine("# Material exported from Unity");
+		sb.AppendLine("newmtl material_0");
+
+		Color col = Color.white;
+		if (mat.HasProperty("_Color"))
+		{
+			col = mat.GetColor("_Color");
+		}
+		else if (mat.HasProperty("_BaseColor"))
+		{
+			col = mat.GetColor("_BaseColor");
+		}
+
+		sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Kd {0} {1} {2}", col.r, col.g, col.b));
+		sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Ka {0} {1} {2}", col.r * 0.2f, col.g * 0.2f, col.b * 0.2f));
+		sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "Ks {0} {1} {2}", 0.2f, 0.2f, 0.2f));
+		sb.AppendLine("d " + col.a);
+		sb.AppendLine("illum 2");
+
+		// Check and copy texture maps (Main Texture / Albedo)
+		string[] textureProps = new string[] { "_MainTex", "_BaseMap", "_AlbedoTex" };
+		foreach (string prop in textureProps)
+		{
+			if (mat.HasProperty(prop))
+			{
+				Texture tex = mat.GetTexture(prop);
+				if (tex != null)
+				{
+					string assetPath = AssetDatabase.GetAssetPath(tex);
+					if (!string.IsNullOrEmpty(assetPath))
+					{
+						string sourceFilePath = AssetDatabase.GUIDToAssetPath(AssetDatabase.AssetPathToGUID(assetPath));
+						if (File.Exists(assetPath))
+						{
+							string texFileName = Path.GetFileName(assetPath);
+							string destTexPath = Path.Combine(modelsFolder, texFileName);
+							if (!File.Exists(destTexPath))
+							{
+								File.Copy(assetPath, destTexPath, true);
+							}
+							sb.AppendLine("map_Kd " + texFileName);
+						}
+					}
+				}
+			}
+		}
+
+		File.WriteAllText(mtlFilePath, sb.ToString());
 	}
 
 	private string Slugify(string text)
