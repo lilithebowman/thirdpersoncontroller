@@ -138,6 +138,15 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
     }));
   }
 
+  if (item.type === 'skybox') {
+    gameObject.components.push(normalizeComponent({
+      type: 'skybox',
+      skyboxType: item.skyboxType ?? item.type ?? 'color',
+      color: item.color ?? undefined,
+      paths: cloneValue(item.paths) ?? undefined,
+    }));
+  }
+
   if (item.collider) {
     gameObject.components.push(normalizeComponent({
       type: 'collider',
@@ -306,6 +315,20 @@ function gameObjectToLegacyItems(gameObject) {
         name: gameObject.name,
         manifestPath: component.manifestPath ?? undefined,
         stream: cloneValue(component.stream) ?? undefined,
+        position: transform.position ?? [0, 0, 0],
+        rotation: transform.rotation ?? [0, 0, 0],
+        scale: transform.scale ?? [1, 1, 1],
+      });
+      continue;
+    }
+
+    if (component.type === 'skybox') {
+      legacyItems.push({
+        type: 'skybox',
+        name: gameObject.name,
+        skyboxType: component.skyboxType ?? 'color',
+        color: component.color ?? undefined,
+        paths: cloneValue(component.paths) ?? undefined,
         position: transform.position ?? [0, 0, 0],
         rotation: transform.rotation ?? [0, 0, 0],
         scale: transform.scale ?? [1, 1, 1],

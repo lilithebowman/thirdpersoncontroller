@@ -26,6 +26,7 @@ import { GameMenu } from './GameMenu.js';
 import { CameraController } from './CameraController.js';
 import { PlayerCharacter } from './PlayerCharacter.js';
 import { SceneLoader } from './SceneLoader.js';
+import { Skybox } from './Skybox.js';
 
 export class ThirdPersonControllerApp {
   /**
@@ -368,6 +369,16 @@ export class ThirdPersonControllerApp {
         continue;
       }
 
+      if (item.type === 'skybox') {
+        const skyboxHandler = new Skybox({
+          scene: this.scene,
+          resolveScenePath: this.resolveScenePath.bind(this),
+          debugDisplay: this.debugDisplay,
+        });
+        await skyboxHandler.apply(item);
+        continue;
+      }
+
       if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
         const mesh = this.sceneLoader.createPrimitiveMesh(item);
         if (mesh) {
@@ -466,6 +477,13 @@ export class ThirdPersonControllerApp {
     if (spawnPosition) {
       this.spawnPlayerAt(spawnPosition);
     }
+
+    this.skybox = new Skybox({
+      scene: this.scene,
+      resolveScenePath: this.resolveScenePath.bind(this),
+      debugDisplay: this.debugDisplay,
+    });
+    await this.skybox.apply(sceneConfig.skybox ?? manifest.skybox);
 
     if (sceneConfig.background) {
       this.scene.background = new THREE.Color(sceneConfig.background);
