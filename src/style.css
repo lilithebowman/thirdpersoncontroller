@@ -151,6 +151,56 @@ canvas {
   color: #ffb2b2;
 }
 
+.game-menu-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 9, 15, 0.75);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.game-menu-modal {
+  width: min(320px, calc(100vw - 36px));
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  background: rgba(10, 22, 34, 0.92);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.game-menu-modal h2 {
+  margin: 0 0 16px 0;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #e6f4ff;
+}
+
+.game-menu-modal button {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(26, 44, 62, 0.85);
+  color: #e6f4ff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.game-menu-modal button:hover {
+  background: rgba(38, 64, 90, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 .scene-editor-app {
   width: 100vw;
   height: 100vh;

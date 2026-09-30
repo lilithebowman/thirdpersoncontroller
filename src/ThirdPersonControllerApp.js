@@ -200,6 +200,64 @@ export class ThirdPersonControllerApp {
     this.keyboardInput.attach();
     this.mouseInput.attach();
     this.attachEvents();
+
+    this.isGameMenuOpen = false;
+    this.gameMenuOverlay = this.createGameMenu();
+  }
+
+  createGameMenu() {
+    const overlay = document.createElement('div');
+    overlay.className = 'game-menu-overlay';
+    overlay.style.display = 'none';
+
+    const modal = document.createElement('div');
+    modal.className = 'game-menu-modal';
+    modal.innerHTML = `
+      <h2>Game Menu</h2>
+      <button type="button" data-action="respawn">Respawn</button>
+      <button type="button" data-action="fullscreen">Toggle Fullscreen</button>
+      <button type="button" data-action="resume">Resume Game</button>
+    `;
+
+    modal.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) {
+        return;
+      }
+
+      const action = button.dataset.action;
+      if (action === 'respawn') {
+        const spawnPosition = this.resolvePlayerSpawnFromManifest(this.currentManifest ?? {}) || new THREE.Vector3(0, 0, 0);
+        this.spawnPlayerAt(spawnPosition);
+        this.debugDisplay.Log('Player respawned via game menu.');
+        this.setGameMenuOpen(false);
+      } else if (action === 'fullscreen') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.();
+        } else {
+          document.exitFullscreen?.();
+        }
+      } else if (action === 'resume') {
+        this.setGameMenuOpen(false);
+      }
+    });
+
+    overlay.appendChild(modal);
+    this.app.appendChild(overlay);
+    return overlay;
+  }
+
+  setGameMenuOpen(isOpen) {
+    this.isGameMenuOpen = Boolean(isOpen);
+    if (this.gameMenuOverlay) {
+      this.gameMenuOverlay.style.display = this.isGameMenuOpen ? 'flex' : 'none';
+    }
+
+    if (this.isGameMenuOpen) {
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    }
   }
 
   createFallbackPlayerVisual() {
@@ -2163,8 +2221,21 @@ export class ThirdPersonControllerApp {
     requestAnimationFrame(this.tick);
     const delta = Math.min(this.clock.getDelta(), 0.05);
 
-    if (this.keyboardInput.consumePress('Escape') && this.isPointerLocked) {
-      document.exitPointerLock();
+    if (this.keyboardInput.consumePress('Escape')) {
+      if (this.isGameMenuOpen) {
+        this.setGameMenuOpen(false);
+      } else {
+        this.setGameMenuOpen(true);
+      }
+    }
+
+    if (this.isGameMenuOpen) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+
+    if (this.isPointerLocked === false && document.pointerLockElement === this.renderer.domElement) {
+      this.isPointerLocked = true;
     }
 
     this.updateMouseLook();
