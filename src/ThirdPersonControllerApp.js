@@ -115,6 +115,7 @@ export class ThirdPersonControllerApp {
     });
 
     this.worldColliders = [];
+    this.directionalLights = [];
     this.jumpImpulseVector = new THREE.Vector3();
 
     this.playerState = {
@@ -378,6 +379,10 @@ export class ThirdPersonControllerApp {
         const light = this.sceneLoader.createManifestLight(item);
         if (light) {
           light.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+          if (light.isDirectionalLight && light.castShadow) {
+            light.userData.offset = light.position.clone();
+            this.directionalLights.push(light);
+          }
           this.scene.add(light);
         }
         continue;
@@ -603,6 +608,16 @@ export class ThirdPersonControllerApp {
       collider: this.playerCollider,
       colliders: this.worldColliders,
     });
+
+    const playerPos = playerRoot.position;
+    for (const light of this.directionalLights) {
+      const offset = light.userData.offset;
+      if (offset) {
+        light.position.copy(playerPos).add(offset);
+        light.target.position.copy(playerPos);
+        light.target.updateMatrixWorld();
+      }
+    }
 
     this.multiplayerService.updateLocalTransform({
       position: playerRoot.position,

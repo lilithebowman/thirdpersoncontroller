@@ -194,6 +194,17 @@ export class SceneLoader {
       light.castShadow = item.castShadow === true;
     }
 
+    if (item.shadow && light.shadow) {
+      if (Array.isArray(item.shadow.mapSize)) {
+        light.shadow.mapSize.set(item.shadow.mapSize[0] ?? 1024, item.shadow.mapSize[1] ?? 1024);
+      }
+
+      if (item.shadow.camera) {
+        Object.assign(light.shadow.camera, item.shadow.camera);
+        light.shadow.camera.updateProjectionMatrix?.();
+      }
+    }
+
     return light;
   }
 }
