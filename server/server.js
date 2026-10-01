@@ -242,7 +242,7 @@ const server = http.createServer((req, res) => {
         if (audioBase64 && typeof audioBase64 === 'string') {
           const player = players.get(guid);
           player.voiceData = {
-            audioBase64: audioBase64.slice(0, 4000),
+            audioBase64: audioBase64,
             timestamp: Date.now(),
           };
           player.lastUpdated = Date.now();

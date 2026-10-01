@@ -78,7 +78,7 @@ export class VoiceChatService {
         }
       };
 
-      this.mediaRecorder.start(100);
+      this.mediaRecorder.start(250);
     } catch (error) {
       console.warn('Failed to start MediaRecorder:', error);
     }
