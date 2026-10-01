@@ -280,7 +280,34 @@ function gameObjectToLegacyItems(gameObject) {
         legacyItem.radialSegments = component.radialSegments;
       }
 
+      const colliderComponent = (gameObject.components ?? []).find((entry) => entry?.type === 'collider');
+      if (colliderComponent?.collider) {
+        legacyItem.collider = cloneValue(colliderComponent.collider);
+      }
+
       legacyItems.push(legacyItem);
+      continue;
+    }
+
+    if (component.type === 'collider') {
+      const hasRenderableComponent = (gameObject.components ?? []).some(
+        (c) => c?.type === 'primitive' || c?.type === 'model'
+      );
+      if (!hasRenderableComponent && component.collider) {
+        const colliderConfig = component.collider;
+        const legacyItem = {
+          type: 'box',
+          name: gameObject.name,
+          position: transform.position ?? [0, 0, 0],
+          rotation: transform.rotation ?? [0, 0, 0],
+          scale: transform.scale ?? [1, 1, 1],
+          collider: cloneValue(colliderConfig),
+        };
+        if (colliderConfig.size) {
+          legacyItem.size = cloneValue(colliderConfig.size);
+        }
+        legacyItems.push(legacyItem);
+      }
       continue;
     }
 

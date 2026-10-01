@@ -12,7 +12,7 @@
       "jumpPath": "/animations/Action%20Adventure%20Pack/jumping%20up.fbx",
       "scale": [0.01, 0.01, 0.01],
       "rotation": [0, 0, 0],
-      "offset": [0, 0, 0],
+      "offset": [0, 2, 0],
       "jumpClipName": "jumping up"
     },
     "collider": {
@@ -147,8 +147,8 @@
           "type": "collider",
           "collider": {
             "type": "box",
-            "size": [120, 0.2, 120],
-            "offset": [0, 0.1, 0],
+            "size": [120, 0.1, 120],
+            "offset": [0, 0, 0],
             "physicsCollision": true
           }
         }

@@ -122,7 +122,6 @@ export class ThirdPersonControllerApp {
       sprintSpeed: 18,
       rotationSpeed: 8,
       jumpImpulse: 8.8,
-      groundY: 0,
       gravityY: -26,
     };
 
@@ -601,7 +600,6 @@ export class ThirdPersonControllerApp {
     playerRoot.quaternion.copy(this.playerRotationQuaternion);
 
     this.isGrounded = this.playerRigidbody.integrate(playerRoot.position, delta, {
-      groundY: this.playerState.groundY,
       collider: this.playerCollider,
       colliders: this.worldColliders,
     });
