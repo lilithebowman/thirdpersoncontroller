@@ -10,6 +10,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import {
@@ -155,6 +157,8 @@ export class SceneEditorApp {
           <button type="button" data-action="undo">Undo</button>
           <button type="button" data-action="redo">Redo</button>
           <button type="button" data-action="add-obj">Add OBJ</button>
+          <button type="button" data-action="add-glb">Add GLB</button>
+          <button type="button" data-action="add-fbx">Add FBX</button>
           <button type="button" data-action="add-primitive">Add Primitive</button>
           <button type="button" data-action="mode-translate">Move</button>
           <button type="button" data-action="mode-rotate">Rotate</button>
@@ -200,6 +204,8 @@ export class SceneEditorApp {
       if (action === 'undo') this.undoHistory();
       if (action === 'redo') this.redoHistory();
       if (action === 'add-obj') await this.addGameObject('obj');
+      if (action === 'add-glb') await this.addGameObject('glb');
+      if (action === 'add-fbx') await this.addGameObject('fbx');
       if (action === 'add-primitive') await this.addGameObject('primitive');
       if (action === 'mode-translate') this.setTransformMode('translate');
       if (action === 'mode-rotate') this.setTransformMode('rotate');
@@ -477,6 +483,20 @@ export class SceneEditorApp {
       });
     }
 
+    if (component.type === 'model' && component.modelType === 'glb') {
+      return this.loadGLBModel({
+        glbPath: component.glbPath,
+        materialRenderType: component.materialRenderType ?? 'cutout',
+      });
+    }
+
+    if (component.type === 'model' && component.modelType === 'fbx') {
+      return this.loadFBXModel({
+        fbxPath: component.fbxPath,
+        materialRenderType: component.materialRenderType ?? 'cutout',
+      });
+    }
+
     if (component.type === 'scene') {
       const helper = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
@@ -529,6 +549,37 @@ export class SceneEditorApp {
     const subMeshOverrides = meta?.subMeshOverrides ?? {};
     MaterialRenderService.configureModelMaterials(model, subMeshOverrides, materialRenderType);
 
+    this.assetCache.set(cacheKey, model);
+    return model.clone(true);
+  }
+
+  async loadGLBModel({ glbPath, materialRenderType = 'cutout' }) {
+    const cacheKey = `${glbPath}|${materialRenderType}`;
+    if (this.assetCache.has(cacheKey)) {
+      return this.assetCache.get(cacheKey).clone(true);
+    }
+
+    const loader = new GLTFLoader();
+    const gltf = await loader.loadAsync(glbPath);
+    const model = gltf.scene || gltf.scenes?.[0];
+    if (!model) {
+      throw new Error(`GLB model did not contain a scene: ${glbPath}`);
+    }
+
+    MaterialRenderService.configureModelMaterials(model, {}, materialRenderType);
+    this.assetCache.set(cacheKey, model);
+    return model.clone(true);
+  }
+
+  async loadFBXModel({ fbxPath, materialRenderType = 'cutout' }) {
+    const cacheKey = `${fbxPath}|${materialRenderType}`;
+    if (this.assetCache.has(cacheKey)) {
+      return this.assetCache.get(cacheKey).clone(true);
+    }
+
+    const loader = new FBXLoader();
+    const model = await loader.loadAsync(fbxPath);
+    MaterialRenderService.configureModelMaterials(model, {}, materialRenderType);
     this.assetCache.set(cacheKey, model);
     return model.clone(true);
   }
@@ -1466,6 +1517,56 @@ export class SceneEditorApp {
             primitiveType: 'box',
             size: [1, 1, 1],
             color: '#8ecae6',
+          },
+        ],
+        children: [],
+      };
+    }
+
+    if (kind === 'glb') {
+      return {
+        id: `glb-${crypto.randomUUID()}`,
+        name: this.createUniqueGameObjectName('GLB Model'),
+        active: true,
+        tag: 'Untagged',
+        layer: 0,
+        static: false,
+        transform: {
+          position: [targetPosition.x, targetPosition.y, targetPosition.z],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+        },
+        components: [
+          {
+            type: 'model',
+            modelType: 'glb',
+            glbPath: '/models/SocialWorldPortal.glb',
+            materialRenderType: 'cutout',
+          },
+        ],
+        children: [],
+      };
+    }
+
+    if (kind === 'fbx') {
+      return {
+        id: `fbx-${crypto.randomUUID()}`,
+        name: this.createUniqueGameObjectName('FBX Model'),
+        active: true,
+        tag: 'Untagged',
+        layer: 0,
+        static: false,
+        transform: {
+          position: [targetPosition.x, targetPosition.y, targetPosition.z],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+        },
+        components: [
+          {
+            type: 'model',
+            modelType: 'fbx',
+            fbxPath: '/animations/Action%20Adventure%20Pack/X%20Bot.fbx',
+            materialRenderType: 'cutout',
           },
         ],
         children: [],

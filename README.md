@@ -7,7 +7,7 @@ This project is a browser-based 3D demo and editor for a third-person controller
 - Renders a playable third-person controller scene at `/`
 - Provides a scene editor at `/editor`
 - Lets you create and manipulate `gameObjects` with transforms and components
-- Supports lights, primitives, and OBJ model instances in the scene graph
+- Supports lights, primitives, and OBJ/GLB/FBX model instances in the scene graph
 - Exports or downloads JSON that matches the runtime manifest contract
 - Loads a scene from `public/scene-manifest.json`
 
@@ -19,7 +19,7 @@ This project is a browser-based 3D demo and editor for a third-person controller
 - Hierarchy and inspector editing for scene objects
 - Real `gameObjects` + component system, not flat legacy top-level objects
 - Primitive creation (`box`, `cube`, `cylinder`, floor-like shapes)
-- OBJ/MTL asset loading and placement from manifest data
+- OBJ/MTL, GLB, and FBX asset loading and placement from manifest data
 - Copy/download scene JSON output for re-use in the runtime app
 
 ## Run locally
@@ -77,6 +77,28 @@ This is the shape the runtime expects:
         }
       ],
       "children": []
+    },
+    {
+      "id": "portal-1",
+      "name": "Portal",
+      "active": true,
+      "tag": "Untagged",
+      "layer": 0,
+      "static": false,
+      "transform": {
+        "position": [0, 5, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "components": [
+        {
+          "type": "model",
+          "modelType": "glb",
+          "glbPath": "/models/SocialWorldPortal.glb",
+          "materialRenderType": "cutout"
+        }
+      ],
+      "children": []
     }
   ]
 }
@@ -88,6 +110,7 @@ This is the shape the runtime expects:
 - Each object should be a `GameObject` with a transform and components
 - Primitive items are created as a `GameObject` whose component is a `primitive`
 - Legacy flat `objects` entries are kept only for backward compatibility and should not be treated as the main export format
+- `modelType: "glb"` and `modelType: "fbx"` are supported alongside `modelType: "obj"` for runtime/editor loading
 - The editor Copy/Download actions should write `gameObjects`-based JSON
 
 For full setup and collider examples, see [`SCENESETUP.md`](SCENESETUP.md).
@@ -95,7 +118,7 @@ For full setup and collider examples, see [`SCENESETUP.md`](SCENESETUP.md).
 ## Editor workflow
 
 1. Open `/editor`
-2. Add a primitive or OBJ model from the toolbar
+2. Add a primitive, OBJ, GLB, or FBX model from the toolbar
 3. Edit its transform and component values in the inspector
 4. Use Copy JSON or Download to export the current scene
 5. Reload the gameplay route or replace `public/scene-manifest.json` with the exported manifest

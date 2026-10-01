@@ -89,6 +89,92 @@ test('normalizeSceneManifest prefers gameObjects over stale legacy objects', () 
   assert.strictEqual(normalized.objects[0].name, 'New Cube');
 });
 
+test('normalizeSceneManifest preserves GLB models through legacy conversion', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [{
+      id: 'portal',
+      name: 'Portal',
+      transform: { position: [0, 5, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      components: [{
+        type: 'model',
+        modelType: 'glb',
+        glbPath: '/models/SocialWorldPortal.glb',
+        materialRenderType: 'cutout'
+      }],
+      children: []
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[0].modelType, 'glb');
+  assert.strictEqual(normalized.objects.length, 1);
+  assert.strictEqual(normalized.objects[0].type, 'glb');
+  assert.strictEqual(normalized.objects[0].glbPath, '/models/SocialWorldPortal.glb');
+});
+
+test('normalizeSceneManifest accepts legacy GLB items and converts them to GameObjects', () => {
+  const sampleLegacy = {
+    version: 2,
+    objects: [{
+      type: 'glb',
+      name: 'Legacy Portal',
+      glbPath: '/models/SocialWorldPortal.glb',
+      position: [2, 0, 1],
+      rotation: [0, 90, 0],
+      scale: [1, 1, 1]
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleLegacy);
+  assert.strictEqual(normalized.gameObjects.length, 1);
+  assert.strictEqual(normalized.gameObjects[0].components[0].modelType, 'glb');
+  assert.strictEqual(normalized.gameObjects[0].components[0].glbPath, '/models/SocialWorldPortal.glb');
+});
+
+test('normalizeSceneManifest preserves FBX models through legacy conversion', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [{
+      id: 'character',
+      name: 'Character Rig',
+      transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      components: [{
+        type: 'model',
+        modelType: 'fbx',
+        fbxPath: '/animations/Action%20Adventure%20Pack/X%20Bot.fbx',
+        materialRenderType: 'cutout'
+      }],
+      children: []
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[0].modelType, 'fbx');
+  assert.strictEqual(normalized.objects.length, 1);
+  assert.strictEqual(normalized.objects[0].type, 'fbx');
+  assert.strictEqual(normalized.objects[0].fbxPath, '/animations/Action%20Adventure%20Pack/X%20Bot.fbx');
+});
+
+test('normalizeSceneManifest accepts legacy FBX items and converts them to GameObjects', () => {
+  const sampleLegacy = {
+    version: 2,
+    objects: [{
+      type: 'fbx',
+      name: 'Legacy Character',
+      fbxPath: '/animations/Action%20Adventure%20Pack/X%20Bot.fbx',
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1]
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleLegacy);
+  assert.strictEqual(normalized.gameObjects.length, 1);
+  assert.strictEqual(normalized.gameObjects[0].components[0].modelType, 'fbx');
+  assert.strictEqual(normalized.gameObjects[0].components[0].fbxPath, '/animations/Action%20Adventure%20Pack/X%20Bot.fbx');
+});
+
 test('toExportManifest emits GameObject-first JSON without legacy object entries', () => {
   const sampleManifest = {
     version: 2,

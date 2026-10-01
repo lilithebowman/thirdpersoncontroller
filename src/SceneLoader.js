@@ -10,6 +10,8 @@
  */
 
 import * as THREE from 'three';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { assetMetaService } from './AssetMetaService.js';
@@ -133,6 +135,47 @@ export class SceneLoader {
     const subMeshOverrides = meta?.subMeshOverrides ?? {};
     MaterialRenderService.configureModelMaterials(model, subMeshOverrides, materialRenderType);
 
+    this.assetCache.set(cacheKey, model);
+    return model.clone(true);
+  }
+
+  /**
+   * Loads a GLB/GLTF binary model and applies a consistent material render profile.
+   * @param {Object} options - Load options
+   * @returns {Promise<THREE.Object3D>} Loaded and configured model scene
+   */
+  async loadGLBModel({ glbPath, materialRenderType = 'cutout' }) {
+    const cacheKey = `${glbPath}|${materialRenderType}`;
+    if (this.assetCache.has(cacheKey)) {
+      return this.assetCache.get(cacheKey).clone(true);
+    }
+
+    const loader = new GLTFLoader();
+    const gltf = await loader.loadAsync(glbPath);
+    const model = gltf.scene || gltf.scenes?.[0];
+    if (!model) {
+      throw new Error(`GLB model did not contain a scene: ${glbPath}`);
+    }
+
+    MaterialRenderService.configureModelMaterials(model, {}, materialRenderType);
+    this.assetCache.set(cacheKey, model);
+    return model.clone(true);
+  }
+
+  /**
+   * Loads an FBX model and applies the same material/render configuration as other asset types.
+   * @param {Object} options - Load options
+   * @returns {Promise<THREE.Object3D>} Loaded and configured FBX scene
+   */
+  async loadFBXModel({ fbxPath, materialRenderType = 'cutout' }) {
+    const cacheKey = `${fbxPath}|${materialRenderType}`;
+    if (this.assetCache.has(cacheKey)) {
+      return this.assetCache.get(cacheKey).clone(true);
+    }
+
+    const loader = new FBXLoader();
+    const model = await loader.loadAsync(fbxPath);
+    MaterialRenderService.configureModelMaterials(model, {}, materialRenderType);
     this.assetCache.set(cacheKey, model);
     return model.clone(true);
   }

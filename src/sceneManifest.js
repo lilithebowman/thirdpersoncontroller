@@ -130,6 +130,26 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
     }));
   }
 
+  if (item.type === 'glb' || item.modelType === 'glb' || typeof item.glbPath === 'string' && item.glbPath.trim()) {
+    gameObject.components.push(normalizeComponent({
+      type: 'model',
+      modelType: 'glb',
+      glbPath: item.glbPath ?? item.path ?? '',
+      materialRenderType: item.materialRenderType ?? 'cutout',
+      ignoreCulling: item.ignoreCulling === true,
+    }));
+  }
+
+  if (item.type === 'fbx' || item.modelType === 'fbx' || typeof item.fbxPath === 'string' && item.fbxPath.trim()) {
+    gameObject.components.push(normalizeComponent({
+      type: 'model',
+      modelType: 'fbx',
+      fbxPath: item.fbxPath ?? item.path ?? '',
+      materialRenderType: item.materialRenderType ?? 'cutout',
+      ignoreCulling: item.ignoreCulling === true,
+    }));
+  }
+
   if (item.type === 'scene') {
     gameObject.components.push(normalizeComponent({
       type: 'scene',
@@ -312,6 +332,48 @@ function gameObjectToLegacyItems(gameObject) {
     }
 
     if (component.type === 'model') {
+      if (component.modelType === 'glb') {
+        const legacyItem = {
+          type: 'glb',
+          name: gameObject.name,
+          glbPath: component.glbPath ?? component.path ?? '',
+          materialRenderType: component.materialRenderType ?? undefined,
+          ignoreCulling: component.ignoreCulling === true,
+          position: transform.position ?? [0, 0, 0],
+          rotation: transform.rotation ?? [0, 0, 0],
+          scale: transform.scale ?? [1, 1, 1],
+        };
+
+        const colliderComponent = (gameObject.components ?? []).find((entry) => entry?.type === 'collider');
+        if (colliderComponent?.collider) {
+          legacyItem.collider = cloneValue(colliderComponent.collider);
+        }
+
+        legacyItems.push(legacyItem);
+        continue;
+      }
+
+      if (component.modelType === 'fbx') {
+        const legacyItem = {
+          type: 'fbx',
+          name: gameObject.name,
+          fbxPath: component.fbxPath ?? component.path ?? '',
+          materialRenderType: component.materialRenderType ?? undefined,
+          ignoreCulling: component.ignoreCulling === true,
+          position: transform.position ?? [0, 0, 0],
+          rotation: transform.rotation ?? [0, 0, 0],
+          scale: transform.scale ?? [1, 1, 1],
+        };
+
+        const colliderComponent = (gameObject.components ?? []).find((entry) => entry?.type === 'collider');
+        if (colliderComponent?.collider) {
+          legacyItem.collider = cloneValue(colliderComponent.collider);
+        }
+
+        legacyItems.push(legacyItem);
+        continue;
+      }
+
       if (component.modelType !== 'obj') {
         continue;
       }

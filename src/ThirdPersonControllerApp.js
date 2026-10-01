@@ -479,17 +479,33 @@ export class ThirdPersonControllerApp {
         continue;
       }
 
-      if (item.type === 'obj') {
-        const objPath = item.objPath ?? item.path;
-        if (!objPath) {
+      if (item.type === 'obj' || item.type === 'glb' || item.type === 'fbx') {
+        const modelPath = item.type === 'glb'
+          ? (item.glbPath ?? item.path)
+          : item.type === 'fbx'
+            ? (item.fbxPath ?? item.path)
+            : (item.objPath ?? item.path);
+        if (!modelPath) {
           continue;
         }
         try {
-          const model = await this.sceneLoader.loadObjModel({
-            objPath,
-            mtlPath: item.mtlPath,
-            materialRenderType: item.materialRenderType ?? 'cutout',
-          });
+          const isGLB = item.type === 'glb' || /\.glb$/i.test(modelPath);
+          const isFBX = item.type === 'fbx' || /\.fbx$/i.test(modelPath);
+          const model = isGLB
+            ? await this.sceneLoader.loadGLBModel({
+                glbPath: modelPath,
+                materialRenderType: item.materialRenderType ?? 'cutout',
+              })
+            : isFBX
+              ? await this.sceneLoader.loadFBXModel({
+                  fbxPath: modelPath,
+                  materialRenderType: item.materialRenderType ?? 'cutout',
+                })
+              : await this.sceneLoader.loadObjModel({
+                  objPath: modelPath,
+                  mtlPath: item.mtlPath,
+                  materialRenderType: item.materialRenderType ?? 'cutout',
+                });
           model.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
           model.rotation.set(
             THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
@@ -501,7 +517,12 @@ export class ThirdPersonControllerApp {
           this.registerDistanceCullablesForObj(model, null, { ignoreCulling: item.ignoreCulling === true });
           this.registerColliderFromManifestItem(item, this.sceneLoader.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), { mesh: model });
         } catch (error) {
-          this.debugDisplay.LogError(`Failed to load OBJ model ${objPath}: ${error?.message ?? error}`);
+          const modelType = item.type === 'glb' || /\.glb$/i.test(modelPath)
+            ? 'GLB'
+            : item.type === 'fbx' || /\.fbx$/i.test(modelPath)
+              ? 'FBX'
+              : 'OBJ';
+          this.debugDisplay.LogError(`Failed to load ${modelType} model ${modelPath}: ${error?.message ?? error}`);
         }
       }
     }

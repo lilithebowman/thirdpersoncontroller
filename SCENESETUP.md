@@ -117,7 +117,7 @@ The canonical world objects and scene hierarchy. Valid examples include:
 
 - `light` components
 - `primitive` components (`box`, `cube`, `cylinder`, floor-like shapes)
-- `model` components (`obj` assets)
+- `model` components (`obj`, `glb`, or `fbx` assets)
 - `collider` components
 - nested `children`
 
@@ -125,11 +125,67 @@ The canonical world objects and scene hierarchy. Valid examples include:
 
 The loader can still normalize legacy top-level `objects` arrays, but those are imported only as compatibility input and are not the preferred authoring format.
 
-## OBJ materials and textures
+## Model assets: OBJ, GLB, and FBX
 
 - For `model` entries with `modelType: "obj"`, use `mtlPath` when the model has materials.
-- Texture maps should be defined inside the `.mtl` file (`map_Kd`, etc.).
+- For `model` entries with `modelType: "glb"`, set `glbPath` to the binary asset location and keep the transform data on the parent GameObject.
+- For `model` entries with `modelType: "fbx"`, set `fbxPath` to the animation/rig asset path. The runtime and editor both accept the same manifest contract.
+- Texture maps for OBJ assets should be defined inside the `.mtl` file (`map_Kd`, etc.).
 - Do not add a global texture override in the manifest for OBJ assets unless you are deliberately overriding a material pipeline for a specific case.
+
+Example GLB GameObject:
+
+```json
+{
+  "id": "portal-1",
+  "name": "Portal",
+  "active": true,
+  "tag": "Untagged",
+  "layer": 0,
+  "static": false,
+  "transform": {
+    "position": [0, 5, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1, 1]
+  },
+  "components": [
+    {
+      "type": "model",
+      "modelType": "glb",
+      "glbPath": "/models/SocialWorldPortal.glb",
+      "materialRenderType": "cutout"
+    }
+  ],
+  "children": []
+}
+```
+
+Example FBX GameObject:
+
+```json
+{
+  "id": "character-1",
+  "name": "Character Rig",
+  "active": true,
+  "tag": "Untagged",
+  "layer": 0,
+  "static": false,
+  "transform": {
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1, 1]
+  },
+  "components": [
+    {
+      "type": "model",
+      "modelType": "fbx",
+      "fbxPath": "/animations/Action%20Adventure%20Pack/X%20Bot.fbx",
+      "materialRenderType": "cutout"
+    }
+  ],
+  "children": []
+}
+```
 
 ## Collider setup
 
