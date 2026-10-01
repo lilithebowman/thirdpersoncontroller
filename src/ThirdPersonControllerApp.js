@@ -57,6 +57,8 @@ export class ThirdPersonControllerApp {
 
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 4.5, 8.5);
+    this.audioListener = new THREE.AudioListener();
+    this.camera.add(this.audioListener);
     this.minimumAdaptiveCameraFar = 10;
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -789,8 +791,12 @@ export class ThirdPersonControllerApp {
       if (p.voiceData && p.voiceData.timestamp > meshGroup.userData.lastAudioTimestamp) {
         meshGroup.userData.lastAudioTimestamp = p.voiceData.timestamp;
         try {
+          const positionalAudio = meshGroup.userData.positionalAudio;
           const audio = new Audio(p.voiceData.audioBase64);
           audio.volume = 1.0;
+          if (positionalAudio) {
+            positionalAudio.setMediaElementSource(audio);
+          }
           audio.play().catch(() => {});
           if (meshGroup.userData.speakerSprite) {
             meshGroup.userData.speakerSprite.visible = true;
@@ -831,6 +837,15 @@ export class ThirdPersonControllerApp {
     group.add(speakerSprite);
     group.userData.speakerSprite = speakerSprite;
     group.userData.lastAudioTimestamp = 0;
+
+    if (this.audioListener) {
+      const positionalAudio = new THREE.PositionalAudio(this.audioListener);
+      positionalAudio.setRefDistance(1);
+      positionalAudio.setMaxDistance(50);
+      positionalAudio.setRolloffFactor(1);
+      group.add(positionalAudio);
+      group.userData.positionalAudio = positionalAudio;
+    }
 
     return group;
   }
