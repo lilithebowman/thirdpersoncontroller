@@ -29,6 +29,7 @@ import { SceneLoader } from './SceneLoader.js';
 import { Skybox } from './Skybox.js';
 import { Loader } from './Loader.js';
 import { MultiplayerService } from './MultiplayerService.js';
+import { normalizeSceneManifest } from './sceneManifest.js';
 
 export class ThirdPersonControllerApp {
   /**
@@ -443,13 +444,13 @@ export class ThirdPersonControllerApp {
 
   async loadManifestScene() {
     const { manifest, resolvedPath } = await this.sceneLoader.fetchManifest(this.manifestPath, this.manifestPath);
-    this.currentManifest = manifest;
-    const spawnPosition = this.resolvePlayerSpawnFromManifest(manifest);
+    this.currentManifest = normalizeSceneManifest(manifest);
+    const spawnPosition = this.resolvePlayerSpawnFromManifest(this.currentManifest);
 
-    const sceneConfig = manifest.scene ?? {};
-    const debugConfig = manifest.debug ?? sceneConfig.debug ?? {};
-    const respawnConfig = manifest.respawn ?? {};
-    const items = manifest.objects ?? [];
+    const sceneConfig = this.currentManifest.scene ?? {};
+    const debugConfig = this.currentManifest.debug ?? sceneConfig.debug ?? {};
+    const respawnConfig = this.currentManifest.respawn ?? {};
+    const items = this.currentManifest.objects ?? [];
 
     this.respawnY = Number.isFinite(respawnConfig.fallBelowY) ? respawnConfig.fallBelowY : -1000;
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
