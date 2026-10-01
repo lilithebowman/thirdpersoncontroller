@@ -32,6 +32,7 @@ export class MultiplayerService {
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       yaw: 0,
       animationState: 'idle',
+      isSpeaking: false,
     };
 
     this.remotePlayers = [];
@@ -88,6 +89,7 @@ export class MultiplayerService {
       rotation: transform.rotation ?? this.latestLocalTransform.rotation,
       yaw: transform.yaw ?? this.latestLocalTransform.yaw,
       animationState: transform.animationState ?? this.latestLocalTransform.animationState,
+      isSpeaking: transform.isSpeaking ?? this.latestLocalTransform.isSpeaking ?? false,
     };
 
     this.latestLocalTransform = payload;
@@ -184,6 +186,9 @@ export class MultiplayerService {
     }
     if (transform.animationState) {
       this.latestLocalTransform.animationState = transform.animationState;
+    }
+    if (typeof transform.isSpeaking === 'boolean') {
+      this.latestLocalTransform.isSpeaking = transform.isSpeaking;
     }
   }
 }

@@ -74,6 +74,7 @@ const server = http.createServer((req, res) => {
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       yaw: 0,
       animationState: 'idle',
+      isSpeaking: false,
       voiceData: null,
       lastUpdated: now,
     });
@@ -109,7 +110,7 @@ const server = http.createServer((req, res) => {
 
       try {
         const data = JSON.parse(body);
-        const { guid, position, rotation, yaw, animationState } = data;
+        const { guid, position, rotation, yaw, animationState, isSpeaking } = data;
 
         if (!guid || typeof guid !== 'string' || guid.length > 64) {
           res.statusCode = 400;
@@ -126,6 +127,7 @@ const server = http.createServer((req, res) => {
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             yaw: 0,
             animationState: 'idle',
+            isSpeaking: false,
             voiceData: null,
             lastUpdated: Date.now(),
           });
@@ -164,6 +166,10 @@ const server = http.createServer((req, res) => {
 
         if (animationState && typeof animationState === 'string') {
           player.animationState = animationState.slice(0, 32);
+        }
+
+        if (typeof isSpeaking === 'boolean') {
+          player.isSpeaking = isSpeaking;
         }
 
         player.lastUpdated = Date.now();
@@ -263,6 +269,7 @@ const server = http.createServer((req, res) => {
       rotation: p.rotation,
       yaw: p.yaw,
       animationState: p.animationState,
+      isSpeaking: Boolean(p.isSpeaking),
       voiceData: p.voiceData && (now - p.voiceData.timestamp < 3000) ? p.voiceData : null,
     }));
 

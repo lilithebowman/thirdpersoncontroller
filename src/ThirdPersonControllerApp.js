@@ -712,6 +712,7 @@ export class ThirdPersonControllerApp {
       rotation: playerRoot.quaternion,
       yaw: this.playerYaw,
       animationState: this.hasMoveInput ? (this.keyboardInput.isDown('ShiftLeft') ? 'sprint' : 'walk') : 'idle',
+      isSpeaking: this.voiceChatService ? this.voiceChatService.isSpeaking : false,
     });
   }
 
@@ -830,6 +831,10 @@ export class ThirdPersonControllerApp {
       if (p.animationState) {
         meshGroup.userData.animationState = p.animationState;
       }
+      meshGroup.userData.isSpeaking = Boolean(p.isSpeaking);
+      if (meshGroup.userData.speakerSprite) {
+        meshGroup.userData.speakerSprite.visible = Boolean(meshGroup.userData.isSpeaking || meshGroup.userData.isPlayingAudio);
+      }
 
       if (p.voiceData && p.voiceData.timestamp > meshGroup.userData.lastAudioTimestamp) {
         meshGroup.userData.lastAudioTimestamp = p.voiceData.timestamp;
@@ -865,7 +870,7 @@ export class ThirdPersonControllerApp {
       if (!audioElement || !audioQueue || audioQueue.length === 0) {
         grp.userData.isPlayingAudio = false;
         if (grp.userData.speakerSprite) {
-          grp.userData.speakerSprite.visible = false;
+          grp.userData.speakerSprite.visible = Boolean(grp.userData.isSpeaking);
         }
         return;
       }
