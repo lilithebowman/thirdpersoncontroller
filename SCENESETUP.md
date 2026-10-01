@@ -196,6 +196,10 @@ Supported actions:
 - `teleport`: teleports the player to `target` coordinates
 - `link`: navigates to a URL or route such as `/scenes/OtherScene.json`
 
+Optional distance setting:
+
+- `distance`: maximum interaction distance in meters (default: `2`)
+
 Example:
 
 ```json
@@ -222,6 +226,7 @@ Example:
       "type": "clickable",
       "action": "teleport",
       "target": [12, 3, -8],
+      "distance": 4,
       "label": "Teleport to the plaza",
       "outlineColor": "#00f5ff"
     }

@@ -190,16 +190,59 @@ test('Clickable normalizes teleport and link actions for scene objects', () => {
   });
   assert.strictEqual(normalizedTeleport.action, 'teleport');
   assert.deepStrictEqual(normalizedTeleport.target, [12, 3, -8]);
+  assert.strictEqual(normalizedTeleport.distance, 2);
 
   const normalizedLink = clickable.normalizeData({
     action: 'link',
     url: '/scenes/OtherScene.json',
+    distance: 5,
   });
   assert.strictEqual(normalizedLink.action, 'link');
   assert.strictEqual(normalizedLink.url, '/scenes/OtherScene.json');
+  assert.strictEqual(normalizedLink.distance, 5);
 
   clickable.performAction(normalizedTeleport);
   clickable.performAction(normalizedLink);
+});
+
+test('normalizeSceneManifest supports configurable clickable distance with a 2m default', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [
+      {
+        id: 'near-portal',
+        name: 'Near Portal',
+        transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+        components: [
+          { type: 'primitive', primitiveType: 'box', size: [1, 1, 1] },
+          { type: 'clickable', action: 'teleport', target: [1, 0, 0] },
+        ],
+      },
+      {
+        id: 'far-portal',
+        name: 'Far Portal',
+        transform: { position: [3, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+        components: [
+          { type: 'primitive', primitiveType: 'box', size: [1, 1, 1] },
+          { type: 'clickable', action: 'teleport', target: [2, 0, 0], distance: 7 },
+        ],
+      },
+    ],
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  const [nearClickable, farClickable] = normalized.gameObjects.map((entry) =>
+    entry.components.find((component) => component.type === 'clickable')
+  );
+
+  assert.strictEqual(nearClickable.distance, 2);
+  assert.strictEqual(farClickable.distance, 7);
+
+  const nearLegacy = normalized.objects.find((entry) => entry.name === 'Near Portal');
+  const farLegacy = normalized.objects.find((entry) => entry.name === 'Far Portal');
+
+  assert.strictEqual(nearLegacy.clickable.distance, 2);
+  assert.strictEqual(farLegacy.clickable.distance, 7);
 });
 
 test('normalizeSceneManifest supports legacy clickable aliases like onClick and destination', () => {

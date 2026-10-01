@@ -8,6 +8,7 @@
  */
 
 const DEFAULT_MANIFEST_VERSION = 2;
+const DEFAULT_CLICKABLE_DISTANCE = 2;
 
 /**
  * Clones a value using structuredClone when available, falling back to JSON serialization.
@@ -53,6 +54,17 @@ function normalizeClickableAction(action) {
   return normalized === 'link' ? 'link' : 'teleport';
 }
 
+function normalizeClickableDistance(data, fallback = DEFAULT_CLICKABLE_DISTANCE) {
+  const candidate = Number.isFinite(data?.distance)
+    ? data.distance
+    : Number.isFinite(data?.maxDistance)
+      ? data.maxDistance
+      : Number.isFinite(data?.clickDistance)
+        ? data.clickDistance
+        : fallback;
+  return Number.isFinite(candidate) && candidate > 0 ? candidate : fallback;
+}
+
 function normalizeComponent(component) {
   if (!component || typeof component !== 'object') {
     return null;
@@ -82,6 +94,7 @@ function normalizeComponent(component) {
 
     normalized.action = clickAction;
     normalized.target = clickTarget;
+    normalized.distance = normalizeClickableDistance(normalized, DEFAULT_CLICKABLE_DISTANCE);
     if (clickUrl) {
       normalized.url = clickUrl;
     }
@@ -95,6 +108,8 @@ function normalizeComponent(component) {
     delete normalized.onClick;
     delete normalized.destination;
     delete normalized.hoverText;
+    delete normalized.maxDistance;
+    delete normalized.clickDistance;
   }
 
   return normalized;
@@ -216,6 +231,7 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
       action: clickableAction,
       target: clickableTarget,
       url: clickableUrl,
+      distance: normalizeClickableDistance(item, DEFAULT_CLICKABLE_DISTANCE),
       label: typeof item.label === 'string' ? item.label : typeof item.hoverText === 'string' ? item.hoverText : undefined,
       outlineColor: typeof item.outlineColor === 'string' ? item.outlineColor : '#00f5ff',
       enabled: item.enabled !== false,
@@ -327,6 +343,7 @@ function gameObjectToLegacyItems(gameObject) {
           : typeof clickableComponent.hoverText === 'string'
             ? clickableComponent.hoverText
             : undefined,
+        distance: normalizeClickableDistance(clickableComponent, DEFAULT_CLICKABLE_DISTANCE),
         outlineColor: typeof clickableComponent.outlineColor === 'string' ? clickableComponent.outlineColor : '#00f5ff',
         enabled: true,
       }
@@ -535,6 +552,7 @@ function gameObjectToLegacyItems(gameObject) {
         action: clickAction,
         target,
         url,
+        distance: normalizeClickableDistance(component, DEFAULT_CLICKABLE_DISTANCE),
         label: typeof component.label === 'string' ? component.label : typeof component.hoverText === 'string' ? component.hoverText : undefined,
         outlineColor: typeof component.outlineColor === 'string' ? component.outlineColor : '#00f5ff',
         enabled: component.enabled !== false,

@@ -14,6 +14,8 @@
 
 import * as THREE from 'three';
 
+const DEFAULT_CLICK_DISTANCE = 2;
+
 export class Clickable {
   constructor({ camera = null, raycaster = new THREE.Raycaster(), onTeleport = null } = {}) {
     this.camera = camera;
@@ -45,11 +47,20 @@ export class Clickable {
         : typeof data.link === 'string' && data.link.trim()
           ? data.link.trim()
           : undefined;
+    const configuredDistance = Number.isFinite(data.distance)
+      ? data.distance
+      : Number.isFinite(data.maxDistance)
+        ? data.maxDistance
+        : Number.isFinite(data.clickDistance)
+          ? data.clickDistance
+          : DEFAULT_CLICK_DISTANCE;
+    const distance = configuredDistance > 0 ? configuredDistance : DEFAULT_CLICK_DISTANCE;
 
     return {
       action: normalizedAction,
       target,
       url,
+      distance,
       label: typeof data.label === 'string' ? data.label : typeof data.hoverText === 'string' ? data.hoverText : undefined,
       outlineColor: typeof data.outlineColor === 'string' ? data.outlineColor : '#00f5ff',
       enabled: data.enabled !== false,
@@ -139,6 +150,10 @@ export class Clickable {
         continue;
       }
       const hit = intersections[0];
+      const maxDistance = Number.isFinite(entry.data?.distance) ? entry.data.distance : DEFAULT_CLICK_DISTANCE;
+      if (!Number.isFinite(hit.distance) || hit.distance > maxDistance) {
+        continue;
+      }
       if (hit.distance < nextDistance) {
         nextTarget = entry;
         nextDistance = hit.distance;
@@ -179,6 +194,10 @@ export class Clickable {
         continue;
       }
       const hit = intersections[0];
+      const maxDistance = Number.isFinite(entry.data?.distance) ? entry.data.distance : DEFAULT_CLICK_DISTANCE;
+      if (!Number.isFinite(hit.distance) || hit.distance > maxDistance) {
+        continue;
+      }
       if (hit.distance < bestDistance) {
         bestTarget = entry;
         bestDistance = hit.distance;
