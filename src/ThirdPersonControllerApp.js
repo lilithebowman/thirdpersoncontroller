@@ -793,24 +793,11 @@ export class ThirdPersonControllerApp {
 
       if (p.voiceData && p.voiceData.timestamp > meshGroup.userData.lastAudioTimestamp) {
         meshGroup.userData.lastAudioTimestamp = p.voiceData.timestamp;
-        try {
-          const positionalAudio = meshGroup.userData.positionalAudio;
-          const audio = new Audio(p.voiceData.audioBase64);
-          audio.volume = 1.0;
-          if (positionalAudio) {
-            positionalAudio.setMediaElementSource(audio);
+        if (meshGroup.userData.audioQueue) {
+          meshGroup.userData.audioQueue.push(p.voiceData.audioBase64);
+          if (!meshGroup.userData.isPlayingAudio && typeof meshGroup.userData.playNextAudioChunk === 'function') {
+            meshGroup.userData.playNextAudioChunk(meshGroup);
           }
-          audio.play().catch(() => {});
-          if (meshGroup.userData.speakerSprite) {
-            meshGroup.userData.speakerSprite.visible = true;
-            audio.onended = () => {
-              if (meshGroup.userData.speakerSprite) {
-                meshGroup.userData.speakerSprite.visible = false;
-              }
-            };
-          }
-        } catch (err) {
-          // ignore
         }
       }
     }
@@ -827,6 +814,43 @@ export class ThirdPersonControllerApp {
     group.userData.jumpAction = remoteVisualData.jumpAction;
     group.userData.animationState = 'idle';
 
+    const audio = new Audio();
+    audio.volume = 1.0;
+    group.userData.audioElement = audio;
+    group.userData.audioQueue = [];
+    group.userData.isPlayingAudio = false;
+
+    const playNextAudioChunk = (grp) => {
+      const { audioElement, audioQueue } = grp.userData;
+      if (!audioElement || !audioQueue || audioQueue.length === 0) {
+        grp.userData.isPlayingAudio = false;
+        if (grp.userData.speakerSprite) {
+          grp.userData.speakerSprite.visible = false;
+        }
+        return;
+      }
+
+      grp.userData.isPlayingAudio = true;
+      if (grp.userData.speakerSprite) {
+        grp.userData.speakerSprite.visible = true;
+      }
+
+      if (audioQueue.length > 3) {
+        audioQueue.splice(0, audioQueue.length - 1);
+      }
+
+      const nextBase64 = audioQueue.shift();
+      audioElement.src = nextBase64;
+      audioElement.play().then(() => {
+        audioElement.onended = () => {
+          playNextAudioChunk(grp);
+        };
+      }).catch(() => {
+        playNextAudioChunk(grp);
+      });
+    };
+    group.userData.playNextAudioChunk = playNextAudioChunk;
+
     const speakerSprite = this.createSpeakerSprite();
     speakerSprite.position.set(0, 2.2, 0);
     group.add(speakerSprite);
@@ -838,6 +862,11 @@ export class ThirdPersonControllerApp {
       positionalAudio.setRefDistance(1);
       positionalAudio.setMaxDistance(50);
       positionalAudio.setRolloffFactor(1);
+      try {
+        positionalAudio.setMediaElementSource(audio);
+      } catch (err) {
+        // ignore if already connected
+      }
       group.add(positionalAudio);
       group.userData.positionalAudio = positionalAudio;
     }

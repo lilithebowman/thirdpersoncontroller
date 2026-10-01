@@ -60,18 +60,21 @@ export class VoiceChatService {
   startRecorder() {
     if (!this.mediaStream) return;
     try {
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: 'audio/webm' });
-      this.audioChunks = [];
-      this.currentChunkSize = 0;
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+      const options = mimeType ? { mimeType } : {};
+      this.mediaRecorder = new MediaRecorder(this.mediaStream, options);
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0 && this.isSpeaking) {
-          this.audioChunks.push(event.data);
-          this.currentChunkSize += event.data.size;
-
-          if (this.currentChunkSize >= this.targetChunkBytes) {
-            this.flushChunk();
-          }
+          const blob = event.data;
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const audioBase64 = reader.result;
+            if (typeof audioBase64 === 'string') {
+              this.sendVoiceChunk(audioBase64);
+            }
+          };
+          reader.readAsDataURL(blob);
         }
       };
 
@@ -79,22 +82,6 @@ export class VoiceChatService {
     } catch (error) {
       console.warn('Failed to start MediaRecorder:', error);
     }
-  }
-
-  flushChunk() {
-    if (this.audioChunks.length === 0 || !this.guid) return;
-    const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
-    this.audioChunks = [];
-    this.currentChunkSize = 0;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const audioBase64 = reader.result;
-      if (typeof audioBase64 === 'string') {
-        this.sendVoiceChunk(audioBase64);
-      }
-    };
-    reader.readAsDataURL(blob);
   }
 
   async sendVoiceChunk(audioBase64) {
