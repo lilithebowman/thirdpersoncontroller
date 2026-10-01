@@ -85,7 +85,7 @@ export class VoiceChatService {
   }
 
   async sendVoiceChunk(audioBase64) {
-    if (!this.guid || audioBase64.length > 3000) return;
+    if (!this.guid) return;
     try {
       await fetch(`${this.apiEndpoint}/voice`, {
         method: 'POST',

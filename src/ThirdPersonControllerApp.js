@@ -861,6 +861,7 @@ export class ThirdPersonControllerApp {
 
     const audio = new Audio();
     audio.volume = 1.0;
+    audio.crossOrigin = 'anonymous';
     group.userData.audioElement = audio;
     group.userData.audioQueue = [];
     group.userData.isPlayingAudio = false;
