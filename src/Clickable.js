@@ -28,10 +28,13 @@ export class Clickable {
       return null;
     }
 
-    const action = String(data.action ?? 'teleport').trim().toLowerCase();
+    const actionValue = typeof data.action === 'string' ? data.action : typeof data.onClick === 'string' ? data.onClick : 'teleport';
+    const action = String(actionValue).trim().toLowerCase();
     const normalizedAction = action === 'link' ? 'link' : 'teleport';
     const target = Array.isArray(data.target)
       ? data.target.slice()
+      : Array.isArray(data.destination)
+        ? data.destination.slice()
       : Array.isArray(data.position)
         ? data.position.slice()
         : [0, 0, 0];
@@ -47,7 +50,7 @@ export class Clickable {
       action: normalizedAction,
       target,
       url,
-      label: typeof data.label === 'string' ? data.label : undefined,
+      label: typeof data.label === 'string' ? data.label : typeof data.hoverText === 'string' ? data.hoverText : undefined,
       outlineColor: typeof data.outlineColor === 'string' ? data.outlineColor : '#00f5ff',
       enabled: data.enabled !== false,
     };
@@ -104,11 +107,13 @@ export class Clickable {
         new THREE.MeshBasicMaterial({
           color: normalized.outlineColor,
           transparent: true,
-          opacity: 0.2,
+          opacity: 0,
           depthWrite: false,
+          depthTest: false,
         })
       );
-      proxy.visible = false;
+      proxy.visible = true;
+      proxy.renderOrder = 1000;
       object.add(proxy);
       candidates.push(proxy);
     }

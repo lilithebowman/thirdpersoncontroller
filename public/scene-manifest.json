@@ -195,6 +195,12 @@
           "modelType": "glb",
           "glbPath": "/models/SocialWorldPortal.glb",
           "materialRenderType": "cutout"
+        },
+        {
+          "type": "clickable",
+          "onClick": "teleport",
+          "destination": [0, 0, 0],
+          "hoverText": "Click to teleport to spawn"
         }
       ],
       "children": []

@@ -492,11 +492,13 @@ export class ThirdPersonControllerApp {
           new THREE.MeshBasicMaterial({
             color: item.outlineColor ?? '#00f5ff',
             transparent: true,
-            opacity: 0.15,
+            opacity: 0,
             depthWrite: false,
+            depthTest: false,
           })
         );
-        proxy.visible = false;
+        proxy.visible = true;
+        proxy.renderOrder = 1000;
         proxy.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
         proxy.rotation.set(
           THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),

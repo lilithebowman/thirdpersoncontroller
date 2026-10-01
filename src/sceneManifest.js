@@ -48,7 +48,8 @@ function createGameObjectId(name, index, parentId = 'root') {
 }
 
 function normalizeClickableAction(action) {
-  const normalized = typeof action === 'string' ? action.trim().toLowerCase() : 'teleport';
+  const resolved = typeof action === 'string' ? action.trim().toLowerCase() : '';
+  const normalized = resolved || 'teleport';
   return normalized === 'link' ? 'link' : 'teleport';
 }
 
@@ -60,6 +61,40 @@ function normalizeComponent(component) {
   const normalized = cloneValue(component);
   if (!normalized.type) {
     normalized.type = 'script';
+  }
+
+  if (normalized.type === 'clickable') {
+    const clickAction = normalizeClickableAction(normalized.action ?? normalized.onClick);
+    const clickTarget = Array.isArray(normalized.target)
+      ? normalized.target.slice()
+      : Array.isArray(normalized.destination)
+        ? normalized.destination.slice()
+        : Array.isArray(normalized.position)
+          ? normalized.position.slice()
+          : [0, 0, 0];
+    const clickUrl = typeof normalized.url === 'string' && normalized.url.trim()
+      ? normalized.url.trim()
+      : typeof normalized.href === 'string' && normalized.href.trim()
+        ? normalized.href.trim()
+        : typeof normalized.link === 'string' && normalized.link.trim()
+          ? normalized.link.trim()
+          : undefined;
+
+    normalized.action = clickAction;
+    normalized.target = clickTarget;
+    if (clickUrl) {
+      normalized.url = clickUrl;
+    }
+    if (typeof normalized.label !== 'string' && typeof normalized.hoverText === 'string') {
+      normalized.label = normalized.hoverText;
+    }
+    if (typeof normalized.outlineColor !== 'string') {
+      normalized.outlineColor = '#00f5ff';
+    }
+    normalized.enabled = normalized.enabled !== false;
+    delete normalized.onClick;
+    delete normalized.destination;
+    delete normalized.hoverText;
   }
 
   return normalized;
@@ -164,13 +199,24 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
   }
 
   if (item.type === 'clickable' || item.action || item.url || item.href || item.link || item.target || item.destination) {
-    const clickableAction = normalizeClickableAction(item.action);
+    const clickableAction = normalizeClickableAction(item.action ?? item.onClick);
+    const clickableTarget = Array.isArray(item.target)
+      ? item.target.slice()
+      : Array.isArray(item.destination)
+        ? item.destination.slice()
+        : Array.isArray(item.position)
+          ? item.position.slice()
+          : [0, 0, 0];
+    const clickableUrl = typeof item.url === 'string' ? item.url
+      : typeof item.href === 'string' ? item.href
+      : typeof item.link === 'string' ? item.link
+      : undefined;
     gameObject.components.push(normalizeComponent({
       type: 'clickable',
       action: clickableAction,
-      target: Array.isArray(item.target) ? item.target.slice() : Array.isArray(item.position) ? item.position.slice() : [0, 0, 0],
-      url: typeof item.url === 'string' ? item.url : typeof item.href === 'string' ? item.href : typeof item.link === 'string' ? item.link : undefined,
-      label: typeof item.label === 'string' ? item.label : undefined,
+      target: clickableTarget,
+      url: clickableUrl,
+      label: typeof item.label === 'string' ? item.label : typeof item.hoverText === 'string' ? item.hoverText : undefined,
       outlineColor: typeof item.outlineColor === 'string' ? item.outlineColor : '#00f5ff',
       enabled: item.enabled !== false,
     }));
@@ -419,15 +465,25 @@ function gameObjectToLegacyItems(gameObject) {
     }
 
     if (component.type === 'clickable') {
-      const clickAction = normalizeClickableAction(component.action);
-      const target = Array.isArray(component.target) ? component.target.slice() : Array.isArray(transform.position) ? transform.position.slice() : [0, 0, 0];
+      const clickAction = normalizeClickableAction(component.action ?? component.onClick);
+      const target = Array.isArray(component.target)
+        ? component.target.slice()
+        : Array.isArray(component.destination)
+          ? component.destination.slice()
+          : Array.isArray(transform.position)
+            ? transform.position.slice()
+            : [0, 0, 0];
+      const url = typeof component.url === 'string' ? component.url
+        : typeof component.href === 'string' ? component.href
+        : typeof component.link === 'string' ? component.link
+        : undefined;
       const clickItem = {
         type: 'clickable',
         name: gameObject.name,
         action: clickAction,
         target,
-        url: typeof component.url === 'string' ? component.url : undefined,
-        label: typeof component.label === 'string' ? component.label : undefined,
+        url,
+        label: typeof component.label === 'string' ? component.label : typeof component.hoverText === 'string' ? component.hoverText : undefined,
         outlineColor: typeof component.outlineColor === 'string' ? component.outlineColor : '#00f5ff',
         enabled: component.enabled !== false,
         position: transform.position ?? [0, 0, 0],

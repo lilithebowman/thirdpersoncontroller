@@ -202,6 +202,32 @@ test('Clickable normalizes teleport and link actions for scene objects', () => {
   clickable.performAction(normalizedLink);
 });
 
+test('normalizeSceneManifest supports legacy clickable aliases like onClick and destination', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [{
+      id: 'portal-trigger',
+      name: 'Portal Trigger',
+      transform: { position: [0, 2, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      components: [{
+        type: 'clickable',
+        onClick: 'teleport',
+        destination: [9, 2, -4],
+        hoverText: 'Teleport to the plaza',
+        outlineColor: '#00f5ff'
+      }],
+      children: []
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[0].type, 'clickable');
+  assert.strictEqual(normalized.gameObjects[0].components[0].action, 'teleport');
+  assert.deepStrictEqual(normalized.gameObjects[0].components[0].target, [9, 2, -4]);
+  assert.strictEqual(normalized.objects[0].action, 'teleport');
+  assert.deepStrictEqual(normalized.objects[0].target, [9, 2, -4]);
+});
+
 test('normalizeSceneManifest preserves Clickable actions through GameObject conversion', () => {
   const sampleManifest = {
     version: 2,
