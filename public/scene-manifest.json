@@ -5,9 +5,9 @@
   },
   "playerSpawns": [
     [
-      0,
-      0,
-      0
+      31.17447130250808,
+      8,
+      -22
     ]
   ],
   "player": {
@@ -366,6 +366,88 @@
             0
           ],
           "url": "https://www.lilithebowman.com/"
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "glb-d6672508-7602-425f-b1eb-0afd9036a677",
+      "name": "Platform",
+      "active": true,
+      "tag": "Untagged",
+      "layer": 0,
+      "static": false,
+      "transform": {
+        "position": [
+          31.17447130250808,
+          4.12160800117626,
+          -22
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "type": "model",
+          "modelType": "glb",
+          "glbPath": "/models/SocialWorldPlatform.glb",
+          "materialRenderType": "cutout"
+        },
+        {
+          "type": "collider",
+          "collider": {
+            "type": "mesh",
+            "physicsCollision": true
+          }
+        }
+      ],
+      "children": []
+    },
+    {
+      "id": "glb-d6acbc8a-540a-457c-b00b-1e8e12e50881",
+      "name": "Bridge",
+      "active": true,
+      "tag": "Untagged",
+      "layer": 0,
+      "static": false,
+      "transform": {
+        "position": [
+          31.17447130250808,
+          5.411529298681153,
+          -11.392813091657713
+        ],
+        "rotation": [
+          0,
+          180,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "components": [
+        {
+          "type": "model",
+          "modelType": "glb",
+          "glbPath": "/models/SocialWorldBridge.glb",
+          "materialRenderType": "cutout"
+        },
+        {
+          "type": "collider",
+          "collider": {
+            "type": "mesh",
+            "physicsCollision": true
+          }
         }
       ],
       "children": []

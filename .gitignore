@@ -23,5 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 public/models/2026-CozyCon-Cafe/*
-/public/models
 .env
