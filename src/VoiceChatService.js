@@ -25,10 +25,17 @@ export class VoiceChatService {
     this.audioContext = null;
     this.analyser = null;
     this.mediaStream = null;
+    this.mediaSourceNode = null;
     this.mediaRecorder = null;
+    this.captureNode = null;
     this.audioChunks = [];
     this.currentChunkSize = 0;
     this.targetChunkBytes = 2048; // ~2KB
+    this.recorderMimeType = null;
+    this.targetSampleRate = 16000;
+    this.chunkDurationMs = 250;
+    this.pcmChunkBuffer = [];
+    this.pcmChunkSampleCount = 0;
     this._animationFrameId = null;
   }
 
@@ -44,10 +51,10 @@ export class VoiceChatService {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.audioContext = new AudioCtx();
-      const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+      this.mediaSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 512;
-      source.connect(this.analyser);
+      this.mediaSourceNode.connect(this.analyser);
 
       this.isListening = true;
       this.startRecorder();
@@ -59,14 +66,81 @@ export class VoiceChatService {
 
   startRecorder() {
     if (!this.mediaStream) return;
+
+    // Prefer raw PCM capture for cross-browser decode reliability in remote playback.
+    if (this.audioContext?.createScriptProcessor && this.mediaSourceNode) {
+      const inputSampleRate = this.audioContext.sampleRate || 48000;
+      const samplesPerChunk = Math.max(1, Math.floor(this.targetSampleRate * (this.chunkDurationMs / 1000)));
+
+      this.captureNode = this.audioContext.createScriptProcessor(2048, 1, 1);
+      this.captureNode.onaudioprocess = (event) => {
+        if (!this.isSpeaking) {
+          this.pcmChunkBuffer = [];
+          this.pcmChunkSampleCount = 0;
+          return;
+        }
+
+        const input = event.inputBuffer.getChannelData(0);
+        const downsampled = this.downsampleToRate(input, inputSampleRate, this.targetSampleRate);
+        if (downsampled.length === 0) return;
+
+        this.pcmChunkBuffer.push(downsampled);
+        this.pcmChunkSampleCount += downsampled.length;
+
+        if (this.pcmChunkSampleCount < samplesPerChunk) {
+          return;
+        }
+
+        const pcm = new Float32Array(this.pcmChunkSampleCount);
+        let offset = 0;
+        for (const part of this.pcmChunkBuffer) {
+          pcm.set(part, offset);
+          offset += part.length;
+        }
+
+        this.pcmChunkBuffer = [];
+        this.pcmChunkSampleCount = 0;
+
+        const wavBytes = this.encodePcm16Wav(pcm, this.targetSampleRate);
+        const wavBlob = new Blob([wavBytes], { type: 'audio/wav' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const audioBase64 = reader.result;
+          if (typeof audioBase64 === 'string') {
+            this.sendVoiceChunk(audioBase64);
+          }
+        };
+        reader.readAsDataURL(wavBlob);
+      };
+
+      this.mediaSourceNode.connect(this.captureNode);
+      // Keep processor running without audible local playback.
+      this.captureNode.connect(this.audioContext.destination);
+      return;
+    }
+
     try {
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+      const preferredMimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/mp4',
+      ];
+      const mimeType = preferredMimeTypes.find((type) => MediaRecorder.isTypeSupported(type)) ?? '';
+      this.recorderMimeType = mimeType || null;
       const options = mimeType ? { mimeType } : {};
       this.mediaRecorder = new MediaRecorder(this.mediaStream, options);
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0 && this.isSpeaking) {
           const blob = event.data;
+          const effectiveMimeType = blob.type || this.recorderMimeType || '';
+          if (!effectiveMimeType.startsWith('audio/')) {
+            console.warn('Voice chunk ignored because MIME type is not playable audio:', effectiveMimeType || '(empty)');
+            return;
+          }
+
+          const audioBlob = blob.type ? blob : new Blob([blob], { type: effectiveMimeType });
           const reader = new FileReader();
           reader.onloadend = () => {
             const audioBase64 = reader.result;
@@ -74,7 +148,7 @@ export class VoiceChatService {
               this.sendVoiceChunk(audioBase64);
             }
           };
-          reader.readAsDataURL(blob);
+          reader.readAsDataURL(audioBlob);
         }
       };
 
@@ -82,6 +156,72 @@ export class VoiceChatService {
     } catch (error) {
       console.warn('Failed to start MediaRecorder:', error);
     }
+  }
+
+  downsampleToRate(input, inputRate, outputRate) {
+    if (outputRate >= inputRate) {
+      return new Float32Array(input);
+    }
+
+    const sampleRateRatio = inputRate / outputRate;
+    const newLength = Math.max(1, Math.round(input.length / sampleRateRatio));
+    const result = new Float32Array(newLength);
+    let sourceIndex = 0;
+
+    for (let i = 0; i < newLength; i++) {
+      const nextSourceIndex = Math.min(input.length, Math.round((i + 1) * sampleRateRatio));
+      let sum = 0;
+      let count = 0;
+      for (let j = sourceIndex; j < nextSourceIndex; j++) {
+        sum += input[j];
+        count++;
+      }
+      result[i] = count > 0 ? (sum / count) : 0;
+      sourceIndex = nextSourceIndex;
+    }
+
+    return result;
+  }
+
+  encodePcm16Wav(float32Samples, sampleRate) {
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const bytesPerSample = bitsPerSample / 8;
+    const blockAlign = numChannels * bytesPerSample;
+    const byteRate = sampleRate * blockAlign;
+    const dataSize = float32Samples.length * bytesPerSample;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    const writeAscii = (offset, value) => {
+      for (let i = 0; i < value.length; i++) {
+        view.setUint8(offset + i, value.charCodeAt(i));
+      }
+    };
+
+    writeAscii(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeAscii(8, 'WAVE');
+    writeAscii(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    writeAscii(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    let offset = 44;
+    for (let i = 0; i < float32Samples.length; i++) {
+      const sample = Math.max(-1, Math.min(1, float32Samples[i]));
+      const int16 = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+      view.setInt16(offset, int16, true);
+      offset += 2;
+    }
+
+    return buffer;
   }
 
   async sendVoiceChunk(audioBase64) {
@@ -137,6 +277,17 @@ export class VoiceChatService {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
+    if (this.captureNode) {
+      this.captureNode.disconnect();
+      this.captureNode.onaudioprocess = null;
+      this.captureNode = null;
+    }
+    if (this.mediaSourceNode) {
+      this.mediaSourceNode.disconnect();
+      this.mediaSourceNode = null;
+    }
+    this.pcmChunkBuffer = [];
+    this.pcmChunkSampleCount = 0;
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach((track) => track.stop());
     }

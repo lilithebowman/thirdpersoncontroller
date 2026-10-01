@@ -21,7 +21,8 @@ const players = new Map();
 const rateLimits = new Map();
 
 const STALE_TIMEOUT_MS = 15000;
-const MAX_BODY_SIZE = 2048; // 2KB
+const MAX_TRANSFORM_BODY_SIZE = 2048; // 2KB
+const MAX_VOICE_BODY_SIZE = 256 * 1024; // 256KB
 const RATE_LIMIT_WINDOW_MS = 1000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 
@@ -93,9 +94,8 @@ const server = http.createServer((req, res) => {
 
     req.on('data', (chunk) => {
       bodySize += chunk.length;
-      if (bodySize > MAX_BODY_SIZE) {
+      if (bodySize > MAX_TRANSFORM_BODY_SIZE) {
         payloadTooLarge = true;
-        req.destroy();
         return;
       }
       body += chunk;
@@ -201,9 +201,8 @@ const server = http.createServer((req, res) => {
 
     req.on('data', (chunk) => {
       bodySize += chunk.length;
-      if (bodySize > MAX_BODY_SIZE) {
+      if (bodySize > MAX_VOICE_BODY_SIZE) {
         payloadTooLarge = true;
-        req.destroy();
         return;
       }
       body += chunk;
@@ -213,7 +212,7 @@ const server = http.createServer((req, res) => {
       if (payloadTooLarge) {
         res.statusCode = 413;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Payload Too Large (max 2KB)' }));
+        res.end(JSON.stringify({ error: 'Payload Too Large (max 256KB)' }));
         return;
       }
 

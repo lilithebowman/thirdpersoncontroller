@@ -66,11 +66,11 @@ export class ThirdPersonControllerApp {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.xr.enabled = true;
     this.app.appendChild(this.renderer.domElement);
 
-    this.clock = new THREE.Clock();
+    this.clock = new THREE.Timer();
     this.keyboardInput = new KeyboardInput();
     this.mouseInput = new MouseInput({ domElement: this.renderer.domElement });
     this.debugDisplay = new DebugDisplay({ parentElement: this.app, enabled: false });
@@ -894,16 +894,18 @@ export class ThirdPersonControllerApp {
     }
     this.keyboardInput.clear();
     this.inputEnabledAt = performance.now() + 150;
+    this.clock.reset();
     this.isRunning = true;
     this.multiplayerService.start();
     this.renderer.setAnimationLoop(this.tick);
   }
 
-  tick() {
+  tick(time) {
     if (!this.isRunning) {
       return;
     }
 
+    this.clock.update(time);
     const delta = Math.min(this.clock.getDelta(), 0.05);
 
     if (this.keyboardInput.consumePress('Escape')) {
@@ -1035,16 +1037,30 @@ export class ThirdPersonControllerApp {
     group.userData.jumpAction = remoteVisualData.jumpAction;
     group.userData.animationState = 'idle';
 
-    const audio = new Audio();
-    audio.volume = 1.0;
-    audio.crossOrigin = 'anonymous';
-    group.userData.audioElement = audio;
     group.userData.audioQueue = [];
     group.userData.isPlayingAudio = false;
+    group.userData.lastAudioError = null;
 
-    const playNextAudioChunk = (grp) => {
-      const { audioElement, audioQueue } = grp.userData;
-      if (!audioElement || !audioQueue || audioQueue.length === 0) {
+    const decodeAudioData = async (audioContext, arrayBuffer) => {
+      const workingBuffer = arrayBuffer.slice(0);
+      if (audioContext.decodeAudioData.length <= 1) {
+        return audioContext.decodeAudioData(workingBuffer);
+      }
+
+      return new Promise((resolve, reject) => {
+        audioContext.decodeAudioData(workingBuffer, resolve, reject);
+      });
+    };
+
+    const extractMimeTypeFromDataUrl = (dataUrl) => {
+      if (typeof dataUrl !== 'string') return '';
+      const match = /^data:([^;,]+)[;,]/i.exec(dataUrl);
+      return match ? match[1].toLowerCase() : '';
+    };
+
+    const playNextAudioChunk = async (grp) => {
+      const { audioQueue, positionalAudio } = grp.userData;
+      if (!audioQueue || audioQueue.length === 0 || !positionalAudio) {
         grp.userData.isPlayingAudio = false;
         if (grp.userData.speakerSprite) {
           grp.userData.speakerSprite.visible = Boolean(grp.userData.isSpeaking);
@@ -1062,16 +1078,39 @@ export class ThirdPersonControllerApp {
       }
 
       const nextBase64 = audioQueue.shift();
-      audioElement.src = nextBase64;
-      audioElement.currentTime = 0;
-      audioElement.play().then(() => {
-        audioElement.onended = () => {
+      const mimeType = extractMimeTypeFromDataUrl(nextBase64);
+      try {
+        const response = await fetch(nextBase64);
+        const encodedAudio = await response.arrayBuffer();
+        const audioContext = positionalAudio.context;
+        if (audioContext?.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        const decodedAudio = await decodeAudioData(audioContext, encodedAudio);
+        positionalAudio.stop();
+        positionalAudio.setBuffer(decodedAudio);
+        positionalAudio.setLoop(false);
+        positionalAudio.setVolume(1);
+        positionalAudio.onEnded = () => {
+          grp.userData.isPlayingAudio = false;
           playNextAudioChunk(grp);
         };
-      }).catch((err) => {
-        console.warn('Audio play error:', err);
+        positionalAudio.play();
+      } catch (err) {
+        const errName = err?.name || 'UnknownError';
+        const errorKey = `${mimeType}|${errName}`;
+        if (grp.userData.lastAudioError !== errorKey) {
+          grp.userData.lastAudioError = errorKey;
+          console.warn('Remote voice decode/playback error:', {
+            mimeType: mimeType || '(unknown)',
+            errorName: errName,
+            message: err?.message || String(err),
+          });
+        }
+        grp.userData.isPlayingAudio = false;
         playNextAudioChunk(grp);
-      });
+      }
     };
     group.userData.playNextAudioChunk = playNextAudioChunk;
 
@@ -1086,11 +1125,6 @@ export class ThirdPersonControllerApp {
       positionalAudio.setRefDistance(5);
       positionalAudio.setMaxDistance(100);
       positionalAudio.setRolloffFactor(1);
-      try {
-        positionalAudio.setMediaElementSource(audio);
-      } catch (err) {
-        // ignore if already connected
-      }
       group.add(positionalAudio);
       group.userData.positionalAudio = positionalAudio;
     }
