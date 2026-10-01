@@ -270,8 +270,8 @@ export class ThirdPersonControllerApp {
 
   spawnPlayerAt(spawnPosition) {
     this.playerCharacter.spawn(this.scene, spawnPosition);
-    this.playerYaw = 0;
-    this.playerTargetYaw = 0;
+    this.playerYaw = this.cameraController ? this.cameraController.state.yaw : 0;
+    this.playerTargetYaw = this.playerYaw;
     this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
     this.playerCharacter.root.quaternion.copy(this.playerRotationQuaternion);
     this.playerRigidbody.velocity.set(0, 0, 0);
@@ -678,6 +678,9 @@ export class ThirdPersonControllerApp {
     } else {
       this.playerRigidbody.velocity.x = 0;
       this.playerRigidbody.velocity.z = 0;
+      if (!this.cameraController.isFirstPerson()) {
+        this.playerTargetYaw = THREE.MathUtils.euclideanModulo(this.cameraController.state.yaw + Math.PI + Math.PI, Math.PI * 2) - Math.PI;
+      }
     }
 
     if (this.cameraController.isFirstPerson()) {
@@ -841,7 +844,12 @@ export class ThirdPersonControllerApp {
       }
 
       meshGroup.userData.targetPosition = new THREE.Vector3(p.position.x, p.position.y, p.position.z);
-      if (p.rotation) {
+      if (p.direction && typeof p.direction.x === 'number' && typeof p.direction.z === 'number') {
+        const yaw = Math.atan2(-p.direction.x, -p.direction.z);
+        meshGroup.userData.targetQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      } else if (typeof p.yaw === 'number') {
+        meshGroup.userData.targetQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.yaw);
+      } else if (p.rotation && typeof p.rotation.w === 'number') {
         meshGroup.userData.targetQuaternion = new THREE.Quaternion(p.rotation.x, p.rotation.y, p.rotation.z, p.rotation.w);
       }
       if (p.animationState) {
@@ -939,13 +947,14 @@ export class ThirdPersonControllerApp {
   }
 
   updateRemotePlayerMeshes(delta) {
-    const lerpFactor = Math.min(1, delta * 12);
+    const posLerp = Math.min(1, delta * 14);
+    const rotSlerp = Math.min(1, delta * 24);
     for (const [guid, meshGroup] of this.remotePlayerMeshes.entries()) {
       if (meshGroup.userData.targetPosition) {
-        meshGroup.position.lerp(meshGroup.userData.targetPosition, lerpFactor);
+        meshGroup.position.lerp(meshGroup.userData.targetPosition, posLerp);
       }
       if (meshGroup.userData.targetQuaternion) {
-        meshGroup.quaternion.slerp(meshGroup.userData.targetQuaternion, lerpFactor);
+        meshGroup.quaternion.slerp(meshGroup.userData.targetQuaternion, rotSlerp);
       }
       this.updateRemotePlayerAnimation(meshGroup, delta);
     }
