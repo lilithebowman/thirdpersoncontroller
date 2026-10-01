@@ -147,6 +147,7 @@ export class ThirdPersonControllerApp {
     this.distanceCullingMaxDistance = 140;
     this.distanceCullingHysteresis = 12;
     this.distanceCullables = [];
+    this.pendingWorldLoadSound = null;
 
     this.respawnY = -1000;
     this.isPointerLocked = false;
@@ -214,6 +215,17 @@ export class ThirdPersonControllerApp {
     window.addEventListener('resize', this.onResize);
     this.renderer.domElement.addEventListener('wheel', this.onMouseWheel, { passive: false });
     this.renderer.domElement.addEventListener('click', () => {
+      if (this.audioListener && this.audioListener.context && this.audioListener.context.state === 'suspended') {
+        this.audioListener.context.resume();
+      }
+      if (this.pendingWorldLoadSound && !this.pendingWorldLoadSound.isPlaying) {
+        try {
+          this.pendingWorldLoadSound.play();
+          this.pendingWorldLoadSound = null;
+        } catch (e) {
+          // ignore
+        }
+      }
       if (!this.gameMenu.isOpen && !this.isPointerLocked) {
         this.renderer.domElement.requestPointerLock();
       }
@@ -563,6 +575,34 @@ export class ThirdPersonControllerApp {
     }
 
     await this.processManifestObjects(items);
+    this.playWorldLoadSound();
+  }
+
+  playWorldLoadSound() {
+    try {
+      if (this.audioListener) {
+        const audioLoader = new THREE.AudioLoader();
+        const audioPath = this.resolveScenePath('/audio/loading/freesound_community-ding-36029.mp3');
+        audioLoader.load(audioPath, (buffer) => {
+          const sound = new THREE.Audio(this.audioListener);
+          sound.setBuffer(buffer);
+          sound.setVolume(1.0);
+          if (this.audioListener.context && this.audioListener.context.state === 'suspended') {
+            this.audioListener.context.resume().then(() => {
+              sound.play();
+            }).catch(() => {
+              this.pendingWorldLoadSound = sound;
+            });
+          } else {
+            sound.play();
+          }
+        }, undefined, (err) => {
+          console.warn('Failed to load world load audio:', err);
+        });
+      }
+    } catch (err) {
+      console.warn('Error playing world load audio:', err);
+    }
   }
 
   updateMouseLook() {
@@ -658,6 +698,9 @@ export class ThirdPersonControllerApp {
     });
 
     const playerPos = playerRoot.position;
+    if (this.audioListener && this.playerCharacter.root) {
+      this.audioListener.position.copy(this.playerCharacter.root.position);
+    }
     for (const light of this.directionalLights) {
       const offset = light.userData.offset;
       if (offset) {
@@ -841,11 +884,13 @@ export class ThirdPersonControllerApp {
 
       const nextBase64 = audioQueue.shift();
       audioElement.src = nextBase64;
+      audioElement.currentTime = 0;
       audioElement.play().then(() => {
         audioElement.onended = () => {
           playNextAudioChunk(grp);
         };
-      }).catch(() => {
+      }).catch((err) => {
+        console.warn('Audio play error:', err);
         playNextAudioChunk(grp);
       });
     };
