@@ -60,6 +60,7 @@ export function multiplayerPlugin() {
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             yaw: 0,
             animationState: 'idle',
+            voiceData: null,
             lastUpdated: now,
           });
 
@@ -110,6 +111,7 @@ export function multiplayerPlugin() {
                   rotation: { x: 0, y: 0, z: 0, w: 1 },
                   yaw: 0,
                   animationState: 'idle',
+                  voiceData: null,
                   lastUpdated: Date.now(),
                 });
               }
@@ -162,9 +164,91 @@ export function multiplayerPlugin() {
           return;
         }
 
+        if (req.method === 'POST' && pathname === '/voice') {
+          let body = '';
+          let bodySize = 0;
+          let payloadTooLarge = false;
+
+          req.on('data', (chunk) => {
+            bodySize += chunk.length;
+            if (bodySize > MAX_BODY_SIZE) {
+              payloadTooLarge = true;
+              req.destroy();
+              return;
+            }
+            body += chunk;
+          });
+
+          req.on('end', () => {
+            if (payloadTooLarge) {
+              res.statusCode = 413;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Payload Too Large (max 2KB)' }));
+              return;
+            }
+
+            try {
+              const data = JSON.parse(body);
+              const { guid, audioBase64 } = data;
+
+              if (!guid || typeof guid !== 'string' || guid.length > 64) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid or missing player GUID' }));
+                return;
+              }
+
+              if (!players.has(guid)) {
+                players.set(guid, {
+                  guid,
+                  position: { x: 0, y: 0, z: 0 },
+                  rotation: { x: 0, y: 0, z: 0, w: 1 },
+                  yaw: 0,
+                  animationState: 'idle',
+                  voiceData: null,
+                  lastUpdated: Date.now(),
+                });
+              }
+
+              if (!checkRateLimit(guid)) {
+                res.statusCode = 429;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Too Many Requests (Rate limit exceeded)' }));
+                return;
+              }
+
+              if (audioBase64 && typeof audioBase64 === 'string') {
+                const player = players.get(guid);
+                player.voiceData = {
+                  audioBase64: audioBase64.slice(0, 4000),
+                  timestamp: Date.now(),
+                };
+                player.lastUpdated = Date.now();
+              }
+
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ success: true }));
+            } catch (error) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
+            }
+          });
+          return;
+        }
+
         if (req.method === 'GET' && (pathname === '' || pathname === '/')) {
           cleanupStalePlayers();
-          const activePlayers = Array.from(players.values());
+          const now = Date.now();
+          const activePlayers = Array.from(players.values()).map((p) => ({
+            guid: p.guid,
+            position: p.position,
+            rotation: p.rotation,
+            yaw: p.yaw,
+            animationState: p.animationState,
+            voiceData: p.voiceData && (now - p.voiceData.timestamp < 3000) ? p.voiceData : null,
+          }));
 
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');

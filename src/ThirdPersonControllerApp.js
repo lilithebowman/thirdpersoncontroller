@@ -29,6 +29,7 @@ import { SceneLoader } from './SceneLoader.js';
 import { Skybox } from './Skybox.js';
 import { Loader } from './Loader.js';
 import { MultiplayerService } from './MultiplayerService.js';
+import { VoiceChatService } from './VoiceChatService.js';
 import { normalizeSceneManifest } from './sceneManifest.js';
 
 export class ThirdPersonControllerApp {
@@ -88,11 +89,22 @@ export class ThirdPersonControllerApp {
       debugDisplay: this.debugDisplay,
     });
 
+    this.voiceChatService = new VoiceChatService({
+      onSpeakingChange: (isSpeaking) => {
+        if (this.localSpeakerSprite) {
+          this.localSpeakerSprite.visible = isSpeaking;
+        }
+      },
+    });
+
     this.gameMenu = new GameMenu({
       mountElement: this.app,
       onRespawn: () => this.respawnPlayer(),
       onLog: (msg) => this.debugDisplay.Log(msg),
+      onThresholdChange: (val) => this.voiceChatService.setThreshold(val),
     });
+
+    this.localSpeakerSprite = null;
 
     this.loader = new Loader({
       mountElement: this.app,
@@ -249,6 +261,40 @@ export class ThirdPersonControllerApp {
     this.playerCharacter.root.quaternion.copy(this.playerRotationQuaternion);
     this.playerRigidbody.velocity.set(0, 0, 0);
     this.animator.resetActions();
+
+    if (!this.localSpeakerSprite) {
+      this.localSpeakerSprite = this.createSpeakerSprite();
+      this.localSpeakerSprite.position.set(0, 2.2, 0);
+    }
+    if (this.playerCharacter.root && !this.localSpeakerSprite.parent) {
+      this.playerCharacter.root.add(this.localSpeakerSprite);
+    }
+
+    if (this.multiplayerService.guid) {
+      this.voiceChatService.init(this.multiplayerService.guid);
+    } else {
+      this.multiplayerService.register().then((guid) => {
+        this.voiceChatService.init(guid);
+      });
+    }
+  }
+
+  createSpeakerSprite() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.font = '48px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🔊', 32, 32);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(0.6, 0.6, 0.6);
+    sprite.visible = false;
+    return sprite;
   }
 
   resolvePlayerSpawnFromManifest(manifest) {
@@ -739,6 +785,25 @@ export class ThirdPersonControllerApp {
       if (p.rotation) {
         meshGroup.userData.targetQuaternion = new THREE.Quaternion(p.rotation.x, p.rotation.y, p.rotation.z, p.rotation.w);
       }
+
+      if (p.voiceData && p.voiceData.timestamp > meshGroup.userData.lastAudioTimestamp) {
+        meshGroup.userData.lastAudioTimestamp = p.voiceData.timestamp;
+        try {
+          const audio = new Audio(p.voiceData.audioBase64);
+          audio.volume = 1.0;
+          audio.play().catch(() => {});
+          if (meshGroup.userData.speakerSprite) {
+            meshGroup.userData.speakerSprite.visible = true;
+            audio.onended = () => {
+              if (meshGroup.userData.speakerSprite) {
+                meshGroup.userData.speakerSprite.visible = false;
+              }
+            };
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
     }
   }
 
@@ -760,6 +825,12 @@ export class ThirdPersonControllerApp {
     head.position.y = 1.3;
     head.castShadow = true;
     group.add(head);
+
+    const speakerSprite = this.createSpeakerSprite();
+    speakerSprite.position.set(0, 2.2, 0);
+    group.add(speakerSprite);
+    group.userData.speakerSprite = speakerSprite;
+    group.userData.lastAudioTimestamp = 0;
 
     return group;
   }
