@@ -787,6 +787,9 @@ export class ThirdPersonControllerApp {
       if (p.rotation) {
         meshGroup.userData.targetQuaternion = new THREE.Quaternion(p.rotation.x, p.rotation.y, p.rotation.z, p.rotation.w);
       }
+      if (p.animationState) {
+        meshGroup.userData.animationState = p.animationState;
+      }
 
       if (p.voiceData && p.voiceData.timestamp > meshGroup.userData.lastAudioTimestamp) {
         meshGroup.userData.lastAudioTimestamp = p.voiceData.timestamp;
@@ -815,22 +818,14 @@ export class ThirdPersonControllerApp {
 
   createRemotePlayerVisual() {
     const group = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.6, metalness: 0.2 })
-    );
-    body.position.y = 0.55;
-    body.castShadow = true;
-    body.receiveShadow = true;
-    group.add(body);
+    const remoteVisualData = this.animator.createRemoteVisual(() => this.playerCharacter.createFallbackVisual());
+    group.add(remoteVisualData.visual);
 
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(0.6, 0.6, 0.6),
-      new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 })
-    );
-    head.position.y = 1.3;
-    head.castShadow = true;
-    group.add(head);
+    group.userData.mixer = remoteVisualData.mixer;
+    group.userData.walkAction = remoteVisualData.walkAction;
+    group.userData.idleAction = remoteVisualData.idleAction;
+    group.userData.jumpAction = remoteVisualData.jumpAction;
+    group.userData.animationState = 'idle';
 
     const speakerSprite = this.createSpeakerSprite();
     speakerSprite.position.set(0, 2.2, 0);
@@ -859,7 +854,43 @@ export class ThirdPersonControllerApp {
       if (meshGroup.userData.targetQuaternion) {
         meshGroup.quaternion.slerp(meshGroup.userData.targetQuaternion, lerpFactor);
       }
+      this.updateRemotePlayerAnimation(meshGroup, delta);
     }
+  }
+
+  updateRemotePlayerAnimation(meshGroup, delta) {
+    const { mixer, walkAction, idleAction, jumpAction, animationState = 'idle' } = meshGroup.userData;
+    if (!mixer) return;
+
+    const isJump = animationState === 'jump';
+    const isSprint = animationState === 'sprint';
+    const isWalk = animationState === 'walk' || isSprint;
+
+    const targetJumpWeight = isJump ? 1 : 0;
+    const targetWalkWeight = isWalk ? 1 : 0;
+
+    if (jumpAction) {
+      const currentJumpWeight = jumpAction.getEffectiveWeight();
+      const nextJumpWeight = THREE.MathUtils.lerp(currentJumpWeight, targetJumpWeight, Math.min(1, delta * 12));
+      jumpAction.setEffectiveWeight(nextJumpWeight);
+    }
+
+    const currentJumpWeight = jumpAction ? jumpAction.getEffectiveWeight() : 0;
+    const groundedWeightScale = 1 - currentJumpWeight;
+
+    if (walkAction) {
+      walkAction.setEffectiveTimeScale(isSprint ? 1.6 : 1.0);
+      const currentWalkWeight = walkAction.getEffectiveWeight();
+      const nextWalkWeight = THREE.MathUtils.lerp(currentWalkWeight, targetWalkWeight, Math.min(1, delta * 10));
+      walkAction.setEffectiveWeight(nextWalkWeight * groundedWeightScale);
+      if (idleAction) {
+        idleAction.setEffectiveWeight((1 - nextWalkWeight) * groundedWeightScale);
+      }
+    } else if (idleAction) {
+      idleAction.setEffectiveWeight(1 - currentJumpWeight);
+    }
+
+    mixer.update(delta);
   }
 
   async init() {
