@@ -391,7 +391,7 @@ export function normalizeSceneManifest(manifest = {}) {
     normalized.gameObjects = normalized.gameObjects
       .map((gameObject, index) => normalizeGameObject(gameObject, index))
       .filter(Boolean);
-  } else if (Array.isArray(normalized.objects)) {
+  } else if (Array.isArray(normalized.objects) && normalized.objects.length > 0) {
     normalized.gameObjects = normalized.objects
       .map((item, index) => legacyItemToGameObject(item, index))
       .filter(Boolean);
@@ -399,9 +399,7 @@ export function normalizeSceneManifest(manifest = {}) {
     normalized.gameObjects = [];
   }
 
-  if (!Array.isArray(normalized.objects) || normalized.objects.length === 0) {
-    normalized.objects = gameObjectsToLegacyObjects(normalized.gameObjects);
-  }
+  normalized.objects = gameObjectsToLegacyObjects(normalized.gameObjects);
 
   return normalized;
 }

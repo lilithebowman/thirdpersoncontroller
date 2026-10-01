@@ -64,3 +64,27 @@ test('normalizeSceneManifest preserves collider on primitive gameObjects correct
   assert.strictEqual(normalized.objects[0].collider.type, 'box');
   assert.deepStrictEqual(normalized.objects[0].collider.size, [120, 0.1, 120]);
 });
+
+test('normalizeSceneManifest prefers gameObjects over stale legacy objects', () => {
+  const sampleManifest = {
+    version: 2,
+    objects: [
+      { type: 'box', name: 'Old Box', position: [0, 0, 0] }
+    ],
+    gameObjects: [
+      {
+        id: 'new-cube',
+        name: 'New Cube',
+        transform: { position: [1, 2, 3], rotation: [0, 0, 0], scale: [1, 1, 1] },
+        components: [{ type: 'primitive', primitiveType: 'cube', size: [2, 2, 2] }]
+      }
+    ]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects.length, 1);
+  assert.strictEqual(normalized.gameObjects[0].name, 'New Cube');
+  assert.strictEqual(normalized.objects.length, 1);
+  assert.strictEqual(normalized.objects[0].type, 'cube');
+  assert.strictEqual(normalized.objects[0].name, 'New Cube');
+});

@@ -1259,7 +1259,8 @@ export class SceneEditorApp {
   }
 
   downloadManifest() {
-    const blob = new Blob([JSON.stringify(this.serializeManifest(), null, 2)], { type: 'application/json' });
+    const manifest = this.serializeManifest();
+    const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -1269,10 +1270,15 @@ export class SceneEditorApp {
     this.setStatus('Downloaded scene-manifest.json.');
   }
 
-  serializeManifest() {
+  buildExportManifest() {
     const manifest = normalizeSceneManifest(this.currentManifest);
+    manifest.gameObjects = manifest.gameObjects.map((gameObject) => normalizeGameObject(gameObject));
     manifest.objects = gameObjectsToLegacyObjects(manifest.gameObjects);
     return manifest;
+  }
+
+  serializeManifest() {
+    return this.buildExportManifest();
   }
 
   requestRender() {
