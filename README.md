@@ -20,6 +20,7 @@ This project is a browser-based 3D demo and editor for a third-person controller
 - Real `gameObjects` + component system, not flat legacy top-level objects
 - Primitive creation (`box`, `cube`, `cylinder`, floor-like shapes)
 - OBJ/MTL, GLB, and FBX asset loading and placement from manifest data
+- Clickable interaction components for hover outline, teleport, and link-driven scene navigation
 - Copy/download scene JSON output for re-use in the runtime app
 
 ## Run locally

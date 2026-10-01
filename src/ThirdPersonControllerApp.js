@@ -30,6 +30,7 @@ import { Skybox } from './Skybox.js';
 import { Loader } from './Loader.js';
 import { MultiplayerService } from './MultiplayerService.js';
 import { VoiceChatService } from './VoiceChatService.js';
+import { Clickable } from './Clickable.js';
 import { normalizeSceneManifest } from './sceneManifest.js';
 
 export class ThirdPersonControllerApp {
@@ -153,6 +154,11 @@ export class ThirdPersonControllerApp {
     this.isPointerLocked = false;
     this.raycaster = new THREE.Raycaster();
     this.raycaster.far = 60;
+    this.clickable = new Clickable({
+      camera: this.camera,
+      raycaster: this.raycaster,
+      onTeleport: (destination) => this.spawnPlayerAt(destination),
+    });
     this.mouseBeamStart = new THREE.Vector3();
     this.mouseBeamEnd = new THREE.Vector3();
     this.mouseBeamGeometry = new THREE.BufferGeometry();
@@ -194,6 +200,7 @@ export class ThirdPersonControllerApp {
 
     this.onResize = this.onResize.bind(this);
     this.onMouseWheel = this.onMouseWheel.bind(this);
+    this.onPointerMove = this.onPointerMove.bind(this);
     this.tick = this.tick.bind(this);
 
     this.keyboardInput.attach();
@@ -215,7 +222,17 @@ export class ThirdPersonControllerApp {
   attachEvents() {
     window.addEventListener('resize', this.onResize);
     this.renderer.domElement.addEventListener('wheel', this.onMouseWheel, { passive: false });
-    this.renderer.domElement.addEventListener('click', () => {
+    this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
+    this.renderer.domElement.addEventListener('click', (event) => {
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      if (this.clickable.tryHandleClick(new THREE.Vector2(x, y))) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (this.audioListener && this.audioListener.context && this.audioListener.context.state === 'suspended') {
         this.audioListener.context.resume();
       }
@@ -258,6 +275,16 @@ export class ThirdPersonControllerApp {
       this.cameraController.state.minDistance,
       this.cameraController.state.maxDistance
     );
+  }
+
+  onPointerMove(event) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    this.clickable.updateHover(new THREE.Vector2(x, y), {
+      isPointerLocked: this.isPointerLocked,
+      gameMenuOpen: this.gameMenu.isOpen,
+    });
   }
 
   /**
@@ -459,6 +486,29 @@ export class ThirdPersonControllerApp {
         continue;
       }
 
+      if (item.type === 'clickable') {
+        const proxy = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshBasicMaterial({
+            color: item.outlineColor ?? '#00f5ff',
+            transparent: true,
+            opacity: 0.15,
+            depthWrite: false,
+          })
+        );
+        proxy.visible = false;
+        proxy.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+        proxy.rotation.set(
+          THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
+          THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
+          THREE.MathUtils.degToRad(item.rotation?.[2] ?? 0)
+        );
+        proxy.scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
+        this.scene.add(proxy);
+        this.clickable.registerObject(proxy, item);
+        continue;
+      }
+
       if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
         const mesh = this.sceneLoader.createPrimitiveMesh(item);
         if (mesh) {
@@ -470,6 +520,9 @@ export class ThirdPersonControllerApp {
           );
           mesh.scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
           this.scene.add(mesh);
+          if (item.clickable) {
+            this.clickable.registerObject(mesh, item.clickable);
+          }
           this.registerDistanceCullablesForObj(mesh, null, { ignoreCulling: item.ignoreCulling === true });
           const fallbackSize = item.type === 'floor'
             ? new THREE.Vector3(120, 0.2, 120)
@@ -514,6 +567,9 @@ export class ThirdPersonControllerApp {
           );
           model.scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
           this.scene.add(model);
+          if (item.clickable) {
+            this.clickable.registerObject(model, item.clickable);
+          }
           this.registerDistanceCullablesForObj(model, null, { ignoreCulling: item.ignoreCulling === true });
           this.registerColliderFromManifestItem(item, this.sceneLoader.toVector3(item.scale, new THREE.Vector3(1, 1, 1)), { mesh: model });
         } catch (error) {

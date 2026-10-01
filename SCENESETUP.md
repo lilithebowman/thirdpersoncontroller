@@ -187,6 +187,61 @@ Example FBX GameObject:
 }
 ```
 
+## Clickable interactions
+
+Use a `clickable` component on any object to enable hover outlining and click-triggered actions.
+
+Supported actions:
+
+- `teleport`: teleports the player to `target` coordinates
+- `link`: navigates to a URL or route such as `/scenes/OtherScene.json`
+
+Example:
+
+```json
+{
+  "id": "portal-trigger",
+  "name": "Portal Trigger",
+  "active": true,
+  "tag": "Untagged",
+  "layer": 0,
+  "static": false,
+  "transform": {
+    "position": [0, 2, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1, 1]
+  },
+  "components": [
+    {
+      "type": "primitive",
+      "primitiveType": "box",
+      "size": [1.5, 2, 1.5],
+      "color": "#8ecae6"
+    },
+    {
+      "type": "clickable",
+      "action": "teleport",
+      "target": [12, 3, -8],
+      "label": "Teleport to the plaza",
+      "outlineColor": "#00f5ff"
+    }
+  ],
+  "children": []
+}
+```
+
+For a scene-to-scene navigation example:
+
+```json
+{
+  "type": "clickable",
+  "action": "link",
+  "url": "/scenes/OtherScene.json",
+  "label": "Open the next scene",
+  "outlineColor": "#7ef9ff"
+}
+```
+
 ## Collider setup
 
 Objects can include a `collider` component for physics collision.

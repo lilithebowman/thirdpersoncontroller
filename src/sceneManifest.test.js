@@ -6,6 +6,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert';
+import { Clickable } from './Clickable.js';
 import { normalizeSceneManifest, legacyItemToGameObject, gameObjectsToLegacyObjects, toExportManifest } from './sceneManifest.js';
 
 test('normalizeSceneManifest handles legacy objects correctly', () => {
@@ -173,6 +174,80 @@ test('normalizeSceneManifest accepts legacy FBX items and converts them to GameO
   assert.strictEqual(normalized.gameObjects.length, 1);
   assert.strictEqual(normalized.gameObjects[0].components[0].modelType, 'fbx');
   assert.strictEqual(normalized.gameObjects[0].components[0].fbxPath, '/animations/Action%20Adventure%20Pack/X%20Bot.fbx');
+});
+
+test('Clickable normalizes teleport and link actions for scene objects', () => {
+  const clickable = new Clickable({
+    onTeleport: (destination) => {
+      assert.deepStrictEqual(destination.toArray(), [12, 3, -8]);
+    },
+  });
+
+  const normalizedTeleport = clickable.normalizeData({
+    action: 'teleport',
+    target: [12, 3, -8],
+    outlineColor: '#00f5ff',
+  });
+  assert.strictEqual(normalizedTeleport.action, 'teleport');
+  assert.deepStrictEqual(normalizedTeleport.target, [12, 3, -8]);
+
+  const normalizedLink = clickable.normalizeData({
+    action: 'link',
+    url: '/scenes/OtherScene.json',
+  });
+  assert.strictEqual(normalizedLink.action, 'link');
+  assert.strictEqual(normalizedLink.url, '/scenes/OtherScene.json');
+
+  clickable.performAction(normalizedTeleport);
+  clickable.performAction(normalizedLink);
+});
+
+test('normalizeSceneManifest preserves Clickable actions through GameObject conversion', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [{
+      id: 'portal-trigger',
+      name: 'Portal Trigger',
+      transform: { position: [0, 2, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      components: [{
+        type: 'clickable',
+        action: 'teleport',
+        target: [12, 3, -8],
+        label: 'Teleport to the plaza',
+        outlineColor: '#00f5ff'
+      }],
+      children: []
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[0].type, 'clickable');
+  assert.strictEqual(normalized.gameObjects[0].components[0].action, 'teleport');
+  assert.deepStrictEqual(normalized.gameObjects[0].components[0].target, [12, 3, -8]);
+  assert.strictEqual(normalized.objects.length, 1);
+  assert.strictEqual(normalized.objects[0].type, 'clickable');
+  assert.strictEqual(normalized.objects[0].action, 'teleport');
+});
+
+test('normalizeSceneManifest accepts legacy clickable items and converts them to GameObjects', () => {
+  const sampleLegacy = {
+    version: 2,
+    objects: [{
+      type: 'clickable',
+      name: 'Legacy Link',
+      action: 'link',
+      url: '/scenes/OtherScene.json',
+      position: [3, 0, 6],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1]
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleLegacy);
+  assert.strictEqual(normalized.gameObjects.length, 1);
+  assert.strictEqual(normalized.gameObjects[0].components[0].type, 'clickable');
+  assert.strictEqual(normalized.gameObjects[0].components[0].action, 'link');
+  assert.strictEqual(normalized.gameObjects[0].components[0].url, '/scenes/OtherScene.json');
 });
 
 test('toExportManifest emits GameObject-first JSON without legacy object entries', () => {

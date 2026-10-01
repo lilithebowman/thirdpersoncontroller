@@ -47,6 +47,11 @@ function createGameObjectId(name, index, parentId = 'root') {
   return `${parentId}-${slugify(name || `game-object-${index + 1}`)}-${index + 1}`;
 }
 
+function normalizeClickableAction(action) {
+  const normalized = typeof action === 'string' ? action.trim().toLowerCase() : 'teleport';
+  return normalized === 'link' ? 'link' : 'teleport';
+}
+
 function normalizeComponent(component) {
   if (!component || typeof component !== 'object') {
     return null;
@@ -155,6 +160,19 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
       type: 'scene',
       manifestPath: item.manifestPath ?? item.path ?? null,
       stream: cloneValue(item.stream) ?? undefined,
+    }));
+  }
+
+  if (item.type === 'clickable' || item.action || item.url || item.href || item.link || item.target || item.destination) {
+    const clickableAction = normalizeClickableAction(item.action);
+    gameObject.components.push(normalizeComponent({
+      type: 'clickable',
+      action: clickableAction,
+      target: Array.isArray(item.target) ? item.target.slice() : Array.isArray(item.position) ? item.position.slice() : [0, 0, 0],
+      url: typeof item.url === 'string' ? item.url : typeof item.href === 'string' ? item.href : typeof item.link === 'string' ? item.link : undefined,
+      label: typeof item.label === 'string' ? item.label : undefined,
+      outlineColor: typeof item.outlineColor === 'string' ? item.outlineColor : '#00f5ff',
+      enabled: item.enabled !== false,
     }));
   }
 
@@ -397,6 +415,29 @@ function gameObjectToLegacyItems(gameObject) {
       }
 
       legacyItems.push(legacyItem);
+      continue;
+    }
+
+    if (component.type === 'clickable') {
+      const clickAction = normalizeClickableAction(component.action);
+      const target = Array.isArray(component.target) ? component.target.slice() : Array.isArray(transform.position) ? transform.position.slice() : [0, 0, 0];
+      const clickItem = {
+        type: 'clickable',
+        name: gameObject.name,
+        action: clickAction,
+        target,
+        url: typeof component.url === 'string' ? component.url : undefined,
+        label: typeof component.label === 'string' ? component.label : undefined,
+        outlineColor: typeof component.outlineColor === 'string' ? component.outlineColor : '#00f5ff',
+        enabled: component.enabled !== false,
+        position: transform.position ?? [0, 0, 0],
+        rotation: transform.rotation ?? [0, 0, 0],
+        scale: transform.scale ?? [1, 1, 1],
+      };
+      if (clickAction === 'link') {
+        clickItem.link = clickItem.url;
+      }
+      legacyItems.push(clickItem);
       continue;
     }
 
