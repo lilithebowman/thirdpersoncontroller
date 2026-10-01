@@ -304,6 +304,34 @@ function gameObjectToLegacyItems(gameObject) {
 
   const transform = gameObject.transform ?? {};
   const legacyItems = [];
+  const clickableComponent = (gameObject.components ?? []).find((entry) => entry?.type === 'clickable' && entry.enabled !== false);
+  const clickablePayload = clickableComponent
+    ? {
+        action: normalizeClickableAction(clickableComponent.action ?? clickableComponent.onClick),
+        target: Array.isArray(clickableComponent.target)
+          ? clickableComponent.target.slice()
+          : Array.isArray(clickableComponent.destination)
+            ? clickableComponent.destination.slice()
+            : Array.isArray(transform.position)
+              ? transform.position.slice()
+              : [0, 0, 0],
+        url: typeof clickableComponent.url === 'string'
+          ? clickableComponent.url
+          : typeof clickableComponent.href === 'string'
+            ? clickableComponent.href
+            : typeof clickableComponent.link === 'string'
+              ? clickableComponent.link
+              : undefined,
+        label: typeof clickableComponent.label === 'string'
+          ? clickableComponent.label
+          : typeof clickableComponent.hoverText === 'string'
+            ? clickableComponent.hoverText
+            : undefined,
+        outlineColor: typeof clickableComponent.outlineColor === 'string' ? clickableComponent.outlineColor : '#00f5ff',
+        enabled: true,
+      }
+    : null;
+  let clickableAttachedToRenderable = false;
 
   for (const component of gameObject.components ?? []) {
     if (!component || !component.type) {
@@ -369,6 +397,11 @@ function gameObjectToLegacyItems(gameObject) {
         legacyItem.collider = cloneValue(colliderComponent.collider);
       }
 
+      if (clickablePayload) {
+        legacyItem.clickable = cloneValue(clickablePayload);
+        clickableAttachedToRenderable = true;
+      }
+
       legacyItems.push(legacyItem);
       continue;
     }
@@ -413,6 +446,11 @@ function gameObjectToLegacyItems(gameObject) {
           legacyItem.collider = cloneValue(colliderComponent.collider);
         }
 
+        if (clickablePayload) {
+          legacyItem.clickable = cloneValue(clickablePayload);
+          clickableAttachedToRenderable = true;
+        }
+
         legacyItems.push(legacyItem);
         continue;
       }
@@ -432,6 +470,11 @@ function gameObjectToLegacyItems(gameObject) {
         const colliderComponent = (gameObject.components ?? []).find((entry) => entry?.type === 'collider');
         if (colliderComponent?.collider) {
           legacyItem.collider = cloneValue(colliderComponent.collider);
+        }
+
+        if (clickablePayload) {
+          legacyItem.clickable = cloneValue(clickablePayload);
+          clickableAttachedToRenderable = true;
         }
 
         legacyItems.push(legacyItem);
@@ -460,11 +503,20 @@ function gameObjectToLegacyItems(gameObject) {
         legacyItem.collider = cloneValue(colliderComponent.collider);
       }
 
+      if (clickablePayload) {
+        legacyItem.clickable = cloneValue(clickablePayload);
+        clickableAttachedToRenderable = true;
+      }
+
       legacyItems.push(legacyItem);
       continue;
     }
 
     if (component.type === 'clickable') {
+      if (clickableAttachedToRenderable) {
+        continue;
+      }
+
       const clickAction = normalizeClickableAction(component.action ?? component.onClick);
       const target = Array.isArray(component.target)
         ? component.target.slice()

@@ -255,6 +255,42 @@ test('normalizeSceneManifest preserves Clickable actions through GameObject conv
   assert.strictEqual(normalized.objects[0].action, 'teleport');
 });
 
+test('normalizeSceneManifest attaches clickable data to model entries for mixed GameObjects', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [{
+      id: 'portal-model',
+      name: 'Portal Model',
+      transform: { position: [0, 0.3, -22], rotation: [0, 0, 0], scale: [0.3, 0.3, 0.3] },
+      components: [
+        {
+          type: 'model',
+          modelType: 'glb',
+          glbPath: '/models/SocialWorldPortal.glb',
+          materialRenderType: 'cutout'
+        },
+        {
+          type: 'clickable',
+          onClick: 'teleport',
+          destination: [0, 0, 0],
+          hoverText: 'Click to teleport to spawn'
+        }
+      ],
+      children: []
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  const modelEntries = normalized.objects.filter((entry) => entry.type === 'glb');
+  const clickableEntries = normalized.objects.filter((entry) => entry.type === 'clickable');
+
+  assert.strictEqual(modelEntries.length, 1);
+  assert.strictEqual(clickableEntries.length, 0);
+  assert.strictEqual(modelEntries[0].clickable.action, 'teleport');
+  assert.deepStrictEqual(modelEntries[0].clickable.target, [0, 0, 0]);
+  assert.strictEqual(modelEntries[0].clickable.label, 'Click to teleport to spawn');
+});
+
 test('normalizeSceneManifest accepts legacy clickable items and converts them to GameObjects', () => {
   const sampleLegacy = {
     version: 2,
