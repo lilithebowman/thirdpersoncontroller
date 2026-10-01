@@ -15,6 +15,7 @@ export class MouseInput {
     this.lookDeltaX = 0;
     this.lookDeltaY = 0;
     this.clickRequested = false;
+    this.rightClickRequested = false;
 
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
@@ -42,6 +43,11 @@ export class MouseInput {
   }
 
   onMouseDown(event) {
+    if (event.button === 2) {
+      this.rightClickRequested = true;
+      return;
+    }
+
     if (event.button !== 0) {
       return;
     }
@@ -70,9 +76,19 @@ export class MouseInput {
     return true;
   }
 
+  consumeRightClick() {
+    if (!this.rightClickRequested) {
+      return false;
+    }
+
+    this.rightClickRequested = false;
+    return true;
+  }
+
   clear() {
     this.lookDeltaX = 0;
     this.lookDeltaY = 0;
     this.clickRequested = false;
+    this.rightClickRequested = false;
   }
 }

@@ -159,6 +159,7 @@ export class ThirdPersonControllerApp {
       raycaster: this.raycaster,
       onTeleport: (destination) => this.spawnPlayerAt(destination),
     });
+    this.viewRayPointer = new THREE.Vector2(0, 0);
     this.mouseBeamStart = new THREE.Vector3();
     this.mouseBeamEnd = new THREE.Vector3();
     this.mouseBeamGeometry = new THREE.BufferGeometry();
@@ -171,11 +172,12 @@ export class ThirdPersonControllerApp {
     this.mouseBeam = new THREE.Line(this.mouseBeamGeometry, this.mouseBeamMaterial);
     this.mouseBeam.visible = false;
     this.hitMarker = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 12, 12),
+      new THREE.SphereGeometry(0.04, 10, 10),
       new THREE.MeshBasicMaterial({
         color: 0x00f5ff,
         transparent: true,
         opacity: 0.45,
+        depthTest: false,
         depthWrite: false,
       })
     );
@@ -200,7 +202,6 @@ export class ThirdPersonControllerApp {
 
     this.onResize = this.onResize.bind(this);
     this.onMouseWheel = this.onMouseWheel.bind(this);
-    this.onPointerMove = this.onPointerMove.bind(this);
     this.tick = this.tick.bind(this);
 
     this.keyboardInput.attach();
@@ -222,17 +223,7 @@ export class ThirdPersonControllerApp {
   attachEvents() {
     window.addEventListener('resize', this.onResize);
     this.renderer.domElement.addEventListener('wheel', this.onMouseWheel, { passive: false });
-    this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
     this.renderer.domElement.addEventListener('click', (event) => {
-      const rect = this.renderer.domElement.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      if (this.clickable.tryHandleClick(new THREE.Vector2(x, y))) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
       if (this.audioListener && this.audioListener.context && this.audioListener.context.state === 'suspended') {
         this.audioListener.context.resume();
       }
@@ -277,14 +268,59 @@ export class ThirdPersonControllerApp {
     );
   }
 
-  onPointerMove(event) {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    this.clickable.updateHover(new THREE.Vector2(x, y), {
-      isPointerLocked: this.isPointerLocked,
-      gameMenuOpen: this.gameMenu.isOpen,
-    });
+  isDescendantOf(object, ancestor) {
+    if (!object || !ancestor) {
+      return false;
+    }
+
+    let current = object;
+    while (current) {
+      if (current === ancestor) {
+        return true;
+      }
+      current = current.parent;
+    }
+
+    return false;
+  }
+
+  getViewRaycastHit() {
+    this.raycaster.setFromCamera(this.viewRayPointer, this.camera);
+    const intersections = this.raycaster.intersectObjects(this.scene.children, true);
+
+    for (const hit of intersections) {
+      const object = hit?.object;
+      if (!object || !hit.point) {
+        continue;
+      }
+
+      if (object === this.hitMarker || object === this.mouseBeam) {
+        continue;
+      }
+
+      if (object.parent?.userData?.clickableOutline === object) {
+        continue;
+      }
+
+      if (this.playerCharacter?.root && this.isDescendantOf(object, this.playerCharacter.root)) {
+        continue;
+      }
+
+      return hit;
+    }
+
+    return null;
+  }
+
+  updateRightClickHitMarker() {
+    const hit = this.getViewRaycastHit();
+    if (!hit) {
+      this.hitMarker.visible = false;
+      return;
+    }
+
+    this.hitMarker.position.copy(hit.point);
+    this.hitMarker.visible = true;
   }
 
   /**
@@ -855,6 +891,7 @@ export class ThirdPersonControllerApp {
     }
 
     if (this.gameMenu.isOpen) {
+      this.clickable.clearHover();
       this.renderer.render(this.scene, this.camera);
       return;
     }
@@ -865,6 +902,19 @@ export class ThirdPersonControllerApp {
 
     if (this.renderer.xr.isPresenting) {
       this.cameraController.state.distance = this.cameraController.state.firstPersonDistanceThreshold;
+    }
+
+    this.clickable.updateHover(this.viewRayPointer, {
+      isPointerLocked: false,
+      gameMenuOpen: this.gameMenu.isOpen,
+    });
+
+    if (this.mouseInput.consumeRightClick()) {
+      this.updateRightClickHitMarker();
+    }
+
+    if (this.mouseInput.consumeClick()) {
+      this.clickable.tryHandleClick(this.viewRayPointer);
     }
 
     this.updateMouseLook();

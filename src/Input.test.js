@@ -29,6 +29,7 @@ test('MouseInput accumulates look delta and clicks', () => {
   const mouse = new MouseInput();
   mouse.onMouseMove({ movementX: 10, movementY: -5 });
   mouse.onMouseDown({ button: 0 });
+  mouse.onMouseDown({ button: 2 });
 
   const delta = mouse.consumeLookDelta();
   assert.strictEqual(delta.deltaX, 10);
@@ -36,4 +37,6 @@ test('MouseInput accumulates look delta and clicks', () => {
 
   assert.strictEqual(mouse.consumeClick(), true);
   assert.strictEqual(mouse.consumeClick(), false);
+  assert.strictEqual(mouse.consumeRightClick(), true);
+  assert.strictEqual(mouse.consumeRightClick(), false);
 });
