@@ -663,6 +663,20 @@ export class ThirdPersonControllerApp {
     }
 
     const playerConfig = manifest.player ?? {};
+    const controllerConfig = manifest.controller ?? {};
+    const physicsConfig = controllerConfig.physics ?? {};
+    const maxWalkableSlope = Number.isFinite(playerConfig.maxWalkableSlope)
+      ? playerConfig.maxWalkableSlope
+      : Number.isFinite(controllerConfig.maxWalkableSlope)
+        ? controllerConfig.maxWalkableSlope
+        : Number.isFinite(physicsConfig.maxWalkableSlope)
+          ? physicsConfig.maxWalkableSlope
+          : 0.2;
+
+    if (this.playerRigidbody) {
+      this.playerRigidbody.maxWalkableSlope = maxWalkableSlope;
+    }
+
     this.animator.applyModelConfig(playerConfig.model ?? {}, resolvedPath);
     const eyePosition = this.sceneLoader.toVector3(playerConfig.eyePosition, new THREE.Vector3(0, 1.6, 0));
     this.cameraController.setEyePosition(eyePosition);

@@ -19,9 +19,10 @@ export class MeshCollider extends Collider {
    * @param {THREE.Object3D|null} [options.mesh=null] - Source Three.js mesh for collision geometry
    * @param {THREE.Vector3} [options.offset=new THREE.Vector3()] - Position offset relative to parent transform
    * @param {boolean} [options.physicsCollision=true] - Whether collider resolves physical overlaps
+   * @param {number} [options.maxWalkableSlope=0.2] - Maximum walkable incline slope
    */
-  constructor({ mesh = null, offset = new THREE.Vector3(), physicsCollision = true } = {}) {
-    super({ type: 'MeshCollider', offset, physicsCollision });
+  constructor({ mesh = null, offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2 } = {}) {
+    super({ type: 'MeshCollider', offset, physicsCollision, maxWalkableSlope });
     this.mesh = mesh;
     this.bounds = new THREE.Box3();
     this._triangle = new THREE.Triangle();
@@ -168,17 +169,19 @@ export class MeshCollider extends Collider {
 
   /**
    * Samples the ground height (Y coordinate) below a given player position using raycasting.
-   * Includes spatial caching (80ms TTL) to avoid expensive raycasts on every frame.
+   * Includes spatial caching (80ms TTL) and slope limit verification against maxWalkableSlope.
    * @param {THREE.Vector3} playerPosition - Current player position
    * @param {THREE.Vector3|null} [position=null] - World position of the mesh collider
-   * @returns {number|null} Ground Y coordinate or null if no hit
+   * @param {number} [maxWalkableSlope=this.maxWalkableSlope] - Maximum walkable incline slope
+   * @returns {number|null} Ground Y coordinate or null if no hit or too steep
    */
-  getGroundHeightAt(playerPosition, position = null) {
+  getGroundHeightAt(playerPosition, position = null, maxWalkableSlope = this.maxWalkableSlope) {
     if (!this.mesh) {
       return null;
     }
 
-    const cacheKey = `${Math.round(playerPosition.x * 4)}:${Math.round(playerPosition.z * 4)}:${position ? `${Math.round(position.x * 4)},${Math.round(position.z * 4)}` : ''}`;
+    const resolvedSlope = Number.isFinite(maxWalkableSlope) ? maxWalkableSlope : this.maxWalkableSlope;
+    const cacheKey = `${Math.round(playerPosition.x * 4)}:${Math.round(playerPosition.z * 4)}:${position ? `${Math.round(position.x * 4)},${Math.round(position.z * 4)}` : ''}:${resolvedSlope}`;
     const now = performance.now();
     if (this._groundHeightCache.key === cacheKey && now - this._groundHeightCache.time < 80) {
       return this._groundHeightCache.value;
@@ -202,8 +205,45 @@ export class MeshCollider extends Collider {
     const hits = this._groundRay.intersectObject(this.mesh, true);
     let result = null;
     if (hits.length > 0) {
-      const hitPoint = hits[0].point.clone().add(this._translationDelta).add(this.offset);
-      result = hitPoint.y;
+      const hit = hits[0];
+      let isWalkable = true;
+
+      if (hit.object && hit.object.geometry) {
+        const geom = hit.object.geometry;
+        const posAttr = geom.attributes?.position;
+        const indexAttr = geom.index;
+        const faceIndex = hit.faceIndex;
+
+        if (posAttr && Number.isFinite(faceIndex)) {
+          const i0 = indexAttr ? indexAttr.getX(faceIndex * 3) : faceIndex * 3;
+          const i1 = indexAttr ? indexAttr.getX(faceIndex * 3 + 1) : faceIndex * 3 + 1;
+          const i2 = indexAttr ? indexAttr.getX(faceIndex * 3 + 2) : faceIndex * 3 + 2;
+
+          this._v0.fromBufferAttribute(posAttr, i0).applyMatrix4(hit.object.matrixWorld);
+          this._v1.fromBufferAttribute(posAttr, i1).applyMatrix4(hit.object.matrixWorld);
+          this._v2.fromBufferAttribute(posAttr, i2).applyMatrix4(hit.object.matrixWorld);
+
+          this._triangle.set(this._v0, this._v1, this._v2);
+          const normal = new THREE.Vector3();
+          this._triangle.getNormal(normal);
+          if (normal.y < 0) {
+            normal.negate();
+          }
+
+          const ny = Math.max(1e-6, normal.y);
+          const horizontalMagnitude = Math.sqrt(normal.x * normal.x + normal.z * normal.z);
+          const slope = horizontalMagnitude / ny;
+
+          if (slope > resolvedSlope) {
+            isWalkable = false;
+          }
+        }
+      }
+
+      if (isWalkable) {
+        const hitPoint = hit.point.clone().add(this._translationDelta).add(this.offset);
+        result = hitPoint.y;
+      }
     }
 
     this._groundHeightCache.key = cacheKey;

@@ -17,9 +17,10 @@ export class SphereCollider extends Collider {
    * @param {number} [options.radius=0.5] - Radius of the sphere
    * @param {THREE.Vector3} [options.offset=new THREE.Vector3()] - Center offset relative to parent transform
    * @param {boolean} [options.physicsCollision=true] - Whether collider resolves physical overlaps
+   * @param {number} [options.maxWalkableSlope=0.2] - Maximum walkable incline slope
    */
-  constructor({ radius = 0.5, offset = new THREE.Vector3(), physicsCollision = true } = {}) {
-    super({ type: 'SphereCollider', offset, physicsCollision });
+  constructor({ radius = 0.5, offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2 } = {}) {
+    super({ type: 'SphereCollider', offset, physicsCollision, maxWalkableSlope });
     this.radius = Math.max(0, radius);
   }
 

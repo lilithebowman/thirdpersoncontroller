@@ -110,6 +110,7 @@ Example:
 - `player.collider.size` and `player.collider.offset` configure the player physics body dimensions.
 - `player.collider.physicsCollision` toggles whether player collider resolves against world colliders.
 - `player.eyePosition` specifies the camera eye position offset for first-person rendering.
+- `player.maxWalkableSlope` specifies the maximum incline slope (rise over run) the player can walk up (default: `0.2`).
 
 ### `gameObjects`
 

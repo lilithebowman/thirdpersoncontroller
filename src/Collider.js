@@ -18,11 +18,13 @@ export class Collider {
    * @param {string} [options.type='Collider'] - Collider type identifier
    * @param {THREE.Vector3} [options.offset=new THREE.Vector3()] - Positional offset
    * @param {boolean} [options.physicsCollision=true] - Whether collider participates in physics resolution
+   * @param {number} [options.maxWalkableSlope=0.2] - Maximum walkable incline slope
    */
-  constructor({ type = 'Collider', offset = new THREE.Vector3(), physicsCollision = true } = {}) {
+  constructor({ type = 'Collider', offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2 } = {}) {
     this.type = type;
     this.offset = offset.clone();
     this.physicsCollision = physicsCollision === true;
+    this.maxWalkableSlope = Number.isFinite(maxWalkableSlope) ? maxWalkableSlope : 0.2;
     this._tmpBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
   }
 

@@ -63,3 +63,19 @@ test('MeshCollider samples ground height correctly using raycasting', () => {
   assert.strictEqual(groundY !== null, true);
   assert.strictEqual(Math.abs(groundY - 0) < 0.001, true);
 });
+
+test('MeshCollider rejects ground height on surfaces steeper than maxWalkableSlope', () => {
+  const geometry = new THREE.PlaneGeometry(10, 10);
+  geometry.rotateX(-Math.PI / 4); // 45 degree incline (slope = 1.0 > 0.2)
+  const material = new THREE.MeshBasicMaterial();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(0, 0, 0);
+  mesh.updateMatrixWorld(true);
+
+  const meshCollider = new MeshCollider({ mesh, maxWalkableSlope: 0.2 });
+
+  const playerPosition = new THREE.Vector3(0, 5, 0);
+  const groundY = meshCollider.getGroundHeightAt(playerPosition, new THREE.Vector3(0, 0, 0), 0.2);
+
+  assert.strictEqual(groundY, null);
+});

@@ -14,11 +14,12 @@
 import * as THREE from 'three';
 
 export class Rigidbody {
-  constructor({ mass = 1, gravity = new THREE.Vector3(0, -24, 0), linearDamping = 0, enablePhysicsCollision = false } = {}) {
+  constructor({ mass = 1, gravity = new THREE.Vector3(0, -24, 0), linearDamping = 0, enablePhysicsCollision = false, maxWalkableSlope = 0.2 } = {}) {
     this.mass = Math.max(0.0001, mass);
     this.gravity = gravity.clone();
     this.linearDamping = Math.max(0, linearDamping);
     this.enablePhysicsCollision = enablePhysicsCollision === true;
+    this.maxWalkableSlope = Number.isFinite(maxWalkableSlope) ? maxWalkableSlope : 0.2;
 
     this.velocity = new THREE.Vector3();
     this.accumulatedForce = new THREE.Vector3();
@@ -61,7 +62,7 @@ export class Rigidbody {
       }
 
       this._groundProbePosition.set(position.x, Math.max(position.y + 3, 15), position.z);
-      const groundY = collisionShape.getGroundHeightAt(this._groundProbePosition, worldCollider.position);
+      const groundY = collisionShape.getGroundHeightAt(this._groundProbePosition, worldCollider.position, collisionShape.maxWalkableSlope ?? this.maxWalkableSlope);
       if (groundY === null || !Number.isFinite(groundY)) {
         continue;
       }
@@ -147,7 +148,7 @@ export class Rigidbody {
       }
 
       const groundHeight = typeof collisionShape.getGroundHeightAt === 'function'
-        ? collisionShape.getGroundHeightAt(new THREE.Vector3(position.x, Math.max(position.y + 3, 15), position.z), worldCollider.position)
+        ? collisionShape.getGroundHeightAt(new THREE.Vector3(position.x, Math.max(position.y + 3, 15), position.z), worldCollider.position, collisionShape.maxWalkableSlope ?? this.maxWalkableSlope)
         : null;
 
       if (groundHeight !== null && Number.isFinite(groundHeight)) {
