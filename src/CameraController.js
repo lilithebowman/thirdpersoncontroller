@@ -41,6 +41,7 @@ export class CameraController {
       headLookYawLimit: THREE.MathUtils.degToRad(85),
       headLookPitchLimit: THREE.MathUtils.degToRad(70),
       firstPersonNear: 0.02,
+      firstPersonMaxNear: 0.5,
       thirdPersonNear: 0.1,
     };
 
@@ -55,6 +56,8 @@ export class CameraController {
     this.headLookQuaternionResult = new THREE.Quaternion();
     this.playerHeadBoneBaseLocalQuaternion = new THREE.Quaternion();
     this.firstPersonHeadOverrideActive = false;
+    this.headBounds = new THREE.Box3();
+    this.headBoundsSphere = new THREE.Sphere();
   }
 
   /**
@@ -192,12 +195,42 @@ export class CameraController {
   }
 
   /**
+   * Computes near plane needed to clip the local player head without clipping nearby world geometry.
+   * @param {THREE.Vector3} cameraPosition - First-person eye position in world space
+   * @param {THREE.Group} player - Player root
+   * @param {THREE.Object3D|null} playerHeadBone - Head bone for precise bounds
+   * @returns {number} Suggested near plane distance
+   */
+  computeFirstPersonNear(cameraPosition, player, playerHeadBone = null) {
+    let near = this.state.firstPersonNear;
+    const source = playerHeadBone ?? player;
+    if (!source) {
+      return near;
+    }
+
+    source.updateMatrixWorld(true);
+    this.headBounds.setFromObject(source);
+    if (this.headBounds.isEmpty()) {
+      return near;
+    }
+
+    this.headBounds.getBoundingSphere(this.headBoundsSphere);
+    const distanceToCenter = cameraPosition.distanceTo(this.headBoundsSphere.center);
+    const headOuterEdgeDistance = distanceToCenter + this.headBoundsSphere.radius;
+    if (Number.isFinite(headOuterEdgeDistance) && headOuterEdgeDistance > 0) {
+      near = Math.max(near, headOuterEdgeDistance + 0.01);
+    }
+
+    return THREE.MathUtils.clamp(near, this.state.firstPersonNear, this.state.firstPersonMaxNear);
+  }
+
+  /**
    * Updates camera position and orientation relative to the player.
    * @param {THREE.Group} player - Player object
    * @param {Object} [options={}] - Update options
    * @param {boolean} [options.isPresenting=false] - Whether WebXR VR session is presenting
    */
-  update(player, { isPresenting = false } = {}) {
+  update(player, { isPresenting = false, playerHeadBone = null } = {}) {
     if (!player) {
       return;
     }
@@ -212,41 +245,13 @@ export class CameraController {
       this.cameraPosition.copy(this.eyePosition);
       this.cameraPosition.applyQuaternion(player.quaternion);
       this.cameraPosition.add(player.position);
-
-      let near = this.state.firstPersonNear;
-      if (player) {
-        player.updateMatrixWorld(false);
-        const box = new THREE.Box3().setFromObject(player);
-        if (!box.isEmpty()) {
-          const corners = [
-            new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-            new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-            new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-            new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-            new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-            new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-            new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-            new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-          ];
-          let maxDist = 0;
-          for (const corner of corners) {
-            const dist = this.cameraPosition.distanceTo(corner);
-            if (dist > maxDist) {
-              maxDist = dist;
-            }
-          }
-          if (maxDist > 0) {
-            near = Math.max(near, maxDist + 0.05);
-          }
-        }
-      }
-
+      const near = this.computeFirstPersonNear(this.cameraPosition, player, playerHeadBone);
       this.setNearPlane(near);
       this.computeFirstPersonLookDirection(this.cameraLookDirection);
+      this.camera.position.copy(this.cameraPosition);
       if (isPresenting) {
         return;
       }
-      this.camera.position.copy(this.cameraPosition);
       this.camera.rotation.set(this.state.pitch, this.state.yaw, 0, 'YXZ');
       return;
     }

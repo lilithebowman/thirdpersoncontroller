@@ -191,6 +191,7 @@ export class ThirdPersonControllerApp {
     this.playerTargetYaw = 0;
     this.playerRotationQuaternion = new THREE.Quaternion();
     this.playerRotationAxis = new THREE.Vector3(0, 1, 0);
+    this.xrForward = new THREE.Vector3();
     this.hasMoveInput = false;
     this.isGrounded = true;
 
@@ -636,29 +637,27 @@ export class ThirdPersonControllerApp {
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
 
     this.renderer.xr.enabled = true;
+    const debugEnabled = debugConfig.enabled === true;
     const existingVrButton = document.getElementById('VRButton');
     if (!existingVrButton) {
       const vrButton = VRButton.createButton(this.renderer);
       if (vrButton) {
-        const isDebugEnabled = debugConfig.enabled === true;
         if ('xr' in navigator && navigator.xr?.isSessionSupported) {
           navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
-            if (supported || isDebugEnabled) {
+            if (supported || debugEnabled) {
               if (!document.getElementById('VRButton')) {
                 document.body.appendChild(vrButton);
               }
             }
           }).catch(() => {
-            if (isDebugEnabled) {
+            if (debugEnabled) {
               if (!document.getElementById('VRButton')) {
                 document.body.appendChild(vrButton);
               }
             }
           });
-        } else {
-          if (isDebugEnabled) {
-            document.body.appendChild(vrButton);
-          }
+        } else if (debugEnabled) {
+          document.body.appendChild(vrButton);
         }
       }
     }
@@ -722,6 +721,10 @@ export class ThirdPersonControllerApp {
   }
 
   updateMouseLook() {
+    if (this.renderer.xr.isPresenting) {
+      return;
+    }
+
     if (!this.isPointerLocked) {
       return;
     }
@@ -747,7 +750,7 @@ export class ThirdPersonControllerApp {
     }
   }
 
-  updatePlayer(delta) {
+  updatePlayer(delta, { isPresenting = false } = {}) {
     const playerRoot = this.playerCharacter.root;
     if (!playerRoot) {
       return;
@@ -766,8 +769,22 @@ export class ThirdPersonControllerApp {
       this.respawnPlayer();
     }
 
-    const viewForward = new THREE.Vector3(-Math.sin(this.cameraController.state.yaw), 0, -Math.cos(this.cameraController.state.yaw));
-    const viewRight = new THREE.Vector3(Math.cos(this.cameraController.state.yaw), 0, -Math.sin(this.cameraController.state.yaw));
+    let viewYaw = this.cameraController.state.yaw;
+    if (isPresenting) {
+      const xrCamera = this.renderer.xr.getCamera(this.camera);
+      if (xrCamera && typeof xrCamera.getWorldDirection === 'function') {
+        xrCamera.getWorldDirection(this.xrForward);
+        this.xrForward.y = 0;
+        if (this.xrForward.lengthSq() > 1e-8) {
+          this.xrForward.normalize();
+          viewYaw = Math.atan2(-this.xrForward.x, -this.xrForward.z);
+          this.cameraController.state.yaw = viewYaw;
+        }
+      }
+    }
+
+    const viewForward = new THREE.Vector3(-Math.sin(viewYaw), 0, -Math.cos(viewYaw));
+    const viewRight = new THREE.Vector3(Math.cos(viewYaw), 0, -Math.sin(viewYaw));
     const move = new THREE.Vector3();
 
     if (this.keyboardInput.isDown('KeyW') || this.keyboardInput.isDown('ArrowUp')) move.add(viewForward);
@@ -798,7 +815,10 @@ export class ThirdPersonControllerApp {
       }
     }
 
-    if (this.cameraController.isFirstPerson()) {
+    if (isPresenting) {
+      this.playerYaw = THREE.MathUtils.euclideanModulo(viewYaw + Math.PI + Math.PI, Math.PI * 2) - Math.PI;
+      this.playerTargetYaw = this.playerYaw;
+    } else if (this.cameraController.isFirstPerson()) {
       this.playerYaw = THREE.MathUtils.euclideanModulo(this.cameraController.state.yaw + Math.PI + Math.PI, Math.PI * 2) - Math.PI;
       this.playerTargetYaw = this.playerYaw;
     } else {
@@ -919,12 +939,15 @@ export class ThirdPersonControllerApp {
 
     this.updateMouseLook();
     this.updateAdaptiveFrustum(delta);
-    this.updatePlayer(delta);
+    this.updatePlayer(delta, { isPresenting: this.renderer.xr.isPresenting });
     this.updatePlayerAnimation(delta);
     this.updateRemotePlayerMeshes(delta);
-    this.cameraController.update(this.playerCharacter.root, { isPresenting: this.renderer.xr.isPresenting });
+    this.cameraController.update(this.playerCharacter.root, {
+      isPresenting: this.renderer.xr.isPresenting,
+      playerHeadBone: this.playerCharacter.headBone,
+    });
 
-    if (this.cameraController.isFirstPerson() || this.renderer.xr.isPresenting) {
+    if (this.cameraController.isFirstPerson() && !this.renderer.xr.isPresenting) {
       this.cameraController.headLookBaseLocalQuaternion?.copy?.(this.playerCharacter.headBone?.quaternion ?? new THREE.Quaternion());
       this.cameraController.applyHeadLookOverride(this.playerCharacter.headBone, this.playerYaw);
     } else {
