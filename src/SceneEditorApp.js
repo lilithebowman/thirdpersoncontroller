@@ -1,3 +1,12 @@
+/**
+ * SceneEditorApp.js
+ *
+ * Class: SceneEditorApp
+ * Purpose: Hosts the scene-authoring UI, hierarchy, inspector, and JSON export pipeline.
+ *          The editor operates on a GameObject/component scene graph and converts that
+ *          graph into the manifest format expected by the runtime app.
+ */
+
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
@@ -7,6 +16,7 @@ import {
   gameObjectsToLegacyObjects,
   normalizeGameObject,
   normalizeSceneManifest,
+  toExportManifest,
 } from './sceneManifest.js';
 import { Loader } from './Loader.js';
 import { assetMetaService } from './AssetMetaService.js';
@@ -1271,10 +1281,7 @@ export class SceneEditorApp {
   }
 
   buildExportManifest() {
-    const manifest = normalizeSceneManifest(this.currentManifest);
-    manifest.gameObjects = manifest.gameObjects.map((gameObject) => normalizeGameObject(gameObject));
-    manifest.objects = gameObjectsToLegacyObjects(manifest.gameObjects);
-    return manifest;
+    return toExportManifest(this.currentManifest);
   }
 
   serializeManifest() {
@@ -1495,7 +1502,7 @@ export class SceneEditorApp {
 
     const nextGameObject = this.createNewGameObject(kind);
     this.currentManifest.gameObjects = [...(this.currentManifest.gameObjects ?? []), nextGameObject];
-    this.currentManifest.objects = gameObjectsToLegacyObjects(this.currentManifest.gameObjects);
+    delete this.currentManifest.objects;
 
     await this.rebuildSceneGraph();
     this.refreshHierarchy();

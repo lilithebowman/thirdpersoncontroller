@@ -6,7 +6,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert';
-import { normalizeSceneManifest, legacyItemToGameObject, gameObjectsToLegacyObjects } from './sceneManifest.js';
+import { normalizeSceneManifest, legacyItemToGameObject, gameObjectsToLegacyObjects, toExportManifest } from './sceneManifest.js';
 
 test('normalizeSceneManifest handles legacy objects correctly', () => {
   const sampleLegacy = {
@@ -87,4 +87,24 @@ test('normalizeSceneManifest prefers gameObjects over stale legacy objects', () 
   assert.strictEqual(normalized.objects.length, 1);
   assert.strictEqual(normalized.objects[0].type, 'cube');
   assert.strictEqual(normalized.objects[0].name, 'New Cube');
+});
+
+test('toExportManifest emits GameObject-first JSON without legacy object entries', () => {
+  const sampleManifest = {
+    version: 2,
+    objects: [{ type: 'box', name: 'Legacy Box', position: [0, 0, 0] }],
+    gameObjects: [{
+      id: 'export-cube',
+      name: 'Export Cube',
+      transform: { position: [1, 2, 3], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      components: [{ type: 'primitive', primitiveType: 'box', size: [1, 1, 1], color: '#8ecae6' }],
+      children: []
+    }]
+  };
+
+  const exported = toExportManifest(sampleManifest);
+  assert.ok(Array.isArray(exported.gameObjects));
+  assert.strictEqual(exported.gameObjects.length, 1);
+  assert.strictEqual(exported.gameObjects[0].name, 'Export Cube');
+  assert.strictEqual(exported.objects, undefined);
 });

@@ -403,3 +403,12 @@ export function normalizeSceneManifest(manifest = {}) {
 
   return normalized;
 }
+
+export function toExportManifest(manifest = {}) {
+  const normalized = normalizeSceneManifest(manifest);
+  normalized.gameObjects = normalized.gameObjects
+    .map((gameObject, index) => normalizeGameObject(gameObject, index))
+    .filter(Boolean);
+  delete normalized.objects;
+  return normalized;
+}

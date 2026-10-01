@@ -1,32 +1,42 @@
 # Scene Manifest Setup
 
-This document explains how to configure `public/scene-manifest.json` for the third-person controller demo.
+This document explains how to configure `public/scene-manifest.json` for the current editor/runtime workflow.
 
 ## File location
 
 - `public/scene-manifest.json`
 
+## Core contract
+
+The runtime and editor are built around a GameObject-first manifest. The source-of-truth scene data lives in `gameObjects`, where each entry is a node with a transform and a set of components.
+
+Legacy flat `objects` entries still load for backwards compatibility, but new exports and authoring should use `gameObjects` only.
+
 ## Top-level structure
 
 ```json
 {
+  "version": 2,
   "debug": {
     "enabled": true
   },
   "playerSpawns": [[0, 0, 0]],
   "player": {
     "model": {
-      "path": "/animations/Action%20Adventure%20Pack/walking.fbx",
+      "path": "/animations/Action%20Adventure%20Pack/X%20Bot.fbx",
+      "walkPath": "/animations/Action%20Adventure%20Pack/running.fbx",
       "idlePath": "/animations/Action%20Adventure%20Pack/idle.fbx",
+      "jumpPath": "/animations/Action%20Adventure%20Pack/jumping%20up.fbx",
       "scale": [0.01, 0.01, 0.01],
-      "rotation": [0, 180, 0],
+      "rotation": [0, 0, 0],
       "offset": [0, 0, 0]
     },
     "collider": {
       "size": [0.9, 1.9, 0.9],
       "offset": [0, 0.95, 0],
       "physicsCollision": true
-    }
+    },
+    "eyePosition": [0, 1.6, 0]
   },
   "controller": {
     "jumpImpulse": 8.8,
@@ -38,12 +48,45 @@ This document explains how to configure `public/scene-manifest.json` for the thi
     }
   },
   "scene": {
-    "background": "#8ecae6",
-    "fog": "#8ecae6"
+    "background": "#112233",
+    "fog": "#000000"
   },
-  "objects": []
+  "gameObjects": []
 }
 ```
+
+## GameObject structure
+
+Each `gameObject` should follow this pattern:
+
+```json
+{
+  "id": "primitive-123",
+  "name": "Primitive Model",
+  "active": true,
+  "tag": "Untagged",
+  "layer": 0,
+  "static": false,
+  "transform": {
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1, 1]
+  },
+  "components": [
+    {
+      "type": "primitive",
+      "primitiveType": "box",
+      "size": [1, 1, 1],
+      "color": "#8ecae6"
+    }
+  ],
+  "children": []
+}
+```
+
+### Primitive rule
+
+A primitive object is not a standalone flat object entry. It must be a `GameObject` with a `primitive` component attached. This is the format the editor creates and the runtime expects.
 
 ## Required sections
 
@@ -62,31 +105,35 @@ Example:
 ### `player`
 
 - `player.model.path` points to the rigged character FBX used for rendering.
-- `player.model.idlePath` optionally points to a separate FBX clip used for idle animation fallback.
+- `player.model.idlePath`, `walkPath`, and `jumpPath` may be provided for animation clips.
 - `player.model.scale`, `rotation`, and `offset` control how the model is attached to the controller root.
 - `player.collider.size` and `player.collider.offset` configure the player physics body dimensions.
 - `player.collider.physicsCollision` toggles whether player collider resolves against world colliders.
-- `player.eyePosition` specifies the first-person camera eye position offset relative to the player root.
+- `player.eyePosition` specifies the camera eye position offset for first-person rendering.
 
-### `objects`
+### `gameObjects`
 
-- Defines world objects, lights, and models.
-- Supported object types include:
-  - `light`
-  - `floor`
-  - `box` / `cube`
-  - `cylinder`
-  - `obj`
+The canonical world objects and scene hierarchy. Valid examples include:
 
-### OBJ materials and textures
+- `light` components
+- `primitive` components (`box`, `cube`, `cylinder`, floor-like shapes)
+- `model` components (`obj` assets)
+- `collider` components
+- nested `children`
 
-- For `obj` entries, use `mtlPath` when the model has materials.
-- Texture maps should be linked inside the `.mtl` file (`map_Kd`, etc.).
-- Do not add `texturePath` in the manifest for OBJ assets; one global texture override breaks multi-material OBJ meshes.
+### Legacy compatibility
+
+The loader can still normalize legacy top-level `objects` arrays, but those are imported only as compatibility input and are not the preferred authoring format.
+
+## OBJ materials and textures
+
+- For `model` entries with `modelType: "obj"`, use `mtlPath` when the model has materials.
+- Texture maps should be defined inside the `.mtl` file (`map_Kd`, etc.).
+- Do not add a global texture override in the manifest for OBJ assets unless you are deliberately overriding a material pipeline for a specific case.
 
 ## Collider setup
 
-Objects can include a `collider` block for physics collision.
+Objects can include a `collider` component for physics collision.
 
 Supported collider types:
 
@@ -102,55 +149,19 @@ Supported collider types:
 | `sphere` | `type` | `radius`, `offset`, `physicsCollision`, `position` |
 | `mesh` | `type` | `offset`, `physicsCollision`, `position` |
 
-Field notes:
-
-- `type` must be one of `box`, `sphere`, `mesh`.
-- `position` overrides the manifest item position for collider placement.
-- `physicsCollision` defaults to `true` if omitted.
-
-### Box collider
+Example:
 
 ```json
-"collider": {
-  "type": "box",
-  "size": [1.5, 1.0, 2.0],
-  "offset": [0, 0.5, 0],
-  "physicsCollision": true
+{
+  "type": "collider",
+  "collider": {
+    "type": "box",
+    "size": [1.5, 1.0, 2.0],
+    "offset": [0, 0.5, 0],
+    "physicsCollision": true
+  }
 }
 ```
-
-### Sphere collider
-
-```json
-"collider": {
-  "type": "sphere",
-  "radius": 0.75,
-  "offset": [0, 0.75, 0],
-  "physicsCollision": true
-}
-```
-
-### Mesh collider
-
-```json
-"collider": {
-  "type": "mesh",
-  "offset": [0, 0, 0],
-  "physicsCollision": true
-}
-```
-
-Notes for mesh collider:
-
-- Intended for `obj` entries where a model mesh is loaded from `objPath`.
-- Bounds are generated from the loaded mesh geometry in world space.
-- Use `offset` to shift the collision volume when needed.
-- If no mesh is available, the collider cannot be created.
-
-Notes:
-
-- `physicsCollision` controls whether that collider participates in rigidbody collision resolution.
-- For floor objects, collider size should represent world-space thickness and area.
 
 ## Controller physics settings
 
@@ -167,6 +178,7 @@ Use `controller.jumpImpulse` to tune jump height.
 
 ```json
 {
+  "version": 2,
   "debug": { "enabled": true },
   "playerSpawns": [[0, 0, 0]],
   "controller": {
@@ -182,31 +194,37 @@ Use `controller.jumpImpulse` to tune jump height.
     "background": "#8ecae6",
     "fog": "#8ecae6"
   },
-  "objects": [
+  "gameObjects": [
     {
-      "type": "floor",
+      "id": "ground-1",
       "name": "Ground",
-      "size": [120, 120],
-      "position": [0, 0, 0],
-      "rotation": [-90, 0, 0],
-      "collider": {
-        "type": "box",
-        "size": [120, 0.2, 120],
-        "offset": [0, 0.1, 0],
-        "physicsCollision": true
-      }
-    },
-    {
-      "type": "obj",
-      "name": "Rock Cluster",
-      "objPath": "/models/rock.obj",
-      "mtlPath": "/models/rock.mtl",
-      "position": [4, 0, -5],
-      "scale": [1.4, 1.4, 1.4],
-      "collider": {
-        "type": "mesh",
-        "physicsCollision": true
-      }
+      "active": true,
+      "tag": "Untagged",
+      "layer": 0,
+      "static": false,
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "components": [
+        {
+          "type": "primitive",
+          "primitiveType": "cube",
+          "size": [120, 0.1, 120],
+          "color": "#ffffff"
+        },
+        {
+          "type": "collider",
+          "collider": {
+            "type": "box",
+            "size": [120, 0.1, 120],
+            "offset": [0, 0, 0],
+            "physicsCollision": true
+          }
+        }
+      ],
+      "children": []
     }
   ]
 }
