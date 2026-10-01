@@ -73,6 +73,7 @@ const server = http.createServer((req, res) => {
       position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       yaw: 0,
+      direction: { x: 0, y: 0, z: -1 },
       animationState: 'idle',
       isSpeaking: false,
       voiceData: null,
@@ -110,7 +111,7 @@ const server = http.createServer((req, res) => {
 
       try {
         const data = JSON.parse(body);
-        const { guid, position, rotation, yaw, animationState, isSpeaking } = data;
+        const { guid, position, rotation, yaw, direction, animationState, isSpeaking } = data;
 
         if (!guid || typeof guid !== 'string' || guid.length > 64) {
           res.statusCode = 400;
@@ -126,6 +127,7 @@ const server = http.createServer((req, res) => {
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             yaw: 0,
+            direction: { x: 0, y: 0, z: -1 },
             animationState: 'idle',
             isSpeaking: false,
             voiceData: null,
@@ -162,6 +164,12 @@ const server = http.createServer((req, res) => {
 
         if (typeof yaw === 'number' && Number.isFinite(yaw)) {
           player.yaw = yaw;
+        }
+
+        if (direction && typeof direction.x === 'number' && Number.isFinite(direction.x) &&
+            typeof direction.y === 'number' && Number.isFinite(direction.y) &&
+            typeof direction.z === 'number' && Number.isFinite(direction.z)) {
+          player.direction = { x: direction.x, y: direction.y, z: direction.z };
         }
 
         if (animationState && typeof animationState === 'string') {
@@ -268,6 +276,7 @@ const server = http.createServer((req, res) => {
       position: p.position,
       rotation: p.rotation,
       yaw: p.yaw,
+      direction: p.direction ?? { x: 0, y: 0, z: -1 },
       animationState: p.animationState,
       isSpeaking: Boolean(p.isSpeaking),
       voiceData: p.voiceData && (now - p.voiceData.timestamp < 3000) ? p.voiceData : null,

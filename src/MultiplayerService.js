@@ -31,6 +31,7 @@ export class MultiplayerService {
       position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 0, z: 0, w: 1 },
       yaw: 0,
+      direction: { x: 0, y: 0, z: -1 },
       animationState: 'idle',
       isSpeaking: false,
     };
@@ -88,6 +89,7 @@ export class MultiplayerService {
       position: transform.position ?? this.latestLocalTransform.position,
       rotation: transform.rotation ?? this.latestLocalTransform.rotation,
       yaw: transform.yaw ?? this.latestLocalTransform.yaw,
+      direction: transform.direction ?? this.latestLocalTransform.direction,
       animationState: transform.animationState ?? this.latestLocalTransform.animationState,
       isSpeaking: transform.isSpeaking ?? this.latestLocalTransform.isSpeaking ?? false,
     };
@@ -183,6 +185,9 @@ export class MultiplayerService {
     }
     if (typeof transform.yaw === 'number') {
       this.latestLocalTransform.yaw = transform.yaw;
+    }
+    if (transform.direction) {
+      this.latestLocalTransform.direction = { ...transform.direction };
     }
     if (transform.animationState) {
       this.latestLocalTransform.animationState = transform.animationState;

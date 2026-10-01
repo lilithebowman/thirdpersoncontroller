@@ -22,12 +22,14 @@ test('MultiplayerService updates local transform correctly', () => {
   service.updateLocalTransform({
     position: { x: 10, y: 2, z: -5 },
     yaw: 1.57,
+    direction: { x: 1, y: 0, z: 0 },
     animationState: 'run',
     isSpeaking: true,
   });
 
   assert.deepStrictEqual(service.latestLocalTransform.position, { x: 10, y: 2, z: -5 });
   assert.strictEqual(service.latestLocalTransform.yaw, 1.57);
+  assert.deepStrictEqual(service.latestLocalTransform.direction, { x: 1, y: 0, z: 0 });
   assert.strictEqual(service.latestLocalTransform.animationState, 'run');
   assert.strictEqual(service.latestLocalTransform.isSpeaking, true);
 });

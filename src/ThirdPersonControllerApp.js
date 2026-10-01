@@ -190,6 +190,7 @@ export class ThirdPersonControllerApp {
       onRemotePlayersUpdate: (players) => this.handleRemotePlayersUpdate(players),
     });
     this.remotePlayerMeshes = new Map();
+    this.remotePlayersHud = document.getElementById('remote-players-hud');
 
     this.onResize = this.onResize.bind(this);
     this.onMouseWheel = this.onMouseWheel.bind(this);
@@ -707,10 +708,12 @@ export class ThirdPersonControllerApp {
       }
     }
 
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerRoot.quaternion);
     this.multiplayerService.updateLocalTransform({
       position: playerRoot.position,
       rotation: playerRoot.quaternion,
       yaw: this.playerYaw,
+      direction: { x: forward.x, y: forward.y, z: forward.z },
       animationState: this.hasMoveInput ? (this.keyboardInput.isDown('ShiftLeft') ? 'sprint' : 'walk') : 'idle',
       isSpeaking: this.voiceChatService ? this.voiceChatService.isSpeaking : false,
     });
@@ -816,6 +819,19 @@ export class ThirdPersonControllerApp {
       }
     }
 
+    if (this.remotePlayersHud) {
+      if (players.length === 0) {
+        this.remotePlayersHud.innerHTML = '<span style="opacity: 0.6; font-size: 0.75rem;">No other players online</span>';
+      } else {
+        const lines = players.map((p) => {
+          const dir = p.direction ? `(${p.direction.x.toFixed(2)}, ${p.direction.z.toFixed(2)})` : '(0, -1)';
+          const speaking = p.isSpeaking ? ' 🔊' : '';
+          return `<div style="font-size: 0.75rem; opacity: 0.9;">Player ${p.guid.substring(0, 6)}: Dir ${dir}${speaking}</div>`;
+        });
+        this.remotePlayersHud.innerHTML = `<div style="font-weight: 600; font-size: 0.75rem; margin-bottom: 2px;">Remote Players (${players.length}):</div>` + lines.join('');
+      }
+    }
+
     for (const p of players) {
       let meshGroup = this.remotePlayerMeshes.get(p.guid);
       if (!meshGroup) {
@@ -907,8 +923,8 @@ export class ThirdPersonControllerApp {
 
     if (this.audioListener) {
       const positionalAudio = new THREE.PositionalAudio(this.audioListener);
-      positionalAudio.setRefDistance(1);
-      positionalAudio.setMaxDistance(50);
+      positionalAudio.setRefDistance(5);
+      positionalAudio.setMaxDistance(100);
       positionalAudio.setRolloffFactor(1);
       try {
         positionalAudio.setMediaElementSource(audio);
