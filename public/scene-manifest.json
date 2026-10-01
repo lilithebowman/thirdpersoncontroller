@@ -3,7 +3,7 @@
   "debug": {
     "enabled": false
   },
-  "playerSpawns": [[300, -5, 0]],
+  "playerSpawns": [[0, 0, 0]],
   "player": {
     "model": {
       "path": "/animations/Action%20Adventure%20Pack/X%20Bot.fbx",
@@ -125,8 +125,8 @@
       "children": []
     },
     {
-      "id": "2026-booths",
-      "name": "2026 Booths",
+      "id": "Basic Floor",
+      "name": "Basic Floor",
       "active": true,
       "tag": "Untagged",
       "layer": 0,
@@ -138,151 +138,22 @@
       },
       "components": [
         {
-          "type": "model",
-          "modelType": "obj",
-          "objPath": "models/2026-CozyCon-Cafe/2026-Booths.obj",
-          "mtlPath": "models/2026-CozyCon-Cafe/2026-Booths.mtl",
-          "materialRenderType": "cutout"
+          "type": "primitive",
+          "primitiveType": "cube",
+          "size": [120, 0.1, 120],
+          "color": "#ffffff"
         },
         {
           "type": "collider",
           "collider": {
-            "type": "mesh",
+            "type": "box",
+            "size": [120, 0.1, 120],
+            "offset": [0, 0, 0],
             "physicsCollision": true
           }
         }
       ],
       "children": []
-    },
-    {
-      "id": "2026-posters",
-      "name": "2026 Posters",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [0, 0, 0],
-        "rotation": [0, 0, 0],
-        "scale": [1, 1, 1]
-      },
-      "components": [
-        {
-          "type": "model",
-          "modelType": "obj",
-          "objPath": "models/2026-CozyCon-Cafe/2026-Posters.obj",
-          "mtlPath": "models/2026-CozyCon-Cafe/2026-Posters.mtl",
-          "materialRenderType": "cutout"
-        },
-        {
-          "type": "collider",
-          "collider": {
-            "type": "mesh",
-            "physicsCollision": true
-          }
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "cosmos-station",
-      "name": "CosmosStation",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [0, 5, 0],
-        "rotation": [0, 0, 0],
-        "scale": [3, 3, 3]
-      },
-      "components": [
-        {
-          "type": "model",
-          "modelType": "obj",
-          "objPath": "models/2026-CozyCon-Cafe/CosmosStation.obj",
-          "mtlPath": "models/2026-CozyCon-Cafe/CosmosStation.mtl",
-          "materialRenderType": "cutout",
-          "ignoreCulling": true
-        },
-        {
-          "type": "collider",
-          "collider": {
-            "type": "mesh",
-            "physicsCollision": true
-          }
-        }
-      ],
-      "children": []
-    }
-  ],
-  "objects": [
-    {
-      "type": "light",
-      "lightType": "hemisphere",
-      "color": "#ffffff",
-      "groundColor": "#243b3a",
-      "intensity": 1.5,
-      "position": [0, 5, 0]
-    },
-    {
-      "type": "light",
-      "lightType": "directional",
-      "color": "#ffffff",
-      "intensity": 1.15,
-      "position": [12, 18, 8],
-      "castShadow": true,
-      "shadow": {
-        "mapSize": [2048, 2048],
-        "camera": {
-          "left": -25,
-          "right": 25,
-          "top": 25,
-          "bottom": -25,
-          "near": 0.5,
-          "far": 60
-        }
-      }
-    },
-    {
-      "type": "obj",
-      "name": "2026 Booths",
-      "objPath": "models/2026-CozyCon-Cafe/2026-Booths.obj",
-      "mtlPath": "models/2026-CozyCon-Cafe/2026-Booths.mtl",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
-      "scale": [1, 1, 1],
-      "collider": {
-        "type": "mesh",
-        "physicsCollision": true
-      }
-    },
-    {
-      "type": "obj",
-      "name": "2026 Posters",
-      "objPath": "models/2026-CozyCon-Cafe/2026-Posters.obj",
-      "mtlPath": "models/2026-CozyCon-Cafe/2026-Posters.mtl",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
-      "scale": [1, 1, 1],
-      "collider": {
-        "type": "mesh",
-        "physicsCollision": true
-      }
-    },
-    {
-      "type": "obj",
-      "name": "CosmosStation",
-      "objPath": "models/2026-CozyCon-Cafe/CosmosStation.obj",
-      "mtlPath": "models/2026-CozyCon-Cafe/CosmosStation.mtl",
-      "position": [0, 5, 0],
-      "rotation": [0, 0, 0],
-      "scale": [3, 3, 3],
-      "collider": {
-        "type": "mesh",
-        "physicsCollision": true
-      },
-      "ignoreCulling": true
     }
   ]
 }

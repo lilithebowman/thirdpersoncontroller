@@ -16,7 +16,7 @@ export class GameMenu {
    * @param {Function} options.onRespawn - Callback triggered when respawn is clicked
    * @param {Function} options.onLog - Optional logging callback
    */
-  constructor({ mountElement, onRespawn, onLog } = {}) {
+  constructor({ mountElement, onRespawn, onLog, onThresholdChange } = {}) {
     if (!mountElement) {
       throw new Error('GameMenu requires a mountElement.');
     }
@@ -24,6 +24,7 @@ export class GameMenu {
     this.mountElement = mountElement;
     this.onRespawn = typeof onRespawn === 'function' ? onRespawn : () => {};
     this.onLog = typeof onLog === 'function' ? onLog : () => {};
+    this.onThresholdChange = typeof onThresholdChange === 'function' ? onThresholdChange : () => {};
     this.isOpen = false;
 
     this.overlay = this.createMenuDOM();
@@ -42,10 +43,26 @@ export class GameMenu {
     modal.className = 'game-menu-modal';
     modal.innerHTML = `
       <h2>Game Menu</h2>
+      <div style="margin: 12px 0; text-align: left;">
+        <label for="mic-threshold" style="display: block; font-size: 14px; margin-bottom: 4px;">Mic Threshold: <span id="threshold-display">0.05</span></label>
+        <input type="range" id="mic-threshold" min="0.005" max="0.5" step="0.005" value="0.05" style="width: 100%; cursor: pointer;">
+      </div>
       <button type="button" data-action="respawn">Respawn</button>
       <button type="button" data-action="fullscreen">Toggle Fullscreen</button>
       <button type="button" data-action="resume">Resume Game</button>
     `;
+
+    const thresholdInput = typeof modal.querySelector === 'function' ? modal.querySelector('#mic-threshold') : null;
+    const thresholdDisplay = typeof modal.querySelector === 'function' ? modal.querySelector('#threshold-display') : null;
+    if (thresholdInput) {
+      thresholdInput.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (thresholdDisplay) {
+          thresholdDisplay.textContent = val.toFixed(3);
+        }
+        this.onThresholdChange(val);
+      });
+    }
 
     modal.addEventListener('click', (event) => {
       const button = event.target.closest('button[data-action]');

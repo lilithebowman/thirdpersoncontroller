@@ -28,6 +28,9 @@ import { PlayerCharacter } from './PlayerCharacter.js';
 import { SceneLoader } from './SceneLoader.js';
 import { Skybox } from './Skybox.js';
 import { Loader } from './Loader.js';
+import { MultiplayerService } from './MultiplayerService.js';
+import { VoiceChatService } from './VoiceChatService.js';
+import { normalizeSceneManifest } from './sceneManifest.js';
 
 export class ThirdPersonControllerApp {
   /**
@@ -54,6 +57,8 @@ export class ThirdPersonControllerApp {
 
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 4.5, 8.5);
+    this.audioListener = new THREE.AudioListener();
+    this.camera.add(this.audioListener);
     this.minimumAdaptiveCameraFar = 10;
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -86,11 +91,22 @@ export class ThirdPersonControllerApp {
       debugDisplay: this.debugDisplay,
     });
 
+    this.voiceChatService = new VoiceChatService({
+      onSpeakingChange: (isSpeaking) => {
+        if (this.localSpeakerSprite) {
+          this.localSpeakerSprite.visible = isSpeaking;
+        }
+      },
+    });
+
     this.gameMenu = new GameMenu({
       mountElement: this.app,
       onRespawn: () => this.respawnPlayer(),
       onLog: (msg) => this.debugDisplay.Log(msg),
+      onThresholdChange: (val) => this.voiceChatService.setThreshold(val),
     });
+
+    this.localSpeakerSprite = null;
 
     this.loader = new Loader({
       mountElement: this.app,
@@ -113,6 +129,7 @@ export class ThirdPersonControllerApp {
     });
 
     this.worldColliders = [];
+    this.directionalLights = [];
     this.jumpImpulseVector = new THREE.Vector3();
 
     this.playerState = {
@@ -120,7 +137,6 @@ export class ThirdPersonControllerApp {
       sprintSpeed: 18,
       rotationSpeed: 8,
       jumpImpulse: 8.8,
-      groundY: 0,
       gravityY: -26,
     };
 
@@ -131,6 +147,7 @@ export class ThirdPersonControllerApp {
     this.distanceCullingMaxDistance = 140;
     this.distanceCullingHysteresis = 12;
     this.distanceCullables = [];
+    this.pendingWorldLoadSound = null;
 
     this.respawnY = -1000;
     this.isPointerLocked = false;
@@ -169,6 +186,12 @@ export class ThirdPersonControllerApp {
     this.hasMoveInput = false;
     this.isGrounded = true;
 
+    this.multiplayerService = new MultiplayerService({
+      onRemotePlayersUpdate: (players) => this.handleRemotePlayersUpdate(players),
+    });
+    this.remotePlayerMeshes = new Map();
+    this.remotePlayersHud = document.getElementById('remote-players-hud');
+
     this.onResize = this.onResize.bind(this);
     this.onMouseWheel = this.onMouseWheel.bind(this);
     this.tick = this.tick.bind(this);
@@ -193,6 +216,17 @@ export class ThirdPersonControllerApp {
     window.addEventListener('resize', this.onResize);
     this.renderer.domElement.addEventListener('wheel', this.onMouseWheel, { passive: false });
     this.renderer.domElement.addEventListener('click', () => {
+      if (this.audioListener && this.audioListener.context && this.audioListener.context.state === 'suspended') {
+        this.audioListener.context.resume();
+      }
+      if (this.pendingWorldLoadSound && !this.pendingWorldLoadSound.isPlaying) {
+        try {
+          this.pendingWorldLoadSound.play();
+          this.pendingWorldLoadSound = null;
+        } catch (e) {
+          // ignore
+        }
+      }
       if (!this.gameMenu.isOpen && !this.isPointerLocked) {
         this.renderer.domElement.requestPointerLock();
       }
@@ -236,12 +270,46 @@ export class ThirdPersonControllerApp {
 
   spawnPlayerAt(spawnPosition) {
     this.playerCharacter.spawn(this.scene, spawnPosition);
-    this.playerYaw = 0;
-    this.playerTargetYaw = 0;
+    this.playerYaw = this.cameraController ? this.cameraController.state.yaw : 0;
+    this.playerTargetYaw = this.playerYaw;
     this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
     this.playerCharacter.root.quaternion.copy(this.playerRotationQuaternion);
     this.playerRigidbody.velocity.set(0, 0, 0);
     this.animator.resetActions();
+
+    if (!this.localSpeakerSprite) {
+      this.localSpeakerSprite = this.createSpeakerSprite();
+      this.localSpeakerSprite.position.set(0, 2.2, 0);
+    }
+    if (this.playerCharacter.root && !this.localSpeakerSprite.parent) {
+      this.playerCharacter.root.add(this.localSpeakerSprite);
+    }
+
+    if (this.multiplayerService.guid) {
+      this.voiceChatService.init(this.multiplayerService.guid);
+    } else {
+      this.multiplayerService.register().then((guid) => {
+        this.voiceChatService.init(guid);
+      });
+    }
+  }
+
+  createSpeakerSprite() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.font = '48px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🔊', 32, 32);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(0.6, 0.6, 0.6);
+    sprite.visible = false;
+    return sprite;
   }
 
   resolvePlayerSpawnFromManifest(manifest) {
@@ -372,6 +440,10 @@ export class ThirdPersonControllerApp {
         const light = this.sceneLoader.createManifestLight(item);
         if (light) {
           light.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+          if (light.isDirectionalLight && light.castShadow) {
+            light.userData.offset = light.position.clone();
+            this.directionalLights.push(light);
+          }
           this.scene.add(light);
         }
         continue;
@@ -437,13 +509,13 @@ export class ThirdPersonControllerApp {
 
   async loadManifestScene() {
     const { manifest, resolvedPath } = await this.sceneLoader.fetchManifest(this.manifestPath, this.manifestPath);
-    this.currentManifest = manifest;
-    const spawnPosition = this.resolvePlayerSpawnFromManifest(manifest);
+    this.currentManifest = normalizeSceneManifest(manifest);
+    const spawnPosition = this.resolvePlayerSpawnFromManifest(this.currentManifest);
 
-    const sceneConfig = manifest.scene ?? {};
-    const debugConfig = manifest.debug ?? sceneConfig.debug ?? {};
-    const respawnConfig = manifest.respawn ?? {};
-    const items = manifest.objects ?? [];
+    const sceneConfig = this.currentManifest.scene ?? {};
+    const debugConfig = this.currentManifest.debug ?? sceneConfig.debug ?? {};
+    const respawnConfig = this.currentManifest.respawn ?? {};
+    const items = this.currentManifest.objects ?? [];
 
     this.respawnY = Number.isFinite(respawnConfig.fallBelowY) ? respawnConfig.fallBelowY : -1000;
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
@@ -504,6 +576,34 @@ export class ThirdPersonControllerApp {
     }
 
     await this.processManifestObjects(items);
+    this.playWorldLoadSound();
+  }
+
+  playWorldLoadSound() {
+    try {
+      if (this.audioListener) {
+        const audioLoader = new THREE.AudioLoader();
+        const audioPath = this.resolveScenePath('/audio/loading/freesound_community-ding-36029.mp3');
+        audioLoader.load(audioPath, (buffer) => {
+          const sound = new THREE.Audio(this.audioListener);
+          sound.setBuffer(buffer);
+          sound.setVolume(1.0);
+          if (this.audioListener.context && this.audioListener.context.state === 'suspended') {
+            this.audioListener.context.resume().then(() => {
+              sound.play();
+            }).catch(() => {
+              this.pendingWorldLoadSound = sound;
+            });
+          } else {
+            sound.play();
+          }
+        }, undefined, (err) => {
+          console.warn('Failed to load world load audio:', err);
+        });
+      }
+    } catch (err) {
+      console.warn('Error playing world load audio:', err);
+    }
   }
 
   updateMouseLook() {
@@ -578,6 +678,9 @@ export class ThirdPersonControllerApp {
     } else {
       this.playerRigidbody.velocity.x = 0;
       this.playerRigidbody.velocity.z = 0;
+      if (!this.cameraController.isFirstPerson()) {
+        this.playerTargetYaw = THREE.MathUtils.euclideanModulo(this.cameraController.state.yaw + Math.PI + Math.PI, Math.PI * 2) - Math.PI;
+      }
     }
 
     if (this.cameraController.isFirstPerson()) {
@@ -594,9 +697,28 @@ export class ThirdPersonControllerApp {
     playerRoot.quaternion.copy(this.playerRotationQuaternion);
 
     this.isGrounded = this.playerRigidbody.integrate(playerRoot.position, delta, {
-      groundY: this.playerState.groundY,
       collider: this.playerCollider,
       colliders: this.worldColliders,
+    });
+
+    const playerPos = playerRoot.position;
+    for (const light of this.directionalLights) {
+      const offset = light.userData.offset;
+      if (offset) {
+        light.position.copy(playerPos).add(offset);
+        light.target.position.copy(playerPos);
+        light.target.updateMatrixWorld();
+      }
+    }
+
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerRoot.quaternion);
+    this.multiplayerService.updateLocalTransform({
+      position: playerRoot.position,
+      rotation: playerRoot.quaternion,
+      yaw: this.playerYaw,
+      direction: { x: forward.x, y: forward.y, z: forward.z },
+      animationState: this.hasMoveInput ? (this.keyboardInput.isDown('ShiftLeft') ? 'sprint' : 'walk') : 'idle',
+      isSpeaking: this.voiceChatService ? this.voiceChatService.isSpeaking : false,
     });
   }
 
@@ -638,6 +760,7 @@ export class ThirdPersonControllerApp {
     this.keyboardInput.clear();
     this.inputEnabledAt = performance.now() + 150;
     this.isRunning = true;
+    this.multiplayerService.start();
     this.renderer.setAnimationLoop(this.tick);
   }
 
@@ -669,6 +792,7 @@ export class ThirdPersonControllerApp {
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta);
     this.updatePlayerAnimation(delta);
+    this.updateRemotePlayerMeshes(delta);
     this.cameraController.update(this.playerCharacter.root, { isPresenting: this.renderer.xr.isPresenting });
 
     if (this.cameraController.isFirstPerson() || this.renderer.xr.isPresenting) {
@@ -679,6 +803,196 @@ export class ThirdPersonControllerApp {
     }
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  handleRemotePlayersUpdate(players) {
+    const activeGuids = new Set(players.map((p) => p.guid));
+
+    for (const [guid, meshGroup] of this.remotePlayerMeshes.entries()) {
+      if (!activeGuids.has(guid)) {
+        this.scene.remove(meshGroup);
+        meshGroup.traverse((child) => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+            else child.material.dispose();
+          }
+        });
+        this.remotePlayerMeshes.delete(guid);
+      }
+    }
+
+    if (this.remotePlayersHud) {
+      if (players.length === 0) {
+        this.remotePlayersHud.innerHTML = '<span style="opacity: 0.6; font-size: 0.75rem;">No other players online</span>';
+      } else {
+        const lines = players.map((p) => {
+          const dir = p.direction ? `(${p.direction.x.toFixed(2)}, ${p.direction.z.toFixed(2)})` : '(0, -1)';
+          const speaking = p.isSpeaking ? ' 🔊' : '';
+          return `<div style="font-size: 0.75rem; opacity: 0.9;">Player ${p.guid.substring(0, 6)}: Dir ${dir}${speaking}</div>`;
+        });
+        this.remotePlayersHud.innerHTML = `<div style="font-weight: 600; font-size: 0.75rem; margin-bottom: 2px;">Remote Players (${players.length}):</div>` + lines.join('');
+      }
+    }
+
+    for (const p of players) {
+      let meshGroup = this.remotePlayerMeshes.get(p.guid);
+      if (!meshGroup) {
+        meshGroup = this.createRemotePlayerVisual();
+        this.scene.add(meshGroup);
+        this.remotePlayerMeshes.set(p.guid, meshGroup);
+      }
+
+      meshGroup.userData.targetPosition = new THREE.Vector3(p.position.x, p.position.y, p.position.z);
+      if (p.direction && typeof p.direction.x === 'number' && typeof p.direction.z === 'number') {
+        const yaw = Math.atan2(-p.direction.x, -p.direction.z);
+        meshGroup.userData.targetQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      } else if (typeof p.yaw === 'number') {
+        meshGroup.userData.targetQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.yaw);
+      } else if (p.rotation && typeof p.rotation.w === 'number') {
+        meshGroup.userData.targetQuaternion = new THREE.Quaternion(p.rotation.x, p.rotation.y, p.rotation.z, p.rotation.w);
+      }
+      if (p.animationState) {
+        meshGroup.userData.animationState = p.animationState;
+      }
+      meshGroup.userData.isSpeaking = Boolean(p.isSpeaking);
+      if (meshGroup.userData.speakerSprite) {
+        meshGroup.userData.speakerSprite.visible = Boolean(meshGroup.userData.isSpeaking || meshGroup.userData.isPlayingAudio);
+      }
+
+      if (p.voiceData && p.voiceData.timestamp > meshGroup.userData.lastAudioTimestamp) {
+        meshGroup.userData.lastAudioTimestamp = p.voiceData.timestamp;
+        if (meshGroup.userData.audioQueue) {
+          meshGroup.userData.audioQueue.push(p.voiceData.audioBase64);
+          if (!meshGroup.userData.isPlayingAudio && typeof meshGroup.userData.playNextAudioChunk === 'function') {
+            meshGroup.userData.playNextAudioChunk(meshGroup);
+          }
+        }
+      }
+    }
+  }
+
+  createRemotePlayerVisual() {
+    const group = new THREE.Group();
+    const remoteVisualData = this.animator.createRemoteVisual(() => this.playerCharacter.createFallbackVisual());
+    group.add(remoteVisualData.visual);
+
+    group.userData.mixer = remoteVisualData.mixer;
+    group.userData.walkAction = remoteVisualData.walkAction;
+    group.userData.idleAction = remoteVisualData.idleAction;
+    group.userData.jumpAction = remoteVisualData.jumpAction;
+    group.userData.animationState = 'idle';
+
+    const audio = new Audio();
+    audio.volume = 1.0;
+    audio.crossOrigin = 'anonymous';
+    group.userData.audioElement = audio;
+    group.userData.audioQueue = [];
+    group.userData.isPlayingAudio = false;
+
+    const playNextAudioChunk = (grp) => {
+      const { audioElement, audioQueue } = grp.userData;
+      if (!audioElement || !audioQueue || audioQueue.length === 0) {
+        grp.userData.isPlayingAudio = false;
+        if (grp.userData.speakerSprite) {
+          grp.userData.speakerSprite.visible = Boolean(grp.userData.isSpeaking);
+        }
+        return;
+      }
+
+      grp.userData.isPlayingAudio = true;
+      if (grp.userData.speakerSprite) {
+        grp.userData.speakerSprite.visible = true;
+      }
+
+      if (audioQueue.length > 3) {
+        audioQueue.splice(0, audioQueue.length - 1);
+      }
+
+      const nextBase64 = audioQueue.shift();
+      audioElement.src = nextBase64;
+      audioElement.currentTime = 0;
+      audioElement.play().then(() => {
+        audioElement.onended = () => {
+          playNextAudioChunk(grp);
+        };
+      }).catch((err) => {
+        console.warn('Audio play error:', err);
+        playNextAudioChunk(grp);
+      });
+    };
+    group.userData.playNextAudioChunk = playNextAudioChunk;
+
+    const speakerSprite = this.createSpeakerSprite();
+    speakerSprite.position.set(0, 2.2, 0);
+    group.add(speakerSprite);
+    group.userData.speakerSprite = speakerSprite;
+    group.userData.lastAudioTimestamp = 0;
+
+    if (this.audioListener) {
+      const positionalAudio = new THREE.PositionalAudio(this.audioListener);
+      positionalAudio.setRefDistance(5);
+      positionalAudio.setMaxDistance(100);
+      positionalAudio.setRolloffFactor(1);
+      try {
+        positionalAudio.setMediaElementSource(audio);
+      } catch (err) {
+        // ignore if already connected
+      }
+      group.add(positionalAudio);
+      group.userData.positionalAudio = positionalAudio;
+    }
+
+    return group;
+  }
+
+  updateRemotePlayerMeshes(delta) {
+    const posLerp = Math.min(1, delta * 14);
+    const rotSlerp = Math.min(1, delta * 24);
+    for (const [guid, meshGroup] of this.remotePlayerMeshes.entries()) {
+      if (meshGroup.userData.targetPosition) {
+        meshGroup.position.lerp(meshGroup.userData.targetPosition, posLerp);
+      }
+      if (meshGroup.userData.targetQuaternion) {
+        meshGroup.quaternion.slerp(meshGroup.userData.targetQuaternion, rotSlerp);
+      }
+      this.updateRemotePlayerAnimation(meshGroup, delta);
+    }
+  }
+
+  updateRemotePlayerAnimation(meshGroup, delta) {
+    const { mixer, walkAction, idleAction, jumpAction, animationState = 'idle' } = meshGroup.userData;
+    if (!mixer) return;
+
+    const isJump = animationState === 'jump';
+    const isSprint = animationState === 'sprint';
+    const isWalk = animationState === 'walk' || isSprint;
+
+    const targetJumpWeight = isJump ? 1 : 0;
+    const targetWalkWeight = isWalk ? 1 : 0;
+
+    if (jumpAction) {
+      const currentJumpWeight = jumpAction.getEffectiveWeight();
+      const nextJumpWeight = THREE.MathUtils.lerp(currentJumpWeight, targetJumpWeight, Math.min(1, delta * 12));
+      jumpAction.setEffectiveWeight(nextJumpWeight);
+    }
+
+    const currentJumpWeight = jumpAction ? jumpAction.getEffectiveWeight() : 0;
+    const groundedWeightScale = 1 - currentJumpWeight;
+
+    if (walkAction) {
+      walkAction.setEffectiveTimeScale(isSprint ? 1.6 : 1.0);
+      const currentWalkWeight = walkAction.getEffectiveWeight();
+      const nextWalkWeight = THREE.MathUtils.lerp(currentWalkWeight, targetWalkWeight, Math.min(1, delta * 10));
+      walkAction.setEffectiveWeight(nextWalkWeight * groundedWeightScale);
+      if (idleAction) {
+        idleAction.setEffectiveWeight((1 - nextWalkWeight) * groundedWeightScale);
+      }
+    } else if (idleAction) {
+      idleAction.setEffectiveWeight(1 - currentJumpWeight);
+    }
+
+    mixer.update(delta);
   }
 
   async init() {

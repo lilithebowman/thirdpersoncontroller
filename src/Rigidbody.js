@@ -76,9 +76,9 @@ export class Rigidbody {
     return bestGroundY;
   }
 
-  integrate(position, delta, { groundY = 0, collider = null, colliders = [] } = {}) {
+  integrate(position, delta, { groundY = null, collider = null, colliders = [] } = {}) {
     if (!Number.isFinite(delta) || delta <= 0) {
-      return position.y <= groundY + 1e-6;
+      return groundY !== null ? position.y <= groundY + 1e-6 : false;
     }
 
     if (this.useGravity) {
@@ -103,7 +103,7 @@ export class Rigidbody {
 
     const groundHeight = this.getGroundHeightAt(position, colliders);
     const groundedFromCollision = this.isGroundedAgainstWorld(position, this._previousPosition, collider, colliders);
-    let isGrounded = groundedFromCollision || position.y <= groundY + 1e-6;
+    let isGrounded = groundedFromCollision || (groundY !== null && position.y <= groundY + 1e-6);
 
     if (groundHeight !== null && this.velocity.y <= 0.2) {
       isGrounded = true;
@@ -114,9 +114,7 @@ export class Rigidbody {
       if (this.velocity.y < 0) {
         this.velocity.y = 0;
       }
-    }
-
-    if (isGrounded && position.y < groundY) {
+    } else if (groundY !== null && isGrounded && position.y < groundY) {
       position.y = groundY;
       if (this.velocity.y < 0) {
         this.velocity.y = 0;

@@ -176,14 +176,41 @@ export class Animator {
   }
 
   /**
-   * Create the visual representation of the player character, using the model template if available, or falling back to a provided factory function.
-   * @param {Function} fallbackFactory - A factory function to create a fallback visual if the model template is not available.
-   * @returns {THREE.Object3D} The created player visual.
+   * Create a fallback visual representation when model template is unavailable.
+   * @returns {THREE.Group} Fallback character group
    */
-  createPlayerVisual(fallbackFactory) {
+  createFallbackVisual() {
+    const visual = new THREE.Group();
+
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.65, metalness: 0.15 })
+    );
+    body.position.y = 0.55;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    visual.add(body);
+
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.6, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0xf3efe6, roughness: 0.9 })
+    );
+    head.position.y = 1.3;
+    head.castShadow = true;
+    visual.add(head);
+
+    return visual;
+  }
+
+  /**
+   * Create a character visual and animation mixer for remote or secondary instances.
+   * @param {Function} fallbackFactory - Fallback factory if modelTemplate is missing
+   * @returns {Object} Object containing visual, mixer, walkAction, idleAction, jumpAction
+   */
+  createRemoteVisual(fallbackFactory) {
     const visual = this.modelTemplate
       ? cloneSkinned(this.modelTemplate)
-      : (typeof fallbackFactory === 'function' ? fallbackFactory() : new THREE.Group());
+      : (typeof fallbackFactory === 'function' ? fallbackFactory() : this.createFallbackVisual());
 
     const { modelScale, modelRotationDegrees, modelOffset } = this.modelConfig;
     visual.scale.copy(modelScale);
@@ -194,38 +221,52 @@ export class Animator {
     );
     visual.position.copy(modelOffset);
 
-    this.mixer = null;
-    this.walkAction = null;
-    this.idleAction = null;
-    this.jumpAction = null;
+    let mixer = null;
+    let walkAction = null;
+    let idleAction = null;
+    let jumpAction = null;
 
     if (this.walkClip || this.idleClip || this.jumpClip) {
-      this.mixer = new THREE.AnimationMixer(visual);
+      mixer = new THREE.AnimationMixer(visual);
 
       if (this.walkClip) {
-        this.walkAction = this.mixer.clipAction(this.walkClip);
-        this.walkAction.play();
-        this.walkAction.enabled = true;
-        this.walkAction.setEffectiveWeight(0);
+        walkAction = mixer.clipAction(this.walkClip);
+        walkAction.play();
+        walkAction.enabled = true;
+        walkAction.setEffectiveWeight(0);
       }
 
       if (this.idleClip) {
-        this.idleAction = this.mixer.clipAction(this.idleClip);
-        this.idleAction.play();
-        this.idleAction.enabled = true;
-        this.idleAction.setEffectiveWeight(1);
+        idleAction = mixer.clipAction(this.idleClip);
+        idleAction.play();
+        idleAction.enabled = true;
+        idleAction.setEffectiveWeight(1);
       }
 
       if (this.jumpClip) {
-        this.jumpAction = this.mixer.clipAction(this.jumpClip);
-        this.jumpAction.play();
-        this.jumpAction.enabled = true;
-        this.jumpAction.setEffectiveWeight(0);
-        this.jumpAction.clampWhenFinished = false;
+        jumpAction = mixer.clipAction(this.jumpClip);
+        jumpAction.play();
+        jumpAction.enabled = true;
+        jumpAction.setEffectiveWeight(0);
+        jumpAction.clampWhenFinished = false;
       }
     }
 
-    return visual;
+    return { visual, mixer, walkAction, idleAction, jumpAction };
+  }
+
+  /**
+   * Create the visual representation of the player character, using the model template if available, or falling back to a provided factory function.
+   * @param {Function} fallbackFactory - A factory function to create a fallback visual if the model template is not available.
+   * @returns {THREE.Object3D} The created player visual.
+   */
+  createPlayerVisual(fallbackFactory) {
+    const res = this.createRemoteVisual(fallbackFactory);
+    this.mixer = res.mixer;
+    this.walkAction = res.walkAction;
+    this.idleAction = res.idleAction;
+    this.jumpAction = res.jumpAction;
+    return res.visual;
   }
 
   resetActions() {
