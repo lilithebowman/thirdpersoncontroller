@@ -698,9 +698,6 @@ export class ThirdPersonControllerApp {
     });
 
     const playerPos = playerRoot.position;
-    if (this.audioListener && this.playerCharacter.root) {
-      this.audioListener.position.copy(this.playerCharacter.root.position);
-    }
     for (const light of this.directionalLights) {
       const offset = light.userData.offset;
       if (offset) {
