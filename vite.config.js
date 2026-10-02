@@ -149,6 +149,8 @@ export default defineConfig(({ mode }) => {
         .filter(Boolean)
     : [];
 
+  const appHost = env.APP_HOST || '';
+
   return {
     plugins: [
       assetMetaPlugin(),
