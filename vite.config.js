@@ -142,15 +142,31 @@ function assetMetaPlugin() {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const allowedHosts = env.ALLOWED_HOSTS ? env.ALLOWED_HOSTS.split(',').map((h) => h.trim()).filter(Boolean) : [];
+
+  const allowedHosts = env.ALLOWED_HOSTS
+    ? env.ALLOWED_HOSTS.split(',')
+        .map((h) => h.trim())
+        .filter(Boolean)
+    : [];
 
   return {
-    plugins: [assetMetaPlugin(), multiplayerPlugin()],
+    plugins: [
+      assetMetaPlugin(),
+      multiplayerPlugin(),
+    ],
+
     server: {
       host: '0.0.0.0',
       port: 5173,
       allowedHosts,
+
+      hmr: {
+        protocol: 'wss',
+        host: appHost,
+        clientPort: 443,
+      },
     },
+
     preview: {
       host: '0.0.0.0',
       port: 4173,
