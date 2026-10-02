@@ -78,4 +78,24 @@ export class SphereCollider extends Collider {
 
     return dx * dx + dy * dy + dz * dz <= this.radius * this.radius;
   }
+
+  /**
+   * Samples the ground height (top surface Y coordinate) of this sphere collider.
+   * @param {THREE.Vector3} playerPosition - Current player position
+   * @param {THREE.Vector3} worldPosition - World position of this sphere collider
+   * @returns {number|null} Top surface Y coordinate or null if out of bounds
+   */
+  getGroundHeightAt(playerPosition, worldPosition) {
+    const centerX = worldPosition.x + this.offset.x;
+    const centerZ = worldPosition.z + this.offset.z;
+    const dx = playerPosition.x - centerX;
+    const dz = playerPosition.z - centerZ;
+    if (dx * dx + dz * dz <= this.radius * this.radius * 1.2) {
+      const topY = worldPosition.y + this.offset.y + this.radius;
+      if (playerPosition.y >= topY - 1.2 && playerPosition.y <= topY + 1.2) {
+        return topY;
+      }
+    }
+    return null;
+  }
 }

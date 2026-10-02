@@ -59,4 +59,32 @@ export class BoxCollider extends Collider {
 
     return target;
   }
+
+  /**
+   * Samples the ground height (top surface Y coordinate) of this box collider.
+   * @param {THREE.Vector3} playerPosition - Current player position
+   * @param {THREE.Vector3} worldPosition - World position of this box collider
+   * @returns {number|null} Top surface Y coordinate or null if out of bounds
+   */
+  getGroundHeightAt(playerPosition, worldPosition) {
+    const centerX = worldPosition.x + this.offset.x;
+    const centerY = worldPosition.y + this.offset.y;
+    const centerZ = worldPosition.z + this.offset.z;
+    const halfX = this.halfSize.x;
+    const halfZ = this.halfSize.z;
+
+    const minX = centerX - halfX;
+    const maxX = centerX + halfX;
+    const minZ = centerZ - halfZ;
+    const maxZ = centerZ + halfZ;
+
+    if (playerPosition.x >= minX - 0.1 && playerPosition.x <= maxX + 0.1 &&
+        playerPosition.z >= minZ - 0.1 && playerPosition.z <= maxZ + 0.1) {
+      const topY = centerY + this.halfSize.y;
+      if (playerPosition.y >= topY - 1.2 && playerPosition.y <= topY + 1.2) {
+        return topY;
+      }
+    }
+    return null;
+  }
 }

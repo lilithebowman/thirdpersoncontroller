@@ -103,13 +103,15 @@ export class MeshCollider extends Collider {
    *    to world space, and tests triangle-box intersection.
    * @param {THREE.Box3} bounds - Dynamic AABB bounds to test
    * @param {THREE.Vector3|null} [position=null] - World position of the mesh collider
-   * @returns {boolean} True if any triangle intersects the dynamic AABB
+   * @param {number} [maxWalkableSlope=this.maxWalkableSlope] - Maximum walkable incline slope
+   * @returns {boolean} True if any non-walkable triangle intersects the dynamic AABB
    */
-  intersectsBounds(bounds, position = null) {
+  intersectsBounds(bounds, position = null, maxWalkableSlope = this.maxWalkableSlope) {
     if (!this.mesh) {
       return super.intersectsBounds(bounds, position);
     }
 
+    const resolvedSlope = Number.isFinite(maxWalkableSlope) ? maxWalkableSlope : this.maxWalkableSlope;
     this.getBounds(position, this._tmpBounds);
     const broadPhaseOverlap = !(
       bounds.max.x <= this._tmpBounds.min.x ||
@@ -158,8 +160,20 @@ export class MeshCollider extends Collider {
 
         this._triangle.set(this._v0, this._v1, this._v2);
         if (dynamicBox.intersectsTriangle(this._triangle)) {
-          intersects = true;
-          break;
+          const normal = new THREE.Vector3();
+          this._triangle.getNormal(normal);
+          if (normal.y < 0) {
+            normal.negate();
+          }
+
+          const ny = Math.max(1e-6, normal.y);
+          const horizontalMagnitude = Math.sqrt(normal.x * normal.x + normal.z * normal.z);
+          const slope = horizontalMagnitude / ny;
+
+          if (slope > resolvedSlope) {
+            intersects = true;
+            break;
+          }
         }
       }
     });

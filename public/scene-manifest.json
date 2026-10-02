@@ -51,7 +51,7 @@
       1.6,
       0.6
     ],
-    "maxWalkableSlope": 0.2
+    "maxWalkableSlope": 0.5
   },
   "controller": {
     "jumpImpulse": 8.8,

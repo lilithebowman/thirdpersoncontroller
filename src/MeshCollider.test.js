@@ -79,3 +79,20 @@ test('MeshCollider rejects ground height on surfaces steeper than maxWalkableSlo
 
   assert.strictEqual(groundY, null);
 });
+
+test('MeshCollider ignores walkable flat ground triangles in intersectsBounds so player does not get stuck', () => {
+  const geometry = new THREE.PlaneGeometry(10, 10);
+  geometry.rotateX(-Math.PI / 2); // Horizontal plane at Y = 0
+  const material = new THREE.MeshBasicMaterial();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(0, 0, 0);
+  mesh.updateMatrixWorld(true);
+
+  const meshCollider = new MeshCollider({ mesh, maxWalkableSlope: 0.2 });
+
+  // Box resting on/intersecting the flat floor
+  const floorBox = new THREE.Box3(new THREE.Vector3(-1, 0, -1), new THREE.Vector3(1, 1, 1));
+  const intersects = meshCollider.intersectsBounds(floorBox, new THREE.Vector3(0, 0, 0), 0.2);
+
+  assert.strictEqual(intersects, false);
+});

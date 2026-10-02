@@ -61,8 +61,14 @@ export class Rigidbody {
         continue;
       }
 
-      this._groundProbePosition.set(position.x, Math.max(position.y + 3, 15), position.z);
-      const groundY = collisionShape.getGroundHeightAt(this._groundProbePosition, worldCollider.position, collisionShape.maxWalkableSlope ?? this.maxWalkableSlope);
+      let groundY = null;
+      if (collisionShape.type === 'MeshCollider') {
+        this._groundProbePosition.set(position.x, Math.max(position.y + 3, 15), position.z);
+        groundY = collisionShape.getGroundHeightAt(this._groundProbePosition, worldCollider.position, collisionShape.maxWalkableSlope ?? this.maxWalkableSlope);
+      } else {
+        groundY = collisionShape.getGroundHeightAt(position, worldCollider.position);
+      }
+
       if (groundY === null || !Number.isFinite(groundY)) {
         continue;
       }
@@ -82,9 +88,19 @@ export class Rigidbody {
       return groundY !== null ? position.y <= groundY + 1e-6 : false;
     }
 
-    if (this.useGravity) {
+    const initialGroundHeight = this.getGroundHeightAt(position, colliders);
+    const effectiveInitialGround = initialGroundHeight !== null ? initialGroundHeight : groundY;
+    const groundedFromCollision = this.isGroundedAgainstWorld(position, this._previousPosition, collider, colliders);
+    const isCurrentlyGrounded = groundedFromCollision || (effectiveInitialGround !== null && Math.abs(position.y - effectiveInitialGround) < 0.35 && this.velocity.y <= 0.2);
+
+    if (this.useGravity && !isCurrentlyGrounded) {
       this._tmpForce.copy(this.gravity).multiplyScalar(this.mass);
       this.addForce(this._tmpForce);
+    } else {
+      this.accumulatedForce.y = 0;
+      if (this.velocity.y < 0) {
+        this.velocity.y = 0;
+      }
     }
 
     this._tmpAcceleration.copy(this.accumulatedForce).multiplyScalar(1 / this.mass);
@@ -96,30 +112,34 @@ export class Rigidbody {
     }
 
     this._previousPosition.copy(position);
-    position.addScaledVector(this.velocity, delta);
+
+    position.x += this.velocity.x * delta;
+    position.z += this.velocity.z * delta;
+    position.y += this.velocity.y * delta;
 
     if (this.enablePhysicsCollision && collider && Array.isArray(colliders) && colliders.length > 0) {
       this.resolveColliderCollisions(position, this._previousPosition, collider, colliders);
     }
 
     const groundHeight = this.getGroundHeightAt(position, colliders);
-    const groundedFromCollision = this.isGroundedAgainstWorld(position, this._previousPosition, collider, colliders);
-    let isGrounded = groundedFromCollision || (groundY !== null && position.y <= groundY + 1e-6);
+    const resolvedGround = groundHeight !== null ? groundHeight : groundY;
+    const finalGroundedFromCollision = this.isGroundedAgainstWorld(position, this._previousPosition, collider, colliders);
 
-    if (groundHeight !== null && this.velocity.y <= 0.2) {
-      isGrounded = true;
-      const epsilon = 0.18;
-      if (position.y < groundHeight - epsilon) {
-        position.y = groundHeight;
-      }
-      if (this.velocity.y < 0) {
+    let isGrounded = finalGroundedFromCollision;
+    const isAscending = this.velocity.y > 0.2;
+    if (resolvedGround !== null && !isAscending) {
+      if (position.y <= resolvedGround + 0.25 && this.velocity.y <= 0.5) {
+        position.y = resolvedGround;
         this.velocity.y = 0;
-      }
-    } else if (groundY !== null && isGrounded && position.y < groundY) {
-      position.y = groundY;
-      if (this.velocity.y < 0) {
+        isGrounded = true;
+      } else if (isCurrentlyGrounded && Math.abs(position.y - resolvedGround) < 0.6) {
+        position.y = resolvedGround;
         this.velocity.y = 0;
+        isGrounded = true;
       }
+    } else if (isGrounded && !isAscending && resolvedGround !== null) {
+      position.y = resolvedGround;
+      this.velocity.y = 0;
     }
 
     this.clearForces();
@@ -128,6 +148,10 @@ export class Rigidbody {
 
   isGroundedAgainstWorld(position, previousPosition, collider, colliders) {
     if (!collider || !Array.isArray(colliders) || colliders.length === 0) {
+      return false;
+    }
+
+    if (this.velocity.y > 0.2) {
       return false;
     }
 
@@ -148,7 +172,7 @@ export class Rigidbody {
       }
 
       const groundHeight = typeof collisionShape.getGroundHeightAt === 'function'
-        ? collisionShape.getGroundHeightAt(new THREE.Vector3(position.x, Math.max(position.y + 3, 15), position.z), worldCollider.position, collisionShape.maxWalkableSlope ?? this.maxWalkableSlope)
+        ? collisionShape.getGroundHeightAt(new THREE.Vector3(position.x, position.y + 0.25, position.z), worldCollider.position, collisionShape.maxWalkableSlope ?? this.maxWalkableSlope)
         : null;
 
       if (groundHeight !== null && Number.isFinite(groundHeight)) {
@@ -296,6 +320,10 @@ export class Rigidbody {
 
   intersectsWorldShapeAt(testPosition, movingCollider, worldCollisionShape, worldPosition) {
     movingCollider.getBounds(testPosition, this._boundsA);
+    const maxSlope = worldCollisionShape.maxWalkableSlope ?? this.maxWalkableSlope;
+    if (typeof worldCollisionShape.intersectsBounds === 'function') {
+      return worldCollisionShape.intersectsBounds(this._boundsA, worldPosition, maxSlope);
+    }
     return worldCollisionShape.intersectsBounds(this._boundsA, worldPosition);
   }
 }

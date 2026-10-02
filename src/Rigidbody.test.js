@@ -53,3 +53,46 @@ test('Rigidbody resolves collisions against MeshCollider walls', () => {
 
   assert.ok(position.z > 0.5);
 });
+
+test('Rigidbody marks the player grounded when resting on a box floor', () => {
+  const rb = new Rigidbody({ gravity: new THREE.Vector3(0, -20, 0) });
+  const playerCollider = new BoxCollider({ size: new THREE.Vector3(1, 1, 1), offset: new THREE.Vector3(0, 0.5, 0) });
+  const floor = new BoxCollider({ size: new THREE.Vector3(10, 0.2, 10), offset: new THREE.Vector3(0, 0, 0) });
+  const colliders = [{ position: new THREE.Vector3(0, 0, 0), physicsCollision: true, collider: floor }];
+  const position = new THREE.Vector3(0, 0.1, 0);
+
+  rb.velocity.set(0, 0, 0);
+
+  assert.strictEqual(rb.isGroundedAgainstWorld(position, position.clone(), playerCollider, colliders), true);
+});
+
+test('Rigidbody marks the player grounded when resting on a mesh surface', () => {
+  const rb = new Rigidbody({ gravity: new THREE.Vector3(0, -20, 0) });
+  const playerCollider = new BoxCollider({ size: new THREE.Vector3(1, 1, 1), offset: new THREE.Vector3(0, 0.5, 0) });
+  const geometry = new THREE.BoxGeometry(10, 0.2, 10);
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
+  mesh.position.set(0, 0, 0);
+  mesh.updateMatrixWorld(true);
+
+  const colliders = [{ position: new THREE.Vector3(0, 0, 0), physicsCollision: true, collider: new MeshCollider({ mesh }) }];
+  const position = new THREE.Vector3(0, 0.1, 0);
+
+  rb.velocity.set(0, 0, 0);
+
+  assert.strictEqual(rb.isGroundedAgainstWorld(position, position.clone(), playerCollider, colliders), true);
+});
+
+test('Rigidbody does not snap back to the ground while the player is jumping upward', () => {
+  const rb = new Rigidbody({ gravity: new THREE.Vector3(0, -20, 0) });
+  const playerCollider = new BoxCollider({ size: new THREE.Vector3(1, 1, 1), offset: new THREE.Vector3(0, 0.5, 0) });
+  const floor = new BoxCollider({ size: new THREE.Vector3(10, 0.2, 10), offset: new THREE.Vector3(0, 0, 0) });
+  const colliders = [{ position: new THREE.Vector3(0, 0, 0), physicsCollision: true, collider: floor }];
+  const position = new THREE.Vector3(0, 0.1, 0);
+
+  rb.velocity.set(0, 8.8, 0);
+  const isGrounded = rb.integrate(position, 0.016, { collider: playerCollider, colliders });
+
+  assert.strictEqual(isGrounded, false);
+  assert.ok(rb.velocity.y > 0);
+  assert.ok(position.y > 0.1);
+});
