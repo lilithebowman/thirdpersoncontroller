@@ -127,6 +127,7 @@ export class ThirdPersonControllerApp {
       size: new THREE.Vector3(0.9, 1.9, 0.9),
       offset: new THREE.Vector3(0, 0.95, 0),
       physicsCollision: true,
+      maxWalkableSlope: 0.2,
     });
 
     this.worldColliders = [];
@@ -451,26 +452,31 @@ export class ThirdPersonControllerApp {
     const offset = this.sceneLoader.toVector3(colliderConfig.offset, new THREE.Vector3(0, 0, 0));
     const position = this.sceneLoader.toVector3(colliderConfig.position, fallbackPosition);
     const physicsCollision = colliderConfig.physicsCollision !== false;
+    const maxWalkableSlope = Number.isFinite(colliderConfig.maxWalkableSlope)
+      ? colliderConfig.maxWalkableSlope
+      : Number.isFinite(this.maxWalkableSlope)
+        ? this.maxWalkableSlope
+        : 0.2;
 
     if (colliderConfig.type === 'box') {
       const size = this.sceneLoader.toVector3(colliderConfig.size, fallbackSize);
       return {
         position,
-        collider: new BoxCollider({ size, offset, physicsCollision }),
+        collider: new BoxCollider({ size, offset, physicsCollision, maxWalkableSlope }),
       };
     }
     if (colliderConfig.type === 'sphere') {
       const radius = colliderConfig.radius ?? 0.5;
       return {
         position,
-        collider: new SphereCollider({ radius, offset, physicsCollision }),
+        collider: new SphereCollider({ radius, offset, physicsCollision, maxWalkableSlope }),
       };
     }
     if (colliderConfig.type === 'mesh') {
       const mesh = context.mesh ?? null;
       return {
         position,
-        collider: new MeshCollider({ mesh, offset, physicsCollision }),
+        collider: new MeshCollider({ mesh, offset, physicsCollision, maxWalkableSlope }),
       };
     }
     return null;
@@ -673,8 +679,12 @@ export class ThirdPersonControllerApp {
           ? physicsConfig.maxWalkableSlope
           : 0.2;
 
+    this.maxWalkableSlope = maxWalkableSlope;
     if (this.playerRigidbody) {
       this.playerRigidbody.maxWalkableSlope = maxWalkableSlope;
+    }
+    if (this.playerCollider) {
+      this.playerCollider.maxWalkableSlope = maxWalkableSlope;
     }
 
     this.animator.applyModelConfig(playerConfig.model ?? {}, resolvedPath);
