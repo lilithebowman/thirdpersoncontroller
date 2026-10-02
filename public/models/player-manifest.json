@@ -1,0 +1,38 @@
+{
+  "name": "Lili-bunnExample",
+  "model": "Lili-bunnExampleModel.fbx",
+  "hasHumanoidRig": true,
+  "isRigged": true,
+  "eyePosition": {
+    "x": 0,
+    "y": 1.6,
+    "z": 0
+  },
+  "materialData": {
+    "type": "StandardMaterial",
+    "color": "#C8A2C8",
+    "roughness": 0.7,
+    "metalness": 0.1
+  },
+  "boneNames": [
+    "Hips",
+    "Spine",
+    "Chest",
+    "Neck",
+    "Head",
+    "Shoulder.L",
+    "UpperArm.L",
+    "Forearm.L",
+    "Hand.L",
+    "Shoulder.R",
+    "UpperArm.R",
+    "Forearm.R",
+    "Hand.R",
+    "UpperLeg.L",
+    "LowerLeg.L",
+    "Foot.L",
+    "UpperLeg.R",
+    "LowerLeg.R",
+    "Foot.R"
+  ]
+}

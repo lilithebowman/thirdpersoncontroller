@@ -31,7 +31,7 @@ export class GameMenu {
     this.eyeOffset = { x: 0, y: 1.6, z: 0 };
     this.fileInput = document.createElement('input');
     this.fileInput.type = 'file';
-    this.fileInput.accept = '.fbx,.gltf,.glb,.obj';
+    this.fileInput.accept = '.zip,.fbx,.gltf,.glb,.obj';
     this.fileInput.hidden = true;
     this.fileInput.addEventListener('change', async () => {
       const file = this.fileInput.files?.[0];

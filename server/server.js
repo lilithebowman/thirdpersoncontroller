@@ -46,6 +46,23 @@ function sanitizeModelPayload(model) {
   }
 
   const safeName = fileName.replace(/[<>:"|?*\\/]+/g, '_').slice(0, 128) || 'player-model';
+  const eyePosition = model.eyePosition && typeof model.eyePosition === 'object'
+    ? {
+        x: Number(model.eyePosition.x) || 0,
+        y: Number(model.eyePosition.y) || 1.6,
+        z: Number(model.eyePosition.z) || 0,
+      }
+    : null;
+  const boneNames = Array.isArray(model.boneNames)
+    ? model.boneNames.filter((name) => typeof name === 'string' && name.trim()).slice(0, 128)
+    : [];
+  const materialData = model.materialData && typeof model.materialData === 'object'
+    ? model.materialData
+    : null;
+  const manifest = model.manifest && typeof model.manifest === 'object'
+    ? model.manifest
+    : null;
+
   return {
     name: safeName,
     fileName: safeName,
@@ -54,6 +71,10 @@ function sanitizeModelPayload(model) {
     dataUrl,
     hasHumanoidRig: Boolean(model.hasHumanoidRig),
     isRigged: Boolean(model.isRigged),
+    eyePosition,
+    boneNames,
+    materialData,
+    manifest,
   };
 }
 
