@@ -46,6 +46,11 @@ export class Animator {
     this.walkClip = null;
     this.idleClip = null;
     this.jumpClip = null;
+    this.sceneAnimationClips = {
+      walkClip: null,
+      idleClip: null,
+      jumpClip: null,
+    };
 
     /**
      * Runtime animation state for a spawned player visual.
@@ -267,6 +272,51 @@ export class Animator {
     return { visual, mixer, walkAction, idleAction, jumpAction };
   }
 
+  resolveAnimationClips(asset) {
+    if (!asset || typeof asset !== 'object') {
+      return [];
+    }
+
+    if (Array.isArray(asset.animations)) {
+      return asset.animations;
+    }
+
+    if (asset.scene && Array.isArray(asset.scene.animations)) {
+      return asset.scene.animations;
+    }
+
+    return [];
+  }
+
+  prepareSceneAnimationClips(root, fallbackClips = this.sceneAnimationClips) {
+    if (!root || typeof root.traverse !== 'function') {
+      return { walkClip: null, idleClip: null, jumpClip: null };
+    }
+
+    const rigNodeNames = this.collectRigNodeNames(root);
+    const rigNodeNameMap = this.collectRigNodeNameMap(root);
+    const rigBoneNames = this.collectRigBoneNames(root);
+
+    return {
+      walkClip: this.prepareClipForRig(fallbackClips?.walkClip ?? null, rigNodeNames, rigNodeNameMap, 'scene walk fallback', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
+      }),
+      idleClip: this.prepareClipForRig(fallbackClips?.idleClip ?? null, rigNodeNames, rigNodeNameMap, 'scene idle fallback', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
+      }),
+      jumpClip: this.prepareClipForRig(fallbackClips?.jumpClip ?? null, rigNodeNames, rigNodeNameMap, 'scene jump fallback', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
+        minQuaternionTracks: 8,
+      }),
+    };
+  }
+
   detectHumanoidRig(root) {
     if (!root || typeof root.traverse !== 'function') {
       return false;
@@ -330,6 +380,9 @@ export class Animator {
         const loader = new GLTFLoader();
         const gltf = await loader.parseAsync(arrayBuffer, '');
         modelAsset = gltf.scene || gltf.scenes?.[0] || gltf;
+        if (modelAsset && Array.isArray(gltf.animations)) {
+          modelAsset.animations = gltf.animations;
+        }
       } else if (extension === '.obj') {
         const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js');
         const loader = new OBJLoader();
@@ -352,6 +405,13 @@ export class Animator {
     this.idleClip = null;
     this.jumpClip = null;
 
+    if (!Array.isArray(root.animations)) {
+      const animationClips = this.resolveAnimationClips(root);
+      if (animationClips.length > 0) {
+        root.animations = animationClips;
+      }
+    }
+
     this.applyPlayerMeshSettings(root);
     this.configureMeshCulling(root);
 
@@ -368,7 +428,7 @@ export class Animator {
     const rigNodeNameMap = this.collectRigNodeNameMap(root);
     const rigBoneNames = this.collectRigBoneNames(root);
     const rigCanonicals = this.collectCanonicalBoneNames(root);
-    const clips = Array.isArray(root.animations) ? root.animations : [];
+    const clips = this.resolveAnimationClips(root);
 
     this.walkClip = this.prepareClipForRig(this.findAnimationClip(clips, null, /walk/i), rigNodeNames, rigNodeNameMap, 'custom walk', {
       preferBoneTracks: true,
@@ -386,6 +446,17 @@ export class Animator {
       stripRootPosition: true,
       minQuaternionTracks: 8,
     });
+
+    const sceneFallbacks = this.prepareSceneAnimationClips(root, this.sceneAnimationClips);
+    if (!this.walkClip && sceneFallbacks.walkClip) {
+      this.walkClip = sceneFallbacks.walkClip;
+    }
+    if (!this.idleClip && sceneFallbacks.idleClip) {
+      this.idleClip = sceneFallbacks.idleClip;
+    }
+    if (!this.jumpClip && sceneFallbacks.jumpClip) {
+      this.jumpClip = sceneFallbacks.jumpClip;
+    }
 
     if (!this.walkClip && this.idleClip) {
       this.walkClip = this.idleClip;
@@ -623,6 +694,12 @@ export class Animator {
       }
 
       this.log(`Player clips: walk=${this.walkClip?.name ?? 'none'}, idle=${this.idleClip?.name ?? 'none'}, jump=${this.jumpClip?.name ?? 'none'}`);
+
+      this.sceneAnimationClips = {
+        walkClip: this.walkClip,
+        idleClip: this.idleClip,
+        jumpClip: this.jumpClip,
+      };
 
       if (!this.modelTemplate) {
         this.warn('No renderable meshes found for player rig. Falling back to primitive avatar.');
