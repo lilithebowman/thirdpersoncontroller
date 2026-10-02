@@ -16,7 +16,7 @@ export class GameMenu {
    * @param {Function} options.onRespawn - Callback triggered when respawn is clicked
    * @param {Function} options.onLog - Optional logging callback
    */
-  constructor({ mountElement, onRespawn, onLog, onThresholdChange } = {}) {
+  constructor({ mountElement, onRespawn, onLog, onThresholdChange, onSelectPlayerModel } = {}) {
     if (!mountElement) {
       throw new Error('GameMenu requires a mountElement.');
     }
@@ -25,7 +25,20 @@ export class GameMenu {
     this.onRespawn = typeof onRespawn === 'function' ? onRespawn : () => {};
     this.onLog = typeof onLog === 'function' ? onLog : () => {};
     this.onThresholdChange = typeof onThresholdChange === 'function' ? onThresholdChange : () => {};
+    this.onSelectPlayerModel = typeof onSelectPlayerModel === 'function' ? onSelectPlayerModel : () => {};
     this.isOpen = false;
+    this.fileInput = document.createElement('input');
+    this.fileInput.type = 'file';
+    this.fileInput.accept = '.fbx,.gltf,.glb,.obj';
+    this.fileInput.hidden = true;
+    this.fileInput.addEventListener('change', async () => {
+      const file = this.fileInput.files?.[0];
+      this.fileInput.value = '';
+      if (file) {
+        await this.onSelectPlayerModel(file);
+      }
+    });
+    this.mountElement.appendChild(this.fileInput);
 
     this.overlay = this.createMenuDOM();
   }
@@ -48,6 +61,7 @@ export class GameMenu {
         <input type="range" id="mic-threshold" min="0.005" max="0.5" step="0.005" value="0.05" style="width: 100%; cursor: pointer;">
       </div>
       <button type="button" data-action="respawn">Respawn</button>
+      <button type="button" data-action="select-player-model">Select Player Model</button>
       <button type="button" data-action="fullscreen">Toggle Fullscreen</button>
       <button type="button" data-action="resume">Resume Game</button>
     `;
@@ -75,6 +89,8 @@ export class GameMenu {
         this.onRespawn();
         this.onLog('Player respawned via game menu.');
         this.setOpen(false);
+      } else if (action === 'select-player-model') {
+        this.fileInput.click();
       } else if (action === 'fullscreen') {
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen?.();

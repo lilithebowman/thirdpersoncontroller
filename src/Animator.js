@@ -208,8 +208,16 @@ export class Animator {
    * @returns {Object} Object containing visual, mixer, walkAction, idleAction, jumpAction
    */
   createRemoteVisual(fallbackFactory) {
-    const visual = this.modelTemplate
-      ? cloneSkinned(this.modelTemplate)
+    return this.createRemoteVisualFromRoot(
+      this.modelTemplate,
+      fallbackFactory,
+      { useCustomRigAnimations: true }
+    );
+  }
+
+  createRemoteVisualFromRoot(root, fallbackFactory, { useCustomRigAnimations = true } = {}) {
+    const visual = root
+      ? cloneSkinned(root)
       : (typeof fallbackFactory === 'function' ? fallbackFactory() : this.createFallbackVisual());
 
     const { modelScale, modelRotationDegrees, modelOffset } = this.modelConfig;
@@ -226,25 +234,29 @@ export class Animator {
     let idleAction = null;
     let jumpAction = null;
 
-    if (this.walkClip || this.idleClip || this.jumpClip) {
+    const clips = useCustomRigAnimations
+      ? { walkClip: this.walkClip, idleClip: this.idleClip, jumpClip: this.jumpClip }
+      : { walkClip: null, idleClip: null, jumpClip: null };
+
+    if (clips.walkClip || clips.idleClip || clips.jumpClip) {
       mixer = new THREE.AnimationMixer(visual);
 
-      if (this.walkClip) {
-        walkAction = mixer.clipAction(this.walkClip);
+      if (clips.walkClip) {
+        walkAction = mixer.clipAction(clips.walkClip);
         walkAction.play();
         walkAction.enabled = true;
         walkAction.setEffectiveWeight(0);
       }
 
-      if (this.idleClip) {
-        idleAction = mixer.clipAction(this.idleClip);
+      if (clips.idleClip) {
+        idleAction = mixer.clipAction(clips.idleClip);
         idleAction.play();
         idleAction.enabled = true;
         idleAction.setEffectiveWeight(1);
       }
 
-      if (this.jumpClip) {
-        jumpAction = mixer.clipAction(this.jumpClip);
+      if (clips.jumpClip) {
+        jumpAction = mixer.clipAction(clips.jumpClip);
         jumpAction.play();
         jumpAction.enabled = true;
         jumpAction.setEffectiveWeight(0);
@@ -253,6 +265,140 @@ export class Animator {
     }
 
     return { visual, mixer, walkAction, idleAction, jumpAction };
+  }
+
+  detectHumanoidRig(root) {
+    if (!root || typeof root.traverse !== 'function') {
+      return false;
+    }
+
+    const boneNames = [];
+    root.traverse((child) => {
+      if (!child?.isBone || !child.name) {
+        return;
+      }
+      const canonical = this.canonicalizeNodeName(child.name);
+      if (canonical) {
+        boneNames.push(canonical);
+      }
+    });
+
+    const humanoidKeywords = ['head', 'neck', 'spine', 'pelvis', 'hip', 'chest', 'shoulder', 'arm', 'forearm', 'hand', 'thigh', 'shin', 'calf', 'foot'];
+    const matches = new Set();
+    for (const boneName of boneNames) {
+      for (const keyword of humanoidKeywords) {
+        if (boneName.includes(keyword)) {
+          matches.add(keyword);
+        }
+      }
+    }
+
+    return matches.size >= 3;
+  }
+
+  canonicalizeNodeName(name) {
+    if (typeof name !== 'string' || name.length === 0) {
+      return null;
+    }
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const segments = trimmed.split(/[:/\\]/).filter(Boolean);
+    const lastSegment = segments[segments.length - 1] ?? trimmed;
+    return lastSegment.toLowerCase().replace(/[^a-z0-9]/g, '') || null;
+  }
+
+  async applyCustomPlayerModel(playerModel) {
+    if (!playerModel || !playerModel.dataUrl) {
+      return null;
+    }
+
+    const extension = playerModel.extension.toLowerCase();
+    let modelAsset = null;
+
+    try {
+      const response = await fetch(playerModel.dataUrl);
+      const arrayBuffer = await response.arrayBuffer();
+
+      if (extension === '.fbx') {
+        const { FBXLoader } = await import('three/examples/jsm/loaders/FBXLoader.js');
+        const loader = new FBXLoader();
+        modelAsset = loader.parse(arrayBuffer);
+      } else if (extension === '.glb' || extension === '.gltf') {
+        const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+        const loader = new GLTFLoader();
+        const gltf = await loader.parseAsync(arrayBuffer, '');
+        modelAsset = gltf.scene || gltf.scenes?.[0] || gltf;
+      } else if (extension === '.obj') {
+        const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js');
+        const loader = new OBJLoader();
+        modelAsset = loader.parse(new TextDecoder().decode(arrayBuffer));
+      }
+    } catch (error) {
+      this.warn(`Failed to load custom player model ${playerModel.fileName}: ${error?.message ?? error}`);
+      return null;
+    }
+
+    const root = modelAsset && typeof modelAsset.traverse === 'function' ? modelAsset : null;
+    if (!root) {
+      return null;
+    }
+
+    this.modelTemplate = root;
+    this.modelConfig.rigPath = playerModel.dataUrl;
+    this.modelConfig.customPlayerModel = playerModel.toJSON();
+    this.walkClip = null;
+    this.idleClip = null;
+    this.jumpClip = null;
+
+    this.applyPlayerMeshSettings(root);
+    this.configureMeshCulling(root);
+
+    const hasHumanoidRig = this.detectHumanoidRig(root);
+    playerModel.hasHumanoidRig = hasHumanoidRig;
+    playerModel.isRigged = hasHumanoidRig;
+
+    if (!hasHumanoidRig) {
+      this.log(`Loaded custom player model ${playerModel.fileName} without a humanoid rig; animation will remain disabled.`);
+      return root;
+    }
+
+    const rigNodeNames = this.collectRigNodeNames(root);
+    const rigNodeNameMap = this.collectRigNodeNameMap(root);
+    const rigBoneNames = this.collectRigBoneNames(root);
+    const rigCanonicals = this.collectCanonicalBoneNames(root);
+    const clips = Array.isArray(root.animations) ? root.animations : [];
+
+    this.walkClip = this.prepareClipForRig(this.findAnimationClip(clips, null, /walk/i), rigNodeNames, rigNodeNameMap, 'custom walk', {
+      preferBoneTracks: true,
+      rigBoneNames,
+      stripRootPosition: true,
+    });
+    this.idleClip = this.prepareClipForRig(this.findAnimationClip(clips, null, /idle/i), rigNodeNames, rigNodeNameMap, 'custom idle', {
+      preferBoneTracks: true,
+      rigBoneNames,
+      stripRootPosition: true,
+    });
+    this.jumpClip = this.prepareClipForRig(this.findAnimationClip(clips, null, /jump/i), rigNodeNames, rigNodeNameMap, 'custom jump', {
+      preferBoneTracks: true,
+      rigBoneNames,
+      stripRootPosition: true,
+      minQuaternionTracks: 8,
+    });
+
+    if (!this.walkClip && this.idleClip) {
+      this.walkClip = this.idleClip;
+    }
+    if (!this.idleClip && this.walkClip) {
+      this.idleClip = this.walkClip;
+    }
+    if (!this.jumpClip && this.walkClip) {
+      this.jumpClip = this.walkClip;
+    }
+
+    this.log(`Custom player rig ${playerModel.fileName} loaded with ${this.walkClip ? 'walk' : 'no-walk'} / ${this.idleClip ? 'idle' : 'no-idle'} / ${this.jumpClip ? 'jump' : 'no-jump'} clips.`);
+    return root;
   }
 
   /**

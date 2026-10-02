@@ -25,6 +25,7 @@ import { PerformanceMonitor } from './PerformanceMonitor.js';
 import { GameMenu } from './GameMenu.js';
 import { CameraController } from './CameraController.js';
 import { PlayerCharacter } from './PlayerCharacter.js';
+import { PlayerModel } from './PlayerModel.js';
 import { SceneLoader } from './SceneLoader.js';
 import { Skybox } from './Skybox.js';
 import { Loader } from './Loader.js';
@@ -83,6 +84,7 @@ export class ThirdPersonControllerApp {
 
     this.cameraController = new CameraController({ camera: this.camera });
     this.playerCharacter = new PlayerCharacter({ animator: this.animator });
+    this.playerModel = null;
     this.sceneLoader = new SceneLoader({
       scene: this.scene,
       resolveScenePath: this.resolveScenePath.bind(this),
@@ -105,6 +107,7 @@ export class ThirdPersonControllerApp {
       onRespawn: () => this.respawnPlayer(),
       onLog: (msg) => this.debugDisplay.Log(msg),
       onThresholdChange: (val) => this.voiceChatService.setThreshold(val),
+      onSelectPlayerModel: async (file) => this.selectPlayerModel(file),
     });
 
     this.localSpeakerSprite = null;
@@ -197,7 +200,7 @@ export class ThirdPersonControllerApp {
     this.isGrounded = true;
 
     this.multiplayerService = new MultiplayerService({
-      onRemotePlayersUpdate: (players) => this.handleRemotePlayersUpdate(players),
+      onRemotePlayersUpdate: async (players) => this.handleRemotePlayersUpdate(players),
     });
     this.remotePlayerMeshes = new Map();
     this.remotePlayersHud = document.getElementById('remote-players-hud');
@@ -356,6 +359,34 @@ export class ThirdPersonControllerApp {
       this.multiplayerService.register().then((guid) => {
         this.voiceChatService.init(guid);
       });
+    }
+  }
+
+  async selectPlayerModel(file) {
+    try {
+      const modelFile = file || null;
+      if (!modelFile) {
+        return;
+      }
+
+      const playerModel = await PlayerModel.fromFile(modelFile);
+      this.playerModel = playerModel;
+      await this.animator.applyCustomPlayerModel(playerModel);
+
+      const spawnPosition = this.playerCharacter?.root?.position?.clone?.() ?? this.resolvePlayerSpawnFromManifest(this.currentManifest ?? {}) ?? new THREE.Vector3(0, 0, 0);
+      this.playerCharacter.spawn(this.scene, spawnPosition);
+
+      if (this.multiplayerService.guid) {
+        this.multiplayerService.updateLocalTransform({
+          model: playerModel.toServerPayload(),
+        });
+        await this.multiplayerService.sendTransform(this.multiplayerService.latestLocalTransform);
+      }
+
+      this.debugDisplay.Log(`Applied player model: ${playerModel.fileName}`);
+    } catch (error) {
+      console.error('Failed to apply player model:', error);
+      this.debugDisplay.LogError(`Unable to apply player model: ${error?.message ?? error}`);
     }
   }
 
@@ -983,7 +1014,7 @@ export class ThirdPersonControllerApp {
     this.renderer.render(this.scene, this.camera);
   }
 
-  handleRemotePlayersUpdate(players) {
+  async handleRemotePlayersUpdate(players) {
     const activeGuids = new Set(players.map((p) => p.guid));
 
     for (const [guid, meshGroup] of this.remotePlayerMeshes.entries()) {
@@ -1016,7 +1047,7 @@ export class ThirdPersonControllerApp {
     for (const p of players) {
       let meshGroup = this.remotePlayerMeshes.get(p.guid);
       if (!meshGroup) {
-        meshGroup = this.createRemotePlayerVisual();
+        meshGroup = await this.createRemotePlayerVisual(p.model ?? null);
         this.scene.add(meshGroup);
         this.remotePlayerMeshes.set(p.guid, meshGroup);
       }
@@ -1050,9 +1081,27 @@ export class ThirdPersonControllerApp {
     }
   }
 
-  createRemotePlayerVisual() {
+  async createRemotePlayerVisual(playerModelData = null) {
     const group = new THREE.Group();
-    const remoteVisualData = this.animator.createRemoteVisual(() => this.playerCharacter.createFallbackVisual());
+    let remoteVisualData;
+
+    if (playerModelData) {
+      try {
+        const model = await PlayerModel.fromDataUrl(playerModelData);
+        const root = await this.loadCustomPlayerModelAsset(model);
+        if (root) {
+          const animatorState = this.animator.createRemoteVisualFromRoot(root, () => this.playerCharacter.createFallbackVisual(), { useCustomRigAnimations: model.hasHumanoidRig });
+          remoteVisualData = animatorState;
+        }
+      } catch (error) {
+        console.warn('Failed to load remote player model:', error);
+      }
+    }
+
+    if (!remoteVisualData) {
+      remoteVisualData = this.animator.createRemoteVisual(() => this.playerCharacter.createFallbackVisual());
+    }
+
     group.add(remoteVisualData.visual);
 
     group.userData.mixer = remoteVisualData.mixer;
@@ -1154,6 +1203,37 @@ export class ThirdPersonControllerApp {
     }
 
     return group;
+  }
+
+  async loadCustomPlayerModelAsset(model) {
+    if (!model || !model.dataUrl) {
+      return null;
+    }
+
+    const extension = model.extension.toLowerCase();
+    const response = await fetch(model.dataUrl);
+    const arrayBuffer = await response.arrayBuffer();
+
+    if (extension === '.fbx') {
+      const { FBXLoader } = await import('three/examples/jsm/loaders/FBXLoader.js');
+      const loader = new FBXLoader();
+      return loader.parse(arrayBuffer);
+    }
+
+    if (extension === '.glb' || extension === '.gltf') {
+      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+      const loader = new GLTFLoader();
+      const gltf = await loader.parseAsync(arrayBuffer, '');
+      return gltf.scene || gltf.scenes?.[0] || gltf;
+    }
+
+    if (extension === '.obj') {
+      const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js');
+      const loader = new OBJLoader();
+      return loader.parse(new TextDecoder().decode(arrayBuffer));
+    }
+
+    return null;
   }
 
   updateRemotePlayerMeshes(delta) {

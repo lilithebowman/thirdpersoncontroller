@@ -34,6 +34,7 @@ export class MultiplayerService {
       direction: { x: 0, y: 0, z: -1 },
       animationState: 'idle',
       isSpeaking: false,
+      model: null,
     };
 
     this.remotePlayers = [];
@@ -84,6 +85,7 @@ export class MultiplayerService {
       await this.register();
     }
 
+    const safeModel = this.normalizeModelPayload(transform.model ?? this.latestLocalTransform.model);
     const payload = {
       guid: this.guid,
       position: transform.position ?? this.latestLocalTransform.position,
@@ -92,6 +94,7 @@ export class MultiplayerService {
       direction: transform.direction ?? this.latestLocalTransform.direction,
       animationState: transform.animationState ?? this.latestLocalTransform.animationState,
       isSpeaking: transform.isSpeaking ?? this.latestLocalTransform.isSpeaking ?? false,
+      model: safeModel,
     };
 
     this.latestLocalTransform = payload;
@@ -172,6 +175,34 @@ export class MultiplayerService {
     }
   }
 
+  normalizeModelPayload(model) {
+    if (!model || typeof model !== 'object') {
+      return null;
+    }
+
+    const fileName = typeof model.fileName === 'string' ? model.fileName : typeof model.name === 'string' ? model.name : 'player-model';
+    const extension = typeof model.extension === 'string' && model.extension.trim() ? model.extension.trim().toLowerCase() : '';
+    const allowedExtensions = new Set(['.fbx', '.gltf', '.glb', '.obj']);
+    if (!allowedExtensions.has(extension)) {
+      return null;
+    }
+
+    const dataUrl = typeof model.dataUrl === 'string' ? model.dataUrl : '';
+    if (!/^data:/i.test(dataUrl) || dataUrl.length > 32 * 1024 * 1024) {
+      return null;
+    }
+
+    return {
+      name: fileName.replace(/[<>:"|?*\\/]+/g, '_').slice(0, 128),
+      fileName: fileName.replace(/[<>:"|?*\\/]+/g, '_').slice(0, 128),
+      extension,
+      mimeType: typeof model.mimeType === 'string' ? model.mimeType.toLowerCase() : 'application/octet-stream',
+      dataUrl,
+      hasHumanoidRig: Boolean(model.hasHumanoidRig),
+      isRigged: Boolean(model.isRigged),
+    };
+  }
+
   /**
    * Updates local transform data ready for next transmission.
    * @param {Object} transform - Current position, rotation, yaw, animationState
@@ -194,6 +225,9 @@ export class MultiplayerService {
     }
     if (typeof transform.isSpeaking === 'boolean') {
       this.latestLocalTransform.isSpeaking = transform.isSpeaking;
+    }
+    if (transform.model !== undefined) {
+      this.latestLocalTransform.model = this.normalizeModelPayload(transform.model);
     }
   }
 }

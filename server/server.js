@@ -21,10 +21,41 @@ const players = new Map();
 const rateLimits = new Map();
 
 const STALE_TIMEOUT_MS = 15000;
-const MAX_TRANSFORM_BODY_SIZE = 2048; // 2KB
+const MAX_MODEL_DATA_URL_LENGTH = 32 * 1024 * 1024; // 32MB
+const MAX_TRANSFORM_BODY_SIZE = MAX_MODEL_DATA_URL_LENGTH + 4096; // allow safe model uploads
 const MAX_VOICE_BODY_SIZE = 256 * 1024; // 256KB
 const RATE_LIMIT_WINDOW_MS = 1000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
+const ALLOWED_MODEL_EXTENSIONS = new Set(['.fbx', '.gltf', '.glb', '.obj']);
+
+function sanitizeModelPayload(model) {
+  if (!model || typeof model !== 'object') {
+    return null;
+  }
+
+  const fileName = typeof model.fileName === 'string' ? model.fileName : typeof model.name === 'string' ? model.name : 'player-model';
+  const extension = typeof model.extension === 'string' ? model.extension.trim().toLowerCase() : '';
+  const dataUrl = typeof model.dataUrl === 'string' ? model.dataUrl : '';
+
+  if (!ALLOWED_MODEL_EXTENSIONS.has(extension)) {
+    return null;
+  }
+
+  if (!/^data:/i.test(dataUrl) || dataUrl.length > MAX_MODEL_DATA_URL_LENGTH) {
+    return null;
+  }
+
+  const safeName = fileName.replace(/[<>:"|?*\\/]+/g, '_').slice(0, 128) || 'player-model';
+  return {
+    name: safeName,
+    fileName: safeName,
+    extension,
+    mimeType: typeof model.mimeType === 'string' ? model.mimeType.toLowerCase() : 'application/octet-stream',
+    dataUrl,
+    hasHumanoidRig: Boolean(model.hasHumanoidRig),
+    isRigged: Boolean(model.isRigged),
+  };
+}
 
 function cleanupStalePlayers() {
   const now = Date.now();
@@ -77,6 +108,7 @@ const server = http.createServer((req, res) => {
       direction: { x: 0, y: 0, z: -1 },
       animationState: 'idle',
       isSpeaking: false,
+      model: null,
       voiceData: null,
       lastUpdated: now,
     });
@@ -111,7 +143,7 @@ const server = http.createServer((req, res) => {
 
       try {
         const data = JSON.parse(body);
-        const { guid, position, rotation, yaw, direction, animationState, isSpeaking } = data;
+        const { guid, position, rotation, yaw, direction, animationState, isSpeaking, model } = data;
 
         if (!guid || typeof guid !== 'string' || guid.length > 64) {
           res.statusCode = 400;
@@ -130,6 +162,7 @@ const server = http.createServer((req, res) => {
             direction: { x: 0, y: 0, z: -1 },
             animationState: 'idle',
             isSpeaking: false,
+            model: null,
             voiceData: null,
             lastUpdated: Date.now(),
           });
@@ -178,6 +211,13 @@ const server = http.createServer((req, res) => {
 
         if (typeof isSpeaking === 'boolean') {
           player.isSpeaking = isSpeaking;
+        }
+
+        if (model !== undefined) {
+          const sanitizedModel = sanitizeModelPayload(model);
+          if (sanitizedModel) {
+            player.model = sanitizedModel;
+          }
         }
 
         player.lastUpdated = Date.now();
@@ -278,6 +318,7 @@ const server = http.createServer((req, res) => {
       direction: p.direction ?? { x: 0, y: 0, z: -1 },
       animationState: p.animationState,
       isSpeaking: Boolean(p.isSpeaking),
+      model: p.model ?? null,
       voiceData: p.voiceData && (now - p.voiceData.timestamp < 3000) ? p.voiceData : null,
     }));
 
