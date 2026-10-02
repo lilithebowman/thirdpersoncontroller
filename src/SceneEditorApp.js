@@ -14,6 +14,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { Mirror } from './Mirror.js';
 import {
   gameObjectsToLegacyObjects,
   normalizeGameObject,
@@ -441,11 +442,6 @@ export class SceneEditorApp {
 
     if (component.type === 'primitive') {
       const primitiveType = component.primitiveType ?? 'box';
-      const material = new THREE.MeshStandardMaterial({
-        color: component.color ? new THREE.Color(component.color).getHex() : 0x8ecae6,
-        roughness: component.roughness ?? 0.75,
-        metalness: component.metalness ?? 0.15,
-      });
       let geometry = null;
 
       if (primitiveType === 'floor') {
@@ -463,8 +459,16 @@ export class SceneEditorApp {
         geometry = new THREE.BoxGeometry(size[0] ?? 1, size[1] ?? 1, size[2] ?? 1);
       }
 
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.castShadow = true;
+      const materialType = component.materialType ?? component.material;
+      const isMirror = Mirror.isMirrorMaterialType(materialType);
+      const mesh = isMirror
+        ? new Mirror().createReflector(geometry, { color: component.mirrorColor ?? component.color ?? '#9fb7c0' })
+        : new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+            color: component.color ? new THREE.Color(component.color).getHex() : 0x8ecae6,
+            roughness: component.roughness ?? 0.75,
+            metalness: component.metalness ?? 0.15,
+          }));
+      mesh.castShadow = !isMirror;
       mesh.receiveShadow = true;
 
       if (primitiveType === 'floor') {

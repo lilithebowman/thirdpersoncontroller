@@ -16,6 +16,7 @@ import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { assetMetaService } from './AssetMetaService.js';
 import { MaterialRenderService } from './MaterialRenderService.js';
+import { Mirror } from './Mirror.js';
 
 export class SceneLoader {
   /**
@@ -186,11 +187,6 @@ export class SceneLoader {
    * @returns {THREE.Mesh|null} Created mesh
    */
   createPrimitiveMesh(item) {
-    const material = new THREE.MeshStandardMaterial({
-      color: item.color ? new THREE.Color(item.color).getHex() : 0x8ecae6,
-      roughness: item.roughness ?? 0.75,
-      metalness: item.metalness ?? 0.15,
-    });
     let geometry = null;
 
     if (item.type === 'floor') {
@@ -208,8 +204,17 @@ export class SceneLoader {
       geometry = new THREE.BoxGeometry(size[0] ?? 1, size[1] ?? 1, size[2] ?? 1);
     }
 
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = true;
+    const materialType = item.materialType ?? item.material;
+    const isMirror = Mirror.isMirrorMaterialType(materialType);
+    const mesh = isMirror
+      ? new Mirror().createReflector(geometry, { color: item.mirrorColor ?? item.color ?? '#9fb7c0' })
+      : new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+          color: item.color ? new THREE.Color(item.color).getHex() : 0x8ecae6,
+          roughness: item.roughness ?? 0.75,
+          metalness: item.metalness ?? 0.15,
+        }));
+
+    mesh.castShadow = !isMirror;
     mesh.receiveShadow = true;
 
     if (item.type === 'floor') {

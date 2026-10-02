@@ -66,6 +66,31 @@ test('normalizeSceneManifest preserves collider on primitive gameObjects correct
   assert.deepStrictEqual(normalized.objects[0].collider.size, [120, 0.1, 120]);
 });
 
+test('normalizeSceneManifest preserves primitive materialType through legacy conversion', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [
+      {
+        id: 'mirror-cube',
+        name: 'Mirror Cube',
+        transform: { position: [2, 1, -6], rotation: [0, 0, 0], scale: [1, 1, 1] },
+        components: [
+          {
+            type: 'primitive',
+            primitiveType: 'cube',
+            size: [1, 1, 1],
+            materialType: 'Mirror'
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[0].materialType, 'Mirror');
+  assert.strictEqual(normalized.objects[0].materialType, 'Mirror');
+});
+
 test('normalizeSceneManifest prefers gameObjects over stale legacy objects', () => {
   const sampleManifest = {
     version: 2,
