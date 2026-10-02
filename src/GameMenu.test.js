@@ -8,12 +8,50 @@ import test from 'node:test';
 import assert from 'node:assert';
 if (typeof globalThis.document === 'undefined') {
   globalThis.document = {
-    createElement: () => ({
-      style: {},
-      classList: { add: () => {} },
-      appendChild: () => {},
-      addEventListener: () => {},
-    }),
+    createElement: () => {
+      const element = {
+        style: {},
+        classList: { add: () => {} },
+        children: [],
+        listeners: {},
+        value: '',
+        textContent: '',
+        appendChild: (child) => {
+          element.children.push(child);
+        },
+        addEventListener: (type, callback) => {
+          element.listeners[type] = callback;
+        },
+        dispatchEvent: (event) => {
+          if (element.listeners[event.type]) {
+            element.listeners[event.type](event);
+          }
+        },
+        querySelector(selector) {
+          if (selector === '#mic-threshold') {
+            return { value: '0.05', textContent: '0.05', addEventListener: () => {} };
+          }
+          if (selector === '#threshold-display') {
+            return { textContent: '0.05' };
+          }
+          if (selector === '#eye-offset-x') {
+            return { value: '0', addEventListener: () => {} };
+          }
+          if (selector === '#eye-offset-y') {
+            return { value: '1.6', addEventListener: () => {} };
+          }
+          if (selector === '#eye-offset-z') {
+            return { value: '0', addEventListener: () => {} };
+          }
+          return null;
+        },
+        closest: () => null,
+      };
+      return element;
+    },
+    fullscreenElement: null,
+    documentElement: { requestFullscreen: () => {}, },
+    exitFullscreen: () => {},
   };
 }
 
@@ -28,4 +66,30 @@ test('GameMenu toggles open state correctly', () => {
   assert.strictEqual(menu.isOpen, true);
   menu.setOpen(false);
   assert.strictEqual(menu.isOpen, false);
+});
+
+test('GameMenu exposes eye offset controls and passes offsets with model selection', async () => {
+  const mountElement = document.createElement('div');
+  let capturedOffset = null;
+  let capturedFile = null;
+  const menu = new GameMenu({
+    mountElement,
+    onRespawn: () => {},
+    onLog: () => {},
+    onSelectPlayerModel: async (file, eyeOffset) => {
+      capturedFile = file;
+      capturedOffset = eyeOffset;
+    },
+  });
+
+  menu.setEyeOffset({ x: 0.25, y: 1.8, z: -0.15 });
+  assert.deepStrictEqual(menu.getEyeOffset(), { x: 0.25, y: 1.8, z: -0.15 });
+
+  const rawOffset = menu.getEyeOffset();
+  menu.fileInput.files = [{ name: 'avatar.fbx' }];
+  menu.fileInput.dispatchEvent?.({ type: 'change' });
+  await Promise.resolve();
+
+  assert.strictEqual(capturedFile.name, 'avatar.fbx');
+  assert.deepStrictEqual(capturedOffset, rawOffset);
 });

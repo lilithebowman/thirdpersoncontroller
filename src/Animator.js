@@ -302,17 +302,20 @@ export class Animator {
         preferBoneTracks: true,
         rigBoneNames,
         stripRootPosition: true,
+        root,
       }),
       idleClip: this.prepareClipForRig(fallbackClips?.idleClip ?? null, rigNodeNames, rigNodeNameMap, 'scene idle fallback', {
         preferBoneTracks: true,
         rigBoneNames,
         stripRootPosition: true,
+        root,
       }),
       jumpClip: this.prepareClipForRig(fallbackClips?.jumpClip ?? null, rigNodeNames, rigNodeNameMap, 'scene jump fallback', {
         preferBoneTracks: true,
         rigBoneNames,
         stripRootPosition: true,
         minQuaternionTracks: 8,
+        root,
       }),
     };
   }
@@ -434,17 +437,20 @@ export class Animator {
       preferBoneTracks: true,
       rigBoneNames,
       stripRootPosition: true,
+      root,
     });
     this.idleClip = this.prepareClipForRig(this.findAnimationClip(clips, null, /idle/i), rigNodeNames, rigNodeNameMap, 'custom idle', {
       preferBoneTracks: true,
       rigBoneNames,
       stripRootPosition: true,
+      root,
     });
     this.jumpClip = this.prepareClipForRig(this.findAnimationClip(clips, null, /jump/i), rigNodeNames, rigNodeNameMap, 'custom jump', {
       preferBoneTracks: true,
       rigBoneNames,
       stripRootPosition: true,
       minQuaternionTracks: 8,
+      root,
     });
 
     const sceneFallbacks = this.prepareSceneAnimationClips(root, this.sceneAnimationClips);
@@ -762,6 +768,112 @@ export class Animator {
     return canonical || null;
   }
 
+  inferBoneRole(name) {
+    const canonical = this.canonicalizeNodeName(name);
+    if (!canonical) {
+      return null;
+    }
+
+    const normalized = canonical.replace(/_/g, '');
+    const roleMap = [
+      { role: 'hips', keywords: ['hips', 'hip', 'pelvis', 'root', 'rootbone'] },
+      { role: 'spine', keywords: ['spine', 'vertebra', 'waist'] },
+      { role: 'chest', keywords: ['chest', 'breast', 'torso', 'upperchest', 'rib'] },
+      { role: 'neck', keywords: ['neck', 'cervical'] },
+      { role: 'head', keywords: ['head', 'skull', 'face', 'jaw'] },
+      { role: 'upperarm', keywords: ['upperarm', 'shoulder', 'clavicle', 'humerus', 'arm'] },
+      { role: 'lowerarm', keywords: ['lowerarm', 'forearm', 'elbow', 'ulna', 'radius'] },
+      { role: 'hand', keywords: ['hand', 'wrist', 'palm'] },
+      { role: 'upperleg', keywords: ['upperleg', 'upperthigh', 'thigh', 'femur', 'leg'] },
+      { role: 'lowerleg', keywords: ['lowerleg', 'shin', 'calf', 'tibia', 'fibula', 'knee'] },
+      { role: 'foot', keywords: ['foot', 'feet', 'toe', 'ankle'] },
+      { role: 'finger', keywords: ['index', 'middle', 'ring', 'pinky', 'thumb', 'finger'] },
+    ];
+
+    let bestRole = null;
+    let bestScore = 0;
+
+    for (const entry of roleMap) {
+      const score = entry.keywords.reduce((total, keyword) => {
+        if (!normalized.includes(keyword)) {
+          return total;
+        }
+        return total + keyword.length;
+      }, 0);
+      if (score > bestScore) {
+        bestRole = entry.role;
+        bestScore = score;
+      }
+    }
+
+    return bestScore > 0 ? bestRole : null;
+  }
+
+  inferBoneSide(name) {
+    const canonical = this.canonicalizeNodeName(name);
+    if (!canonical) {
+      return 'center';
+    }
+
+    const normalized = canonical.replace(/_/g, '');
+
+    if (normalized.includes('left')) {
+      return 'left';
+    }
+    if (normalized.includes('right')) {
+      return 'right';
+    }
+
+    const sideSuffix = normalized.match(/(?:^|[a-z])([lr])$/);
+    if (sideSuffix) {
+      return sideSuffix[1] === 'l' ? 'left' : 'right';
+    }
+
+    return 'center';
+  }
+
+  findRootBone(root) {
+    if (!root || typeof root.traverse !== 'function') {
+      return null;
+    }
+
+    let bestCandidate = null;
+    let bestDepth = Number.POSITIVE_INFINITY;
+    let bestScore = -1;
+
+    root.traverse((child) => {
+      if (!child?.isBone || !child.name) {
+        return;
+      }
+
+      const role = this.inferBoneRole(child.name);
+      const depth = this.computeBoneDepth(root, child);
+      const score = role === 'hips' ? 10 : role === 'chest' ? 6 : role === 'head' ? 2 : 0;
+
+      if (score > bestScore || (score === bestScore && depth < bestDepth)) {
+        bestScore = score;
+        bestDepth = depth;
+        bestCandidate = child;
+      }
+    });
+
+    return bestCandidate;
+  }
+
+  computeBoneDepth(root, bone) {
+    if (!root || !bone || !bone.parent) {
+      return 0;
+    }
+
+    let depth = 0;
+    let current = bone;
+    while (current && current !== root) {
+      depth += 1;
+      current = current.parent;
+    }
+    return depth;
+  }
+
   collectRigNodeNames(root) {
     const names = new Set();
     if (!root || typeof root.traverse !== 'function') {
@@ -934,11 +1046,83 @@ export class Animator {
     return new THREE.AnimationClip(clip.name, clip.duration, sanitizedTracks);
   }
 
+  resolveRigTargetName(targetName, rigNodeNames, rigNodeNameMap, root = null) {
+    if (!targetName) {
+      return null;
+    }
+
+    if (rigNodeNames instanceof Set && rigNodeNames.has(targetName)) {
+      return targetName;
+    }
+
+    const canonical = this.canonicalizeNodeName(targetName);
+    if (canonical && rigNodeNameMap instanceof Map && rigNodeNameMap.has(canonical)) {
+      return rigNodeNameMap.get(canonical);
+    }
+
+    const targetRole = this.inferBoneRole(targetName);
+    if (!targetRole || !(rigNodeNames instanceof Set)) {
+      return null;
+    }
+
+    const boneCandidates = [...rigNodeNames].filter((name) => {
+      const nameRole = this.inferBoneRole(name);
+      if (!nameRole || nameRole !== targetRole) {
+        return false;
+      }
+
+      const targetSide = this.inferBoneSide(targetName);
+      const candidateSide = this.inferBoneSide(name);
+      if (targetSide !== 'center' && candidateSide !== 'center' && targetSide !== candidateSide) {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (boneCandidates.length === 0) {
+      return null;
+    }
+
+    if (root) {
+      const boneRoot = this.findRootBone(root) || root;
+      boneCandidates.sort((a, b) => {
+        const aDepth = this.computeBoneDepth(root, this.findBoneByName(root, a));
+        const bDepth = this.computeBoneDepth(root, this.findBoneByName(root, b));
+        return aDepth - bDepth;
+      });
+
+      if (boneRoot && this.findBoneByName(root, boneCandidates[0])) {
+        return boneCandidates[0];
+      }
+    }
+
+    return boneCandidates[0];
+  }
+
+  findBoneByName(root, boneName) {
+    if (!root || !boneName || typeof root.traverse !== 'function') {
+      return null;
+    }
+
+    let found = null;
+    root.traverse((child) => {
+      if (found || !child?.isBone || !child.name) {
+        return;
+      }
+      if (child.name === boneName) {
+        found = child;
+      }
+    });
+    return found;
+  }
+
   prepareClipForRig(clip, rigNodeNames, rigNodeNameMap, clipLabel, {
     preferBoneTracks = false,
     rigBoneNames = null,
     stripRootPosition = false,
     minQuaternionTracks = 0,
+    root = null,
   } = {}) {
     if (
       !clip ||
@@ -957,16 +1141,7 @@ export class Animator {
         return null;
       }
 
-      let resolvedTargetName = null;
-      if (rigNodeNames.has(targetName)) {
-        resolvedTargetName = targetName;
-      } else {
-        const canonicalTrackTarget = this.canonicalizeNodeName(targetName);
-        if (canonicalTrackTarget && rigNodeNameMap.has(canonicalTrackTarget)) {
-          resolvedTargetName = rigNodeNameMap.get(canonicalTrackTarget);
-        }
-      }
-
+      const resolvedTargetName = this.resolveRigTargetName(targetName, rigNodeNames, rigNodeNameMap, root);
       if (!resolvedTargetName) {
         return null;
       }
@@ -1016,11 +1191,18 @@ export class Animator {
       return null;
     }
 
+    const tracksWereRemapped = mappedTracks.some((entry, index) => {
+      const originalTrack = clip.tracks[index];
+      return !originalTrack || entry.track !== originalTrack || entry.track.name !== originalTrack.name;
+    });
+
     let preparedClip = null;
-    if (preparedTracks.length === clip.tracks.length) {
+    if (preparedTracks.length === clip.tracks.length && !tracksWereRemapped) {
       preparedClip = clip;
     } else {
-      this.warn(`Using filtered ${clipLabel} clip ${clip.name}: ${preparedTracks.length}/${clip.tracks.length} tracks match the player rig.`);
+      if (preparedTracks.length !== clip.tracks.length) {
+        this.warn(`Using filtered ${clipLabel} clip ${clip.name}: ${preparedTracks.length}/${clip.tracks.length} tracks match the player rig.`);
+      }
       preparedClip = new THREE.AnimationClip(clip.name, clip.duration, preparedTracks);
     }
 

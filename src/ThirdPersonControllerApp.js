@@ -107,7 +107,11 @@ export class ThirdPersonControllerApp {
       onRespawn: () => this.respawnPlayer(),
       onLog: (msg) => this.debugDisplay.Log(msg),
       onThresholdChange: (val) => this.voiceChatService.setThreshold(val),
-      onSelectPlayerModel: async (file) => this.selectPlayerModel(file),
+      onSelectPlayerModel: async (file, eyeOffset) => this.selectPlayerModel(file, eyeOffset),
+      onEyeOffsetChange: (offset) => {
+        const eyePosition = new THREE.Vector3(offset.x ?? 0, offset.y ?? 1.6, offset.z ?? 0);
+        this.cameraController.setEyePosition(eyePosition);
+      },
     });
 
     this.localSpeakerSprite = null;
@@ -362,12 +366,17 @@ export class ThirdPersonControllerApp {
     }
   }
 
-  async selectPlayerModel(file) {
+  async selectPlayerModel(file, eyeOffset = null) {
     try {
       const modelFile = file || null;
       if (!modelFile) {
         return;
       }
+
+      const nextEyeOffset = eyeOffset && typeof eyeOffset === 'object'
+        ? new THREE.Vector3(eyeOffset.x ?? 0, eyeOffset.y ?? 1.6, eyeOffset.z ?? 0)
+        : this.cameraController?.eyePosition?.clone?.() ?? new THREE.Vector3(0, 1.6, 0);
+      this.cameraController.setEyePosition(nextEyeOffset);
 
       const playerModel = await PlayerModel.fromFile(modelFile);
       this.playerModel = playerModel;
@@ -383,7 +392,7 @@ export class ThirdPersonControllerApp {
         await this.multiplayerService.sendTransform(this.multiplayerService.latestLocalTransform);
       }
 
-      this.debugDisplay.Log(`Applied player model: ${playerModel.fileName}`);
+      this.debugDisplay.Log(`Applied player model: ${playerModel.fileName} (eye offset ${nextEyeOffset.toArray().map((v) => v.toFixed(2)).join(', ')})`);
     } catch (error) {
       console.error('Failed to apply player model:', error);
       this.debugDisplay.LogError(`Unable to apply player model: ${error?.message ?? error}`);
