@@ -23,6 +23,7 @@ export class Rigidbody {
     maxWalkableSlope = 0.2,
     physicsMaterial = 'default',
     restitution,
+    friction,
     kinetic = false,
   } = {}) {
     this.mass = Math.max(0.0001, mass);
@@ -41,6 +42,9 @@ export class Rigidbody {
     this.restitution = Number.isFinite(restitution)
       ? Math.min(1, Math.max(0, restitution))
       : Rigidbody.getRestitutionForMaterial(this.physicsMaterial);
+    this.friction = Number.isFinite(friction)
+      ? Math.min(1, Math.max(0, friction))
+      : Rigidbody.getFrictionForMaterial(this.physicsMaterial);
     this.kinetic = kinetic === true;
     this.collisionPoints = [];
 
@@ -71,6 +75,59 @@ export class Rigidbody {
     return Number.isFinite(restitutionByMaterial[normalized]) ? restitutionByMaterial[normalized] : 0;
   }
 
+  static getFrictionForMaterial(material = 'default') {
+    const normalized = typeof material === 'string' ? material.toLowerCase() : 'default';
+    const frictionByMaterial = {
+      default: 0.45,
+      bouncy: 0.55,
+      rubber: 0.8,
+      soft: 0.35,
+      ice: 0.08,
+    };
+    return Number.isFinite(frictionByMaterial[normalized]) ? frictionByMaterial[normalized] : 0.45;
+  }
+
+  getSurfaceFriction(other = null) {
+    const localFriction = Number.isFinite(this.friction) ? this.friction : 0.45;
+    const otherFriction = other && Number.isFinite(other.friction)
+      ? other.friction
+      : (other && typeof other.physicsMaterial === 'string'
+        ? Rigidbody.getFrictionForMaterial(other.physicsMaterial)
+        : 0.45);
+    return Math.min(1, Math.max(0, (localFriction + otherFriction) * 0.5));
+  }
+
+  applySurfaceFriction(normal, frictionCoefficient = 0) {
+    if (!normal || !(normal instanceof THREE.Vector3)) {
+      return;
+    }
+    if (frictionCoefficient <= 0) {
+      return;
+    }
+
+    const normalVector = normal.clone().normalize();
+    if (normalVector.lengthSq() === 0) {
+      return;
+    }
+
+    const tangentVelocity = this.velocity.clone().sub(
+      normalVector.clone().multiplyScalar(this.velocity.dot(normalVector))
+    );
+    if (tangentVelocity.lengthSq() <= 1e-8) {
+      return;
+    }
+
+    const reducedTangentialSpeed = Math.max(0, tangentVelocity.length() * (1 - frictionCoefficient));
+    if (reducedTangentialSpeed <= 0) {
+      this.velocity.copy(normalVector.clone().multiplyScalar(this.velocity.dot(normalVector)));
+      return;
+    }
+
+    const tangentDirection = tangentVelocity.clone().normalize();
+    const retainedNormal = normalVector.clone().multiplyScalar(this.velocity.dot(normalVector));
+    this.velocity.copy(retainedNormal.add(tangentDirection.multiplyScalar(reducedTangentialSpeed)));
+  }
+
   hasGravity() {
     if (this.gravity == null) {
       return false;
@@ -85,6 +142,12 @@ export class Rigidbody {
     }
 
     return false;
+  }
+
+  configureGravity(enabled = this.hasGravity()) {
+    const canUseGravity = this.hasGravity();
+    this.useGravity = enabled === true && canUseGravity;
+    return this.useGravity;
   }
 
   addForce(force) {
@@ -384,14 +447,20 @@ export class Rigidbody {
       if (overlapX <= overlapY && overlapX <= overlapZ) {
         const direction = this._centerA.x >= this._centerB.x ? 1 : -1;
         position.x += overlapX * direction;
+        const collisionNormal = new THREE.Vector3(direction, 0, 0);
+        this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
         this.velocity.x = 0;
       } else if (overlapY <= overlapX && overlapY <= overlapZ) {
         const direction = this._centerA.y >= this._centerB.y ? 1 : -1;
         position.y += overlapY * direction;
+        const collisionNormal = new THREE.Vector3(0, direction, 0);
+        this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
         this.velocity.y = 0;
       } else {
         const direction = this._centerA.z >= this._centerB.z ? 1 : -1;
         position.z += overlapZ * direction;
+        const collisionNormal = new THREE.Vector3(0, 0, direction);
+        this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
         this.velocity.z = 0;
       }
 

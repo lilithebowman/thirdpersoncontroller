@@ -262,14 +262,14 @@
       "static": false,
       "transform": {
         "position": [
-          31.17447130250808,
+          20,
           0.9,
           -18
         ],
         "rotation": [
-          0,
-          0,
-          0
+          45,
+          45,
+          45
         ],
         "scale": [
           1,

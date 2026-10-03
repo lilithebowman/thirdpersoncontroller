@@ -43,7 +43,7 @@ Legacy flat `objects` entries still load for backwards compatibility, but new ex
     "physics": {
       "enableCollision": true,
       "gravityY": -26,
-      "mass": 1,
+      "mass": 70,
       "linearDamping": 0
     }
   },
@@ -286,7 +286,7 @@ Use the `controller.physics` block to tune behavior without code changes:
 
 - `enableCollision`: enable or disable rigidbody collision checks.
 - `gravityY`: gravity acceleration on Y axis.
-- `mass`: player rigidbody mass.
+- `mass`: player rigidbody mass in kilograms; default is 70 for a typical adult human.
 - `linearDamping`: velocity damping factor.
 
 Use `controller.jumpImpulse` to tune jump height.
@@ -303,7 +303,7 @@ Use `controller.jumpImpulse` to tune jump height.
     "physics": {
       "enableCollision": true,
       "gravityY": -26,
-      "mass": 1,
+      "mass": 70,
       "linearDamping": 0
     }
   },

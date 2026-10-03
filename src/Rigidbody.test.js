@@ -40,6 +40,28 @@ test('Rigidbody applies the configured physics material restitution', () => {
   assert.ok(rb.restitution >= 0.8);
 });
 
+test('Rigidbody impulse scales with mass so jump force remains effective at realistic body mass', () => {
+  const rb = new Rigidbody({ mass: 70, gravity: new THREE.Vector3(0, -26, 0) });
+  const jumpImpulse = 8.8 * rb.mass;
+  rb.addImpulse(new THREE.Vector3(0, jumpImpulse, 0));
+  assert.ok(rb.velocity.y > 8.0);
+});
+
+test('Rigidbody slows tangential motion when contacting a high-friction surface', () => {
+  const floor = new BoxCollider({ size: new THREE.Vector3(10, 0.2, 10), offset: new THREE.Vector3(0, 0, 0), physicsMaterial: 'rubber' });
+  const rb = new Rigidbody({ mass: 1, gravity: new THREE.Vector3(0, 0, 0), physicsMaterial: 'rubber', enablePhysicsCollision: true });
+  const playerCollider = new BoxCollider({ size: new THREE.Vector3(1, 1, 1), offset: new THREE.Vector3(0, 0.5, 0) });
+  const position = new THREE.Vector3(0, -0.1, 0);
+  const colliders = [{ position: new THREE.Vector3(0, 0, 0), physicsCollision: true, collider: floor }];
+
+  rb.velocity.set(8, 0, 0);
+  const beforeSpeed = rb.velocity.length();
+  rb.integrate(position, 0.1, { collider: playerCollider, colliders });
+
+  assert.ok(rb.velocity.length() < beforeSpeed);
+  assert.ok(rb.velocity.x < 8);
+});
+
 test('Rigidbody supports numeric gravity and kinetic collision force registration', () => {
   const rb = new Rigidbody({ gravity: -9.8, kinetic: true, mass: 2 });
   assert.strictEqual(rb.gravity, -9.8);
@@ -64,6 +86,33 @@ test('Rigidbody disables gravity when gravity is explicitly zero and still moves
 
   assert.ok(position.x > 0);
   assert.ok(rb.velocity.x > 0);
+});
+
+test('Kinetic rigidbody falls from its starting position when self-collision is excluded from world colliders', () => {
+  const floor = new BoxCollider({ size: new THREE.Vector3(120, 0.1, 120), offset: new THREE.Vector3(0, 0, 0), physicsCollision: true });
+  const ballCollider = new SphereCollider({ radius: 0.9, offset: new THREE.Vector3(0, 0, 0), physicsCollision: true });
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 24), new THREE.MeshBasicMaterial({ color: 0xfdf4cf }));
+  const rigidbody = new Rigidbody({ mass: 1.8, gravity: new THREE.Vector3(0, -9.8, 0), kinetic: true, enablePhysicsCollision: true });
+  const startPosition = new THREE.Vector3(20, 2.7, -18);
+  const worldColliders = [
+    { position: new THREE.Vector3(20, 0.9, -18), physicsCollision: true, collider: ballCollider },
+    { position: new THREE.Vector3(0, 0, 0), physicsCollision: true, collider: floor },
+  ];
+
+  ball.position.copy(startPosition);
+  ball.userData.collider = ballCollider;
+
+  const oneFrameDelta = 1 / 60;
+  const beforeY = ball.position.y;
+  const filteredColliders = worldColliders.filter((entry) => entry.collider !== ball.userData.collider);
+  rigidbody.integrate(ball.position, oneFrameDelta, {
+    collider: ball.userData.collider,
+    colliders: filteredColliders,
+  });
+
+  assert.strictEqual(ball.position.y, beforeY + rigidbody.velocity.y * oneFrameDelta);
+  assert.ok(ball.position.y < beforeY);
+  assert.ok(rigidbody.velocity.y < 0);
 });
 
 test('Rigidbody resolves collisions against MeshCollider walls', () => {

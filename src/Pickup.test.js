@@ -99,3 +99,20 @@ test('Pickup restores configured gravity when the object is released', () => {
   assert.strictEqual(pickup.drop(playerRoot, scene), true);
   assert.strictEqual(rigidbody.useGravity, true);
 });
+
+test('Kinetic rigidbodies enable gravity on launch and restore it after pickup release', () => {
+  const rigidbody = new Rigidbody({
+    gravity: new THREE.Vector3(0, -9.8, 0),
+    mass: 1.8,
+    kinetic: true,
+  });
+
+  assert.strictEqual(rigidbody.configureGravity(true), true);
+  assert.strictEqual(rigidbody.useGravity, true);
+
+  rigidbody.configureGravity(false);
+  assert.strictEqual(rigidbody.useGravity, false);
+
+  rigidbody.configureGravity(true);
+  assert.strictEqual(rigidbody.useGravity, true);
+});

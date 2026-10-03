@@ -148,8 +148,9 @@ export class ThirdPersonControllerApp {
 
     this.force = new Force();
     this.animationPlayers = [];
+    this.playerMass = 70;
     this.playerRigidbody = new Rigidbody({
-      mass: 1,
+      mass: this.playerMass,
       gravity: new THREE.Vector3(0, -26, 0),
       linearDamping: 0,
       enablePhysicsCollision: true,
@@ -442,6 +443,13 @@ export class ThirdPersonControllerApp {
         this.resetSceneObjectToSpawn(object);
       }
 
+      const worldColliders = this.worldColliders.filter((worldCollider) => {
+        if (!worldCollider || !worldCollider.collider) {
+          return true;
+        }
+        return worldCollider.collider !== object.userData.collider;
+      });
+
       const isHeldByPlayer = this.currentHeldPickup?.object === object || (playerRoot && this.isDescendantOf(object, playerRoot));
       if (isHeldByPlayer) {
         rigidbody.useGravity = false;
@@ -454,10 +462,10 @@ export class ThirdPersonControllerApp {
         : Number.isFinite(rigidbody.gravity)
           ? rigidbody.gravity !== 0
           : rigidbody.gravityVector instanceof THREE.Vector3 && rigidbody.gravityVector.lengthSq() > 0;
-      rigidbody.useGravity = gravityConfigured;
+      rigidbody.configureGravity(!isHeldByPlayer && gravityConfigured);
       rigidbody.integrate(object.position, delta, {
         collider: object.userData.collider,
-        colliders: this.worldColliders,
+        colliders: worldColliders,
       });
 
       if (playerRoot && this.playerCollider && this.playerRigidbody) {
@@ -847,7 +855,7 @@ export class ThirdPersonControllerApp {
       });
       object.userData.rigidbody = rigidbody;
       object.userData.respawnPosition = object.userData.respawnPosition ?? object.position.clone();
-      object.userData.rigidbody.useGravity = typeof rigidbody.hasGravity === 'function' ? rigidbody.hasGravity() : true;
+      rigidbody.configureGravity(true);
       this.dynamicRigidbodies.push({ object, rigidbody });
     }
 
@@ -988,7 +996,8 @@ export class ThirdPersonControllerApp {
           const manifestGravity = resolveGravityValue(item.gravity, resolveGravityValue(colliderConfig?.gravity, -9.8));
           const manifestKinetic = item.kinetic === true || colliderConfig?.kinetic === true;
           if (colliderConfig && Number.isFinite(manifestMass)) {
-            mesh.userData.collider = this.buildManifestCollider(colliderConfig, new THREE.Vector3(...(item.position ?? [0, 0, 0])), this.sceneLoader.toVector3(item.size, new THREE.Vector3(1, 1, 1))).collider;
+            const builtDynamicCollider = this.buildManifestCollider(colliderConfig, new THREE.Vector3(...(item.position ?? [0, 0, 0])), this.sceneLoader.toVector3(item.size, new THREE.Vector3(1, 1, 1)));
+            mesh.userData.collider = builtDynamicCollider?.collider ?? null;
             this.registerDynamicRigidbody(mesh, {
               mass: manifestMass,
               gravity: manifestGravity,
@@ -1007,7 +1016,10 @@ export class ThirdPersonControllerApp {
           const fallbackSize = item.type === 'floor'
             ? new THREE.Vector3(120, 0.2, 120)
             : this.sceneLoader.toVector3(item.size, new THREE.Vector3(1, 1, 1));
-          this.registerColliderFromManifestItem(item, fallbackSize);
+          const isDynamicRigidBody = colliderConfig && Number.isFinite(manifestMass);
+          if (!isDynamicRigidBody) {
+            this.registerColliderFromManifestItem(item, fallbackSize);
+          }
         }
         continue;
       }
@@ -1145,6 +1157,20 @@ export class ThirdPersonControllerApp {
     const playerConfig = manifest.player ?? {};
     const controllerConfig = manifest.controller ?? {};
     const physicsConfig = controllerConfig.physics ?? {};
+    const resolvedPlayerMass = Number.isFinite(playerConfig.mass)
+      ? playerConfig.mass
+      : Number.isFinite(controllerConfig.mass)
+        ? controllerConfig.mass
+        : Number.isFinite(physicsConfig.mass)
+          ? physicsConfig.mass
+          : 70;
+    const resolvedJumpImpulse = Number.isFinite(playerConfig.jumpImpulse)
+      ? playerConfig.jumpImpulse
+      : Number.isFinite(controllerConfig.jumpImpulse)
+        ? controllerConfig.jumpImpulse
+        : Number.isFinite(physicsConfig.jumpImpulse)
+          ? physicsConfig.jumpImpulse
+          : this.playerState.jumpImpulse;
     const maxWalkableSlope = Number.isFinite(playerConfig.maxWalkableSlope)
       ? playerConfig.maxWalkableSlope
       : Number.isFinite(controllerConfig.maxWalkableSlope)
@@ -1153,8 +1179,11 @@ export class ThirdPersonControllerApp {
           ? physicsConfig.maxWalkableSlope
           : 0.2;
 
+    this.playerMass = Number.isFinite(resolvedPlayerMass) ? Math.max(0.0001, resolvedPlayerMass) : 70;
+    this.playerState.jumpImpulse = Number.isFinite(resolvedJumpImpulse) ? Math.max(0, resolvedJumpImpulse) : this.playerState.jumpImpulse;
     this.maxWalkableSlope = maxWalkableSlope;
     if (this.playerRigidbody) {
+      this.playerRigidbody.mass = this.playerMass;
       this.playerRigidbody.maxWalkableSlope = maxWalkableSlope;
     }
     if (this.playerCollider) {
@@ -1292,7 +1321,8 @@ export class ThirdPersonControllerApp {
     if (this.keyboardInput.isDown('KeyD') || this.keyboardInput.isDown('ArrowRight')) move.add(viewRight);
 
     if (this.keyboardInput.consumePress('Space') && this.isGrounded) {
-      this.jumpImpulseVector.set(0, this.playerState.jumpImpulse, 0);
+      const jumpImpulseMagnitude = (this.playerRigidbody?.mass ?? 1) * this.playerState.jumpImpulse;
+      this.jumpImpulseVector.set(0, jumpImpulseMagnitude, 0);
       this.force.Impulse(this.playerRigidbody, this.jumpImpulseVector);
       this.isGrounded = false;
     }

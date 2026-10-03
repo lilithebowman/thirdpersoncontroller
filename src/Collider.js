@@ -27,6 +27,7 @@ export class Collider {
     maxWalkableSlope = 0.2,
     physicsMaterial = 'default',
     restitution,
+    friction,
     mass = 1,
   } = {}) {
     this.type = type;
@@ -37,6 +38,9 @@ export class Collider {
     this.restitution = Number.isFinite(restitution)
       ? Math.min(1, Math.max(0, restitution))
       : Collider.getRestitutionForMaterial(this.physicsMaterial);
+    this.friction = Number.isFinite(friction)
+      ? Math.min(1, Math.max(0, friction))
+      : Collider.getFrictionForMaterial(this.physicsMaterial);
     this.mass = Number.isFinite(mass) ? Math.max(0.0001, mass) : 1;
     this._tmpBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
   }
@@ -51,6 +55,18 @@ export class Collider {
       ice: 0.08,
     };
     return Number.isFinite(restitutionByMaterial[normalized]) ? restitutionByMaterial[normalized] : 0;
+  }
+
+  static getFrictionForMaterial(material = 'default') {
+    const normalized = typeof material === 'string' ? material.toLowerCase() : 'default';
+    const frictionByMaterial = {
+      default: 0.45,
+      bouncy: 0.55,
+      rubber: 0.8,
+      soft: 0.35,
+      ice: 0.08,
+    };
+    return Number.isFinite(frictionByMaterial[normalized]) ? frictionByMaterial[normalized] : 0.45;
   }
 
   /**
