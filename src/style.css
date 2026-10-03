@@ -69,11 +69,19 @@ canvas {
   opacity: 0.9;
 }
 
-.voice-toggle-button {
+.top-right-controls {
   position: absolute;
   top: 18px;
   right: 18px;
   z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.voice-toggle-button,
+.touch-controls-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -88,15 +96,97 @@ canvas {
   cursor: pointer;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(10px);
+  user-select: none;
 }
 
-.voice-toggle-button:hover {
+.voice-toggle-button:hover,
+.touch-controls-toggle:hover {
   background: rgba(20, 35, 50, 0.95);
 }
 
 .voice-toggle-button.is-muted {
   background: rgba(70, 20, 20, 0.9);
   border-color: rgba(255, 170, 170, 0.5);
+}
+
+.touch-controls-toggle.is-active {
+  background: rgba(18, 64, 46, 0.9);
+  border-color: rgba(124, 255, 176, 0.6);
+}
+
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+
+.touch-controls.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.touch-zone {
+  position: absolute;
+  bottom: 36px;
+  width: 144px;
+  height: 144px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: rgba(10, 22, 34, 0.38);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  pointer-events: auto;
+}
+
+.touch-move-pad {
+  left: 24px;
+}
+
+.touch-look-pad {
+  right: 24px;
+}
+
+.touch-pad-thumb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(133, 210, 255, 0.22);
+  box-shadow: inset 0 0 12px rgba(144, 210, 255, 0.26);
+  transform: translate(-50%, -50%);
+}
+
+.touch-pad-thumb-small {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.touch-jump-button {
+  position: absolute;
+  right: 34px;
+  bottom: 140px;
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  background: rgba(39, 88, 132, 0.82);
+  color: #edf8ff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .debug-overlay {

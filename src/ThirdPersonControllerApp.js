@@ -37,6 +37,7 @@ import { VoiceChatService } from './VoiceChatService.js';
 import { Clickable } from './Clickable.js';
 import { Pickup } from './Pickup.js';
 import { AnimationClipPlayer } from './AnimationClipPlayer.js';
+import { TouchControls } from './TouchControls.js';
 import { normalizeSceneManifest } from './sceneManifest.js';
 
 export class ThirdPersonControllerApp {
@@ -101,7 +102,13 @@ export class ThirdPersonControllerApp {
       debugDisplay: this.debugDisplay,
     });
 
+    this.topRightControls = document.createElement('div');
+    this.topRightControls.className = 'top-right-controls';
+    this.app.appendChild(this.topRightControls);
+
     this.voiceMuteButton = this.createVoiceMuteButton();
+    this.touchControlsButton = this.createTouchControlsButton();
+    this.touchControls = new TouchControls({ mountElement: this.app });
     this.voiceChatService = new VoiceChatService({
       onSpeakingChange: (isSpeaking) => {
         if (this.localSpeakerSprite) {
@@ -274,7 +281,7 @@ export class ThirdPersonControllerApp {
           // ignore
         }
       }
-      if (!this.gameMenu.isOpen && !this.isPointerLocked) {
+      if (!this.gameMenu.isOpen && !this.isPointerLocked && !this.touchControls?.isEnabled?.()) {
         this.renderer.domElement.requestPointerLock();
       }
     });
@@ -290,8 +297,26 @@ export class ThirdPersonControllerApp {
       this.voiceChatService?.toggleMuted();
     });
     this.voiceMuteButton = button;
-    this.app.appendChild(button);
+    this.topRightControls.appendChild(button);
     this.updateVoiceMuteButton(false);
+    return button;
+  }
+
+  createTouchControlsButton() {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'touch-controls-toggle';
+    button.textContent = '🎮';
+    button.setAttribute('aria-label', 'Enable touch controls');
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => {
+      const nextEnabled = !this.touchControls?.isEnabled?.();
+      this.touchControls?.setEnabled?.(nextEnabled);
+      button.classList.toggle('is-active', nextEnabled);
+      button.setAttribute('aria-pressed', String(nextEnabled));
+      button.setAttribute('aria-label', nextEnabled ? 'Disable touch controls' : 'Enable touch controls');
+    });
+    this.topRightControls.appendChild(button);
     return button;
   }
 
@@ -1253,11 +1278,15 @@ export class ThirdPersonControllerApp {
       return;
     }
 
-    if (!this.isPointerLocked) {
+    const touchLookDelta = this.touchControls?.isEnabled?.() ? this.touchControls.consumeLookDelta() : { deltaX: 0, deltaY: 0 };
+    const { deltaX: mouseDeltaX, deltaY: mouseDeltaY } = this.mouseInput.consumeLookDelta();
+    const deltaX = mouseDeltaX + touchLookDelta.deltaX;
+    const deltaY = mouseDeltaY + touchLookDelta.deltaY;
+
+    if (!this.isPointerLocked && !this.touchControls?.isEnabled?.()) {
       return;
     }
 
-    const { deltaX, deltaY } = this.mouseInput.consumeLookDelta();
     if (Math.abs(deltaX) > 0) {
       this.cameraController.state.yaw -= deltaX * 0.0025;
       this.cameraController.state.yaw = THREE.MathUtils.euclideanModulo(this.cameraController.state.yaw + Math.PI, Math.PI * 2) - Math.PI;
@@ -1315,12 +1344,19 @@ export class ThirdPersonControllerApp {
     const viewRight = new THREE.Vector3(Math.cos(viewYaw), 0, -Math.sin(viewYaw));
     const move = new THREE.Vector3();
 
+    const touchMove = this.touchControls?.isEnabled?.() ? this.touchControls.getMovementVector() : { x: 0, y: 0 };
     if (this.keyboardInput.isDown('KeyW') || this.keyboardInput.isDown('ArrowUp')) move.add(viewForward);
     if (this.keyboardInput.isDown('KeyS') || this.keyboardInput.isDown('ArrowDown')) move.sub(viewForward);
     if (this.keyboardInput.isDown('KeyA') || this.keyboardInput.isDown('ArrowLeft')) move.sub(viewRight);
     if (this.keyboardInput.isDown('KeyD') || this.keyboardInput.isDown('ArrowRight')) move.add(viewRight);
+    if (touchMove.x || touchMove.y) {
+      const touchForward = viewForward.clone().multiplyScalar(touchMove.y);
+      const touchRight = viewRight.clone().multiplyScalar(touchMove.x);
+      move.add(touchForward).add(touchRight);
+    }
 
-    if (this.keyboardInput.consumePress('Space') && this.isGrounded) {
+    const jumpPressed = this.keyboardInput.consumePress('Space') || this.touchControls?.consumeJump?.() === true;
+    if (jumpPressed && this.isGrounded) {
       const jumpImpulseMagnitude = (this.playerRigidbody?.mass ?? 1) * this.playerState.jumpImpulse;
       this.jumpImpulseVector.set(0, jumpImpulseMagnitude, 0);
       this.force.Impulse(this.playerRigidbody, this.jumpImpulseVector);
