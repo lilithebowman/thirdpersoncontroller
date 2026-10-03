@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { Rigidbody } from './Rigidbody.js';
 import { BoxCollider } from './BoxCollider.js';
 import { MeshCollider } from './MeshCollider.js';
+import { SphereCollider } from './SphereCollider.js';
 
 test('Rigidbody integrates velocity and gravity', () => {
   const rb = new Rigidbody({ mass: 2, gravity: new THREE.Vector3(0, -10, 0), linearDamping: 0.1 });
