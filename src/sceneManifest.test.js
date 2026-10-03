@@ -91,6 +91,45 @@ test('normalizeSceneManifest preserves primitive materialType through legacy con
   assert.strictEqual(normalized.objects[0].materialType, 'Mirror');
 });
 
+test('normalizeSceneManifest preserves primitive material objects through legacy conversion', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [
+      {
+        id: 'tile-floor',
+        name: 'Tile Floor',
+        transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+        components: [
+          {
+            type: 'primitive',
+            primitiveType: 'cube',
+            size: [120, 0.1, 120],
+            color: '#ffffff',
+            material: {
+              type: 'standard',
+              roughness: 0.95,
+              metalness: 0.2,
+              albedoMap: '/models/base-white-tile-bl/base-white-tile_albedo.png',
+              normalMap: '/models/base-white-tile-bl/base-white-tile_normal-ogl.png',
+              repeat: [18, 18],
+            }
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.deepStrictEqual(normalized.objects[0].material, {
+    type: 'standard',
+    roughness: 0.95,
+    metalness: 0.2,
+    albedoMap: '/models/base-white-tile-bl/base-white-tile_albedo.png',
+    normalMap: '/models/base-white-tile-bl/base-white-tile_normal-ogl.png',
+    repeat: [18, 18],
+  });
+});
+
 test('normalizeSceneManifest prefers gameObjects over stale legacy objects', () => {
   const sampleManifest = {
     version: 2,

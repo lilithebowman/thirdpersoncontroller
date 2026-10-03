@@ -202,7 +202,7 @@
         ],
         "scale": [
           1,
-          1,
+          0.1,
           1
         ]
       },
@@ -215,7 +215,23 @@
             0.1,
             120
           ],
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "material": {
+            "type": "standard",
+            "color": "#f5f4ef",
+            "roughness": 0.95,
+            "metalness": 0.2,
+            "repeat": [
+              18,
+              18
+            ],
+            "albedoMap": "/models/base-white-tile-bl/base-white-tile_albedo.png",
+            "normalMap": "/models/base-white-tile-bl/base-white-tile_normal-ogl.png",
+            "roughnessMap": "/models/base-white-tile-bl/base-white-tile_roughness.png",
+            "metalnessMap": "/models/base-white-tile-bl/base-white-tile_metallic.png",
+            "aoMap": "/models/base-white-tile-bl/base-white-tile_ao.png",
+            "heightMap": "/models/base-white-tile-bl/base-white-tile_height.png"
+          }
         },
         {
           "type": "collider",

@@ -408,6 +408,66 @@ export class SceneEditorApp {
     return group;
   }
 
+  createPrimitiveMaterial(component, defaultColor = '#8ecae6', defaultRoughness = 0.75, defaultMetalness = 0.15) {
+    const materialConfig = component.material && typeof component.material === 'object' ? component.material : null;
+    const hasTextureMap = !!(materialConfig && (materialConfig.map || materialConfig.albedoMap || materialConfig.baseColorMap));
+
+    if (!materialConfig) {
+      return new THREE.MeshStandardMaterial({
+        color: component.color ? new THREE.Color(component.color).getHex() : new THREE.Color(defaultColor).getHex(),
+        roughness: component.roughness ?? defaultRoughness,
+        metalness: component.metalness ?? defaultMetalness,
+      });
+    }
+
+    const material = new THREE.MeshStandardMaterial({
+      color: hasTextureMap ? 0xffffff : (materialConfig.color ? new THREE.Color(materialConfig.color).getHex() : new THREE.Color(defaultColor).getHex()),
+      roughness: materialConfig.roughness ?? component.roughness ?? defaultRoughness,
+      metalness: materialConfig.metalness ?? component.metalness ?? defaultMetalness,
+    });
+
+    const textureEntries = [
+      ['map', materialConfig.map ?? materialConfig.albedoMap ?? materialConfig.baseColorMap],
+      ['normalMap', materialConfig.normalMap],
+      ['roughnessMap', materialConfig.roughnessMap],
+      ['metalnessMap', materialConfig.metalnessMap],
+      ['aoMap', materialConfig.aoMap],
+      ['displacementMap', materialConfig.displacementMap ?? materialConfig.heightMap],
+    ];
+
+    const repeat = Array.isArray(materialConfig.repeat) && materialConfig.repeat.length >= 2
+      ? [Number(materialConfig.repeat[0]) || 1, Number(materialConfig.repeat[1]) || 1]
+      : [1, 1];
+
+    const loader = new THREE.TextureLoader();
+    for (const [mapKey, texturePath] of textureEntries) {
+      if (!texturePath) continue;
+
+      const resolvedPath = typeof this.resolveScenePath === 'function'
+        ? this.resolveScenePath(texturePath)
+        : new URL(texturePath, window.location.origin).toString();
+
+      const texture = loader.load(resolvedPath);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(repeat[0], repeat[1]);
+      material[mapKey] = texture;
+    }
+
+    if (hasTextureMap) {
+      material.color.setHex(0xffffff);
+    }
+
+    if (materialConfig.normalScale) {
+      material.normalScale = new THREE.Vector2(
+        Array.isArray(materialConfig.normalScale) ? materialConfig.normalScale[0] ?? 1 : materialConfig.normalScale,
+        Array.isArray(materialConfig.normalScale) ? materialConfig.normalScale[1] ?? 1 : materialConfig.normalScale
+      );
+    }
+
+    return material;
+  }
+
   async createComponentObject(component) {
     if (!component || !component.type) {
       return null;
@@ -463,11 +523,7 @@ export class SceneEditorApp {
       const isMirror = Mirror.isMirrorMaterialType(materialType);
       const mesh = isMirror
         ? new Mirror().createReflector(geometry, { color: component.mirrorColor ?? component.color ?? '#9fb7c0' })
-        : new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-            color: component.color ? new THREE.Color(component.color).getHex() : 0x8ecae6,
-            roughness: component.roughness ?? 0.75,
-            metalness: component.metalness ?? 0.15,
-          }));
+        : new THREE.Mesh(geometry, this.createPrimitiveMaterial(component));
       mesh.castShadow = !isMirror;
       mesh.receiveShadow = true;
 
