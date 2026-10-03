@@ -277,9 +277,6 @@
           1
         ]
       },
-      "mass": 1.8,
-      "gravity": -9.8,
-      "kinetic": true,
       "components": [
         {
           "type": "primitive",
@@ -302,7 +299,9 @@
             ],
             "physicsCollision": true,
             "physicsMaterial": "bouncy",
-            "mass": 1.8
+            "mass": 1.8,
+            "kinetic": true,
+            "gravity": -9.8
           }
         },
         {

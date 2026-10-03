@@ -59,6 +59,11 @@ test('normalizeSceneManifest preserves playOnAwake on animation components', () 
   assert.strictEqual(normalized.objects[0].gameObjectId, 'animated-cube');
 });
 
+test('normalizeSceneManifest preserves sceneFloor metadata on the root manifest', () => {
+  const normalized = normalizeSceneManifest({ sceneFloor: -42, gameObjects: [] });
+  assert.strictEqual(normalized.sceneFloor, -42);
+});
+
 test('normalizeSceneManifest preserves collider on primitive gameObjects correctly', () => {
   const sampleManifest = {
     version: 2,

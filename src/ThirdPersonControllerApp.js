@@ -398,16 +398,48 @@ export class ThirdPersonControllerApp {
     }
   }
 
+  resolveSceneFloor(manifest = this.currentManifest ?? {}) {
+    const sceneConfig = manifest?.scene ?? {};
+    const respawnConfig = manifest?.respawn ?? {};
+    const rawFloor = manifest?.sceneFloor ?? sceneConfig.sceneFloor ?? respawnConfig.sceneFloor ?? respawnConfig.fallBelowY ?? -100;
+    return Number.isFinite(rawFloor) ? Number(rawFloor) : -100;
+  }
+
+  resetSceneObjectToSpawn(object) {
+    if (!object || !object.userData) {
+      return;
+    }
+
+    const respawnPosition = object.userData.respawnPosition ?? object.userData.originalPosition ?? object.userData.spawnPosition ?? null;
+    if (!respawnPosition || !(respawnPosition instanceof THREE.Vector3)) {
+      return;
+    }
+
+    object.position.copy(respawnPosition);
+    const rigidbody = object.userData.rigidbody;
+    if (rigidbody) {
+      rigidbody.velocity.set(0, 0, 0);
+      rigidbody.accumulatedForce.set(0, 0, 0);
+      rigidbody.clearForces?.();
+    }
+    object.updateMatrixWorld?.(true);
+  }
+
   updateDynamicRigidbodies(delta) {
     if (!Number.isFinite(delta) || delta <= 0) {
       return;
     }
 
     const playerRoot = this.playerCharacter?.root ?? null;
+    const sceneFloor = this.resolveSceneFloor(this.currentManifest ?? {});
     for (const entry of this.dynamicRigidbodies) {
       const { object, rigidbody } = entry;
       if (!object || !rigidbody || !object.userData?.collider) {
         continue;
+      }
+
+      if (object.position.y < sceneFloor) {
+        this.resetSceneObjectToSpawn(object);
       }
 
       const isHeldByPlayer = this.currentHeldPickup?.object === object || (playerRoot && this.isDescendantOf(object, playerRoot));
@@ -417,7 +449,12 @@ export class ThirdPersonControllerApp {
         continue;
       }
 
-      rigidbody.useGravity = Boolean(rigidbody.gravityVector || rigidbody.gravity !== 0 || rigidbody.useGravity !== false);
+      const gravityConfigured = typeof rigidbody.hasGravity === 'function'
+        ? rigidbody.hasGravity()
+        : Number.isFinite(rigidbody.gravity)
+          ? rigidbody.gravity !== 0
+          : rigidbody.gravityVector instanceof THREE.Vector3 && rigidbody.gravityVector.lengthSq() > 0;
+      rigidbody.useGravity = gravityConfigured && rigidbody.useGravity !== false;
       rigidbody.integrate(object.position, delta, {
         collider: object.userData.collider,
         colliders: this.worldColliders,
@@ -794,9 +831,14 @@ export class ThirdPersonControllerApp {
     }
 
     if (!object.userData.rigidbody) {
+      const gravityValue = config.gravity instanceof THREE.Vector3
+        ? config.gravity.clone()
+        : (Array.isArray(config.gravity) && config.gravity.length >= 3 && config.gravity.every((axis) => Number.isFinite(axis))
+          ? new THREE.Vector3(config.gravity[0], config.gravity[1], config.gravity[2])
+          : (Number.isFinite(config.gravity) ? Number(config.gravity) : -18));
       const rigidbody = new Rigidbody({
         mass: config.mass,
-        gravity: Number.isFinite(config.gravity) ? Number(config.gravity) : -18,
+        gravity: gravityValue,
         linearDamping: 0.08,
         enablePhysicsCollision: true,
         physicsMaterial: config.physicsMaterial ?? 'bouncy',
@@ -804,6 +846,7 @@ export class ThirdPersonControllerApp {
         kinetic: config.kinetic === true,
       });
       object.userData.rigidbody = rigidbody;
+      object.userData.respawnPosition = object.userData.respawnPosition ?? object.position.clone();
       this.dynamicRigidbodies.push({ object, rigidbody });
     }
 
@@ -918,6 +961,7 @@ export class ThirdPersonControllerApp {
         if (mesh) {
           mesh.userData.gameObjectId = item.gameObjectId ?? item.id ?? null;
           mesh.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+          mesh.userData.respawnPosition = mesh.position.clone();
           mesh.rotation.set(
             THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
             THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
@@ -926,14 +970,30 @@ export class ThirdPersonControllerApp {
           mesh.scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
           this.scene.add(mesh);
           const colliderConfig = item.collider ?? null;
-          if (colliderConfig && Number.isFinite(item.mass)) {
+          const manifestMass = Number.isFinite(item.mass)
+            ? item.mass
+            : Number.isFinite(colliderConfig?.mass)
+              ? colliderConfig.mass
+              : NaN;
+          const resolveGravityValue = (candidate, fallback = -9.8) => {
+            if (candidate instanceof THREE.Vector3) {
+              return candidate.clone();
+            }
+            if (Array.isArray(candidate) && candidate.length >= 3 && candidate.every((axis) => Number.isFinite(axis))) {
+              return new THREE.Vector3(candidate[0], candidate[1], candidate[2]);
+            }
+            return Number.isFinite(candidate) ? Number(candidate) : fallback;
+          };
+          const manifestGravity = resolveGravityValue(item.gravity, resolveGravityValue(colliderConfig?.gravity, -9.8));
+          const manifestKinetic = item.kinetic === true || colliderConfig?.kinetic === true;
+          if (colliderConfig && Number.isFinite(manifestMass)) {
             mesh.userData.collider = this.buildManifestCollider(colliderConfig, new THREE.Vector3(...(item.position ?? [0, 0, 0])), this.sceneLoader.toVector3(item.size, new THREE.Vector3(1, 1, 1))).collider;
             this.registerDynamicRigidbody(mesh, {
-              mass: item.mass,
-              gravity: Number.isFinite(item.gravity) ? Number(item.gravity) : -9.8,
+              mass: manifestMass,
+              gravity: manifestGravity,
               physicsMaterial: colliderConfig.physicsMaterial ?? 'bouncy',
               restitution: Number.isFinite(colliderConfig.restitution) ? colliderConfig.restitution : undefined,
-              kinetic: item.kinetic === true || colliderConfig.kinetic === true,
+              kinetic: manifestKinetic,
             });
           }
           if (item.clickable) {
@@ -1014,6 +1074,7 @@ export class ThirdPersonControllerApp {
                 });
           model.userData.gameObjectId = item.gameObjectId ?? item.id ?? null;
           model.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
+          model.userData.respawnPosition = model.position.clone();
           model.rotation.set(
             THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
             THREE.MathUtils.degToRad(item.rotation?.[1] ?? 0),
@@ -1048,7 +1109,10 @@ export class ThirdPersonControllerApp {
     const respawnConfig = this.currentManifest.respawn ?? {};
     const items = this.currentManifest.objects ?? [];
 
-    this.respawnY = Number.isFinite(respawnConfig.fallBelowY) ? respawnConfig.fallBelowY : -1000;
+    this.sceneFloor = this.resolveSceneFloor(this.currentManifest);
+    this.respawnY = Number.isFinite(respawnConfig.fallBelowY)
+      ? respawnConfig.fallBelowY
+      : this.sceneFloor;
     this.debugDisplay.setEnabled(debugConfig.enabled === true);
 
     this.renderer.xr.enabled = true;

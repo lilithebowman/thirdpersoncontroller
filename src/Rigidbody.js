@@ -26,7 +26,13 @@ export class Rigidbody {
     kinetic = false,
   } = {}) {
     this.mass = Math.max(0.0001, mass);
-    this.gravity = Number.isFinite(gravity) ? Number(gravity) : (gravity instanceof THREE.Vector3 ? gravity.clone() : new THREE.Vector3(0, -24, 0));
+    this.gravity = Number.isFinite(gravity)
+      ? Number(gravity)
+      : (gravity instanceof THREE.Vector3
+        ? gravity.clone()
+        : (Array.isArray(gravity) && gravity.length >= 3 && gravity.every((axis) => Number.isFinite(axis))
+          ? new THREE.Vector3(gravity[0], gravity[1], gravity[2])
+          : new THREE.Vector3(0, -24, 0)));
     this.gravityVector = this.getGravityVector();
     this.linearDamping = Math.max(0, linearDamping);
     this.enablePhysicsCollision = enablePhysicsCollision === true;
@@ -40,7 +46,7 @@ export class Rigidbody {
 
     this.velocity = new THREE.Vector3();
     this.accumulatedForce = new THREE.Vector3();
-    this.useGravity = true;
+    this.useGravity = this.hasGravity();
 
     this._tmpForce = new THREE.Vector3();
     this._tmpAcceleration = new THREE.Vector3();
@@ -65,8 +71,40 @@ export class Rigidbody {
     return Number.isFinite(restitutionByMaterial[normalized]) ? restitutionByMaterial[normalized] : 0;
   }
 
+  hasGravity() {
+    if (this.gravity == null) {
+      return false;
+    }
+
+    if (Number.isFinite(this.gravity)) {
+      return this.gravity !== 0;
+    }
+
+    if (this.gravity instanceof THREE.Vector3) {
+      return this.gravity.lengthSq() > 0;
+    }
+
+    return false;
+  }
+
   addForce(force) {
-    this.accumulatedForce.add(force);
+    if (force == null) {
+      return;
+    }
+
+    if (Array.isArray(force)) {
+      this.accumulatedForce.add(new THREE.Vector3(force[0] ?? 0, force[1] ?? 0, force[2] ?? 0));
+      return;
+    }
+
+    if (force instanceof THREE.Vector3) {
+      this.accumulatedForce.add(force);
+      return;
+    }
+
+    if (typeof force === 'object' && 'x' in force && 'y' in force && 'z' in force) {
+      this.accumulatedForce.add(new THREE.Vector3(force.x ?? 0, force.y ?? 0, force.z ?? 0));
+    }
   }
 
   addImpulse(impulse) {

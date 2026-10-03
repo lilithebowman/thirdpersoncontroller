@@ -53,6 +53,19 @@ test('Rigidbody supports numeric gravity and kinetic collision force registratio
   assert.ok(rb.velocity.x > 0);
 });
 
+test('Rigidbody disables gravity when gravity is explicitly zero and still moves with kinetic forces', () => {
+  const rb = new Rigidbody({ gravity: new THREE.Vector3(0, 0, 0), kinetic: true, mass: 2 });
+  const position = new THREE.Vector3(0, 0, 0);
+
+  assert.strictEqual(rb.useGravity, false);
+
+  rb.addForce(new THREE.Vector3(12, 0, 0));
+  rb.integrate(position, 0.5, { groundY: -Infinity });
+
+  assert.ok(position.x > 0);
+  assert.ok(rb.velocity.x > 0);
+});
+
 test('Rigidbody resolves collisions against MeshCollider walls', () => {
   const rb = new Rigidbody({ mass: 1, gravity: new THREE.Vector3(0, 0, 0), enablePhysicsCollision: true });
   const playerCollider = new BoxCollider({ size: new THREE.Vector3(1, 1, 1), offset: new THREE.Vector3(0, 0.5, 0) });
