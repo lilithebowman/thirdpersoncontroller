@@ -261,12 +261,13 @@ export class ThirdPersonControllerApp {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'voice-toggle-button';
-    button.setAttribute('aria-label', 'Toggle voice chat mute');
+    button.setAttribute('aria-label', 'Voice chat enabled');
     button.addEventListener('click', () => {
       this.voiceChatService?.toggleMuted();
     });
+    this.voiceMuteButton = button;
     this.app.appendChild(button);
-    this.updateVoiceMuteButton(this.voiceChatService?.isMuted ?? false);
+    this.updateVoiceMuteButton(false);
     return button;
   }
 
@@ -276,9 +277,10 @@ export class ThirdPersonControllerApp {
     }
 
     const muted = Boolean(isMuted);
-    this.voiceMuteButton.textContent = muted ? '🔇 Voice Off' : '🔊 Voice On';
+    this.voiceMuteButton.textContent = muted ? '🔇' : '🔊';
     this.voiceMuteButton.classList.toggle('is-muted', muted);
     this.voiceMuteButton.setAttribute('aria-pressed', String(muted));
+    this.voiceMuteButton.setAttribute('aria-label', muted ? 'Voice chat muted' : 'Voice chat enabled');
   }
 
   onPointerLockChange() {

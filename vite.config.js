@@ -149,7 +149,14 @@ export default defineConfig(({ mode }) => {
         .filter(Boolean)
     : [];
 
-  const appHost = env.APP_HOST || '';
+  const appHostCandidates = env.APP_HOST
+    ? env.APP_HOST.split(',')
+        .map((h) => h.trim())
+        .filter(Boolean)
+    : [];
+
+  const appHost = appHostCandidates.find((host) => host && host !== '0.0.0.0' && !host.includes(' '))
+    ?? 'localhost';
 
   return {
     plugins: [
