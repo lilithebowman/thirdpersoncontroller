@@ -13,6 +13,8 @@
 import * as THREE from 'three';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { Animator } from './Animator.js';
+import { PlayerAnimationController } from './PlayerAnimationController.js';
+import { QuaternionController } from './QuaternionController.js';
 import { KeyboardInput } from './KeyboardInput.js';
 import { MouseInput } from './MouseInput.js';
 import { DebugDisplay } from './DebugDisplay.js';
@@ -20,6 +22,7 @@ import { Rigidbody } from './Rigidbody.js';
 import { Force } from './Force.js';
 import { BoxCollider } from './BoxCollider.js';
 import { SphereCollider } from './SphereCollider.js';
+import { CapsuleCollider } from './CapsuleCollider.js';
 import { MeshCollider } from './MeshCollider.js';
 import { PerformanceMonitor } from './PerformanceMonitor.js';
 import { GameMenu } from './GameMenu.js';
@@ -85,6 +88,8 @@ export class ThirdPersonControllerApp {
 
     this.cameraController = new CameraController({ camera: this.camera });
     this.playerCharacter = new PlayerCharacter({ animator: this.animator });
+    this.playerAnimationController = new PlayerAnimationController({ animator: this.animator });
+    this.playerRotationController = new QuaternionController({ yaw: 0, lerpFactor: 0.12 });
     this.playerModel = null;
     this.sceneLoader = new SceneLoader({
       scene: this.scene,
@@ -136,9 +141,10 @@ export class ThirdPersonControllerApp {
       linearDamping: 0,
       enablePhysicsCollision: true,
     });
-    this.playerCollider = new BoxCollider({
-      size: new THREE.Vector3(0.9, 1.9, 0.9),
-      offset: new THREE.Vector3(0, 0.95, 0),
+    this.playerCollider = new CapsuleCollider({
+      radius: 0.45,
+      height: 1.7,
+      offset: new THREE.Vector3(0, 0.85, 0),
       physicsCollision: true,
       maxWalkableSlope: 0.2,
     });
@@ -376,10 +382,11 @@ export class ThirdPersonControllerApp {
     this.playerCharacter.spawn(this.scene, spawnPosition);
     this.playerYaw = this.cameraController ? this.cameraController.state.yaw : 0;
     this.playerTargetYaw = this.playerYaw;
-    this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
+    this.playerRotationController.setYaw(this.playerYaw);
+    this.playerRotationQuaternion.copy(this.playerRotationController.quaternion);
     this.playerCharacter.root.quaternion.copy(this.playerRotationQuaternion);
     this.playerRigidbody.velocity.set(0, 0, 0);
-    this.animator.resetActions();
+    this.playerAnimationController.reset();
 
     if (!this.localSpeakerSprite) {
       this.localSpeakerSprite = this.createSpeakerSprite();
@@ -951,17 +958,23 @@ export class ThirdPersonControllerApp {
     if (isPresenting) {
       this.playerYaw = THREE.MathUtils.euclideanModulo(viewYaw + Math.PI + Math.PI, Math.PI * 2) - Math.PI;
       this.playerTargetYaw = this.playerYaw;
+      this.playerRotationController.setYaw(this.playerYaw);
     } else if (this.cameraController.isFirstPerson()) {
       this.playerYaw = THREE.MathUtils.euclideanModulo(this.cameraController.state.yaw + Math.PI + Math.PI, Math.PI * 2) - Math.PI;
       this.playerTargetYaw = this.playerYaw;
+      this.playerRotationController.setYaw(this.playerYaw);
     } else {
-      const yawDelta = this.playerTargetYaw - this.playerYaw;
-      const shortestDelta = ((yawDelta + Math.PI) % (Math.PI * 2)) - Math.PI;
-      const yawStep = shortestDelta * Math.min(1, delta * this.playerState.rotationSpeed);
-      this.playerYaw = THREE.MathUtils.euclideanModulo(this.playerYaw + yawStep + Math.PI, Math.PI * 2) - Math.PI;
+      this.playerRotationController.targetYaw = this.playerTargetYaw;
+      this.playerRotationController.update(delta * 0.9);
+      this.playerYaw = this.playerRotationController.yaw;
+      this.playerTargetYaw = this.playerRotationController.targetYaw;
     }
 
-    this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
+    if (!isPresenting && !this.cameraController.isFirstPerson()) {
+      this.playerRotationQuaternion.copy(this.playerRotationController.quaternion);
+    } else {
+      this.playerRotationQuaternion.setFromAxisAngle(this.playerRotationAxis, this.playerYaw);
+    }
     playerRoot.quaternion.copy(this.playerRotationQuaternion);
 
     this.isGrounded = this.playerRigidbody.integrate(playerRoot.position, delta, {
@@ -991,12 +1004,14 @@ export class ThirdPersonControllerApp {
   }
 
   updatePlayerAnimation(delta) {
-    this.animator.update(delta, {
+    this.playerAnimationController.update(delta, {
       isGrounded: this.isGrounded,
       hasMoveInput: this.hasMoveInput,
       isSprinting: this.keyboardInput.isDown('ShiftLeft') || this.keyboardInput.isDown('ShiftRight'),
       walkSpeed: this.playerState.speed,
       sprintSpeed: this.playerState.sprintSpeed,
+      verticalVelocity: this.playerRigidbody?.velocity?.y ?? 0,
+      isFalling: !this.isGrounded && (this.playerRigidbody?.velocity?.y ?? 0) < 0,
     });
   }
 

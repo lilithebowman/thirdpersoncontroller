@@ -46,10 +46,16 @@ export class Animator {
     this.walkClip = null;
     this.idleClip = null;
     this.jumpClip = null;
+    this.runClip = null;
+    this.fallClip = null;
+    this.landClip = null;
     this.sceneAnimationClips = {
       walkClip: null,
       idleClip: null,
       jumpClip: null,
+      runClip: null,
+      fallClip: null,
+      landClip: null,
     };
 
     /**
@@ -59,6 +65,9 @@ export class Animator {
     this.walkAction = null;
     this.idleAction = null;
     this.jumpAction = null;
+    this.runAction = null;
+    this.fallAction = null;
+    this.landAction = null;
 
     /**
      * Default player animation/model configuration.
@@ -69,12 +78,18 @@ export class Animator {
       walkPath: '/animations/Action%20Adventure%20Pack/walking.fbx',
       idlePath: '/animations/Action%20Adventure%20Pack/idle.fbx',
       jumpPath: '/animations/Action%20Adventure%20Pack/jumping up.fbx',
+      runPath: '/animations/Action%20Adventure%20Pack/running.fbx',
+      fallPath: '/animations/Action%20Adventure%20Pack/falling idle.fbx',
+      landPath: '/animations/Action%20Adventure%20Pack/hard landing.fbx',
       modelScale: new THREE.Vector3(0.01, 0.01, 0.01),
       modelRotationDegrees: new THREE.Vector3(0, 0, 0),
       modelOffset: new THREE.Vector3(0, 0, 0),
       walkClipName: null,
       idleClipName: null,
       jumpClipName: null,
+      runClipName: null,
+      fallClipName: null,
+      landClipName: null,
       resolvedBasePath: '/scene-manifest.json',
     };
   }
@@ -149,6 +164,15 @@ export class Animator {
     const configuredJumpPath = typeof modelConfig.jumpPath === 'string' && modelConfig.jumpPath.trim()
       ? modelConfig.jumpPath.trim()
       : '/animations/Action%20Adventure%20Pack/jumping up.fbx';
+    const configuredRunPath = typeof modelConfig.runPath === 'string' && modelConfig.runPath.trim()
+      ? modelConfig.runPath.trim()
+      : '/animations/Action%20Adventure%20Pack/running.fbx';
+    const configuredFallPath = typeof modelConfig.fallPath === 'string' && modelConfig.fallPath.trim()
+      ? modelConfig.fallPath.trim()
+      : '/animations/Action%20Adventure%20Pack/falling idle.fbx';
+    const configuredLandPath = typeof modelConfig.landPath === 'string' && modelConfig.landPath.trim()
+      ? modelConfig.landPath.trim()
+      : '/animations/Action%20Adventure%20Pack/hard landing.fbx';
 
     /* Apply the resolved model configuration to the animator. */
     this.modelConfig = {
@@ -156,6 +180,9 @@ export class Animator {
       walkPath: configuredWalkPath,
       idlePath: configuredIdlePath,
       jumpPath: configuredJumpPath,
+      runPath: configuredRunPath,
+      fallPath: configuredFallPath,
+      landPath: configuredLandPath,
       modelScale: this.toVector3(modelConfig.scale, new THREE.Vector3(0.01, 0.01, 0.01)),
       modelRotationDegrees: this.toVector3(modelConfig.rotation, new THREE.Vector3(0, 0, 0)),
       modelOffset: this.toVector3(modelConfig.offset, new THREE.Vector3(0, 0, 0)),
@@ -167,6 +194,15 @@ export class Animator {
         : null,
       jumpClipName: typeof modelConfig.jumpClipName === 'string' && modelConfig.jumpClipName.trim()
         ? modelConfig.jumpClipName.trim()
+        : null,
+      runClipName: typeof modelConfig.runClipName === 'string' && modelConfig.runClipName.trim()
+        ? modelConfig.runClipName.trim()
+        : null,
+      fallClipName: typeof modelConfig.fallClipName === 'string' && modelConfig.fallClipName.trim()
+        ? modelConfig.fallClipName.trim()
+        : null,
+      landClipName: typeof modelConfig.landClipName === 'string' && modelConfig.landClipName.trim()
+        ? modelConfig.landClipName.trim()
         : null,
       resolvedBasePath: basePath,
     };
@@ -238,12 +274,22 @@ export class Animator {
     let walkAction = null;
     let idleAction = null;
     let jumpAction = null;
+    let runAction = null;
+    let fallAction = null;
+    let landAction = null;
 
     const clips = useCustomRigAnimations
-      ? { walkClip: this.walkClip, idleClip: this.idleClip, jumpClip: this.jumpClip }
-      : { walkClip: null, idleClip: null, jumpClip: null };
+      ? {
+          walkClip: this.walkClip,
+          idleClip: this.idleClip,
+          jumpClip: this.jumpClip,
+          runClip: this.runClip,
+          fallClip: this.fallClip,
+          landClip: this.landClip,
+        }
+      : { walkClip: null, idleClip: null, jumpClip: null, runClip: null, fallClip: null, landClip: null };
 
-    if (clips.walkClip || clips.idleClip || clips.jumpClip) {
+    if (clips.walkClip || clips.idleClip || clips.jumpClip || clips.runClip || clips.fallClip || clips.landClip) {
       mixer = new THREE.AnimationMixer(visual);
 
       if (clips.walkClip) {
@@ -267,9 +313,30 @@ export class Animator {
         jumpAction.setEffectiveWeight(0);
         jumpAction.clampWhenFinished = false;
       }
+
+      if (clips.runClip) {
+        runAction = mixer.clipAction(clips.runClip);
+        runAction.play();
+        runAction.enabled = true;
+        runAction.setEffectiveWeight(0);
+      }
+
+      if (clips.fallClip) {
+        fallAction = mixer.clipAction(clips.fallClip);
+        fallAction.play();
+        fallAction.enabled = true;
+        fallAction.setEffectiveWeight(0);
+      }
+
+      if (clips.landClip) {
+        landAction = mixer.clipAction(clips.landClip);
+        landAction.play();
+        landAction.enabled = true;
+        landAction.setEffectiveWeight(0);
+      }
     }
 
-    return { visual, mixer, walkAction, idleAction, jumpAction };
+    return { visual, mixer, walkAction, idleAction, jumpAction, runAction, fallAction, landAction };
   }
 
   resolveAnimationClips(asset) {
@@ -489,71 +556,10 @@ export class Animator {
     this.walkAction = res.walkAction;
     this.idleAction = res.idleAction;
     this.jumpAction = res.jumpAction;
+    this.runAction = res.runAction;
+    this.fallAction = res.fallAction;
+    this.landAction = res.landAction;
     return res.visual;
-  }
-
-  resetActions() {
-    if (this.mixer) {
-      this.mixer.setTime(0);
-    }
-
-    if (this.walkAction) {
-      this.walkAction.setEffectiveWeight(0);
-      this.walkAction.time = 0;
-    }
-
-    if (this.idleAction) {
-      this.idleAction.setEffectiveWeight(1);
-      this.idleAction.time = 0;
-    }
-
-    if (this.jumpAction) {
-      this.jumpAction.setEffectiveWeight(0);
-      this.jumpAction.time = 0;
-    }
-  }
-
-  update(delta, {
-    isGrounded,
-    hasMoveInput,
-    isSprinting,
-    walkSpeed,
-    sprintSpeed,
-  }) {
-    if (!this.mixer) {
-      return;
-    }
-
-    const airborneBlendTarget = isGrounded ? 0 : 1;
-    let currentJumpWeight = 0;
-    if (this.jumpAction) {
-      currentJumpWeight = this.jumpAction.getEffectiveWeight();
-      const jumpBlendFactor = Math.min(1, delta * 12);
-      const nextJumpWeight = THREE.MathUtils.lerp(currentJumpWeight, airborneBlendTarget, jumpBlendFactor);
-      this.jumpAction.setEffectiveWeight(nextJumpWeight);
-      currentJumpWeight = nextJumpWeight;
-    }
-
-    if (this.walkAction) {
-      const safeWalkSpeed = Math.max(walkSpeed, 0.01);
-      const sprintMultiplier = sprintSpeed / safeWalkSpeed;
-      this.walkAction.setEffectiveTimeScale(isSprinting ? sprintMultiplier : 1);
-
-      const targetWalkWeight = hasMoveInput ? 1 : 0;
-      const currentWalkWeight = this.walkAction.getEffectiveWeight();
-      const blendFactor = Math.min(1, delta * 10);
-      const nextWalkWeight = THREE.MathUtils.lerp(currentWalkWeight, targetWalkWeight, blendFactor);
-
-      const groundedWeightScale = 1 - currentJumpWeight;
-      this.walkAction.setEffectiveWeight(nextWalkWeight * groundedWeightScale);
-      if (this.idleAction) {
-        this.idleAction.setEffectiveWeight((1 - nextWalkWeight) * groundedWeightScale);
-      }
-    } else if (this.idleAction) {
-      this.idleAction.setEffectiveWeight(1 - currentJumpWeight);
-    }
-
-    this.mixer.update(delta);
   }
 
   async preload() {
@@ -561,16 +567,25 @@ export class Animator {
     this.walkClip = null;
     this.idleClip = null;
     this.jumpClip = null;
+    this.runClip = null;
+    this.fallClip = null;
+    this.landClip = null;
 
     const {
       rigPath,
       walkPath,
       idlePath,
       jumpPath,
+      runPath,
+      fallPath,
+      landPath,
       resolvedBasePath,
       walkClipName,
       idleClipName,
       jumpClipName,
+      runClipName,
+      fallClipName,
+      landClipName,
     } = this.modelConfig;
 
     if (!rigPath) {
@@ -603,6 +618,9 @@ export class Animator {
       const rigWalkClip = this.findAnimationClip(rigClips, walkClipName, /walk/i);
       const rigIdleClip = this.findAnimationClip(rigClips, idleClipName, /idle/i);
       const rigJumpClip = this.findAnimationClip(rigClips, jumpClipName, /jump/i);
+      const rigRunClip = this.findAnimationClip(rigClips, runClipName, /run|sprint/i);
+      const rigFallClip = this.findAnimationClip(rigClips, fallClipName, /fall|drop/i);
+      const rigLandClip = this.findAnimationClip(rigClips, landClipName, /land|landing|hard/i);
 
       this.walkClip = this.prepareClipForRig(rigWalkClip, rigNodeNames, rigNodeNameMap, 'rig walk', {
         preferBoneTracks: true,
@@ -621,6 +639,24 @@ export class Animator {
         rigBoneNames,
         stripRootPosition: true,
         minQuaternionTracks: 8,
+      });
+
+      this.runClip = this.prepareClipForRig(rigRunClip, rigNodeNames, rigNodeNameMap, 'rig run', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
+      });
+
+      this.fallClip = this.prepareClipForRig(rigFallClip, rigNodeNames, rigNodeNameMap, 'rig fall', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
+      });
+
+      this.landClip = this.prepareClipForRig(rigLandClip, rigNodeNames, rigNodeNameMap, 'rig land', {
+        preferBoneTracks: true,
+        rigBoneNames,
+        stripRootPosition: true,
       });
 
       if (walkPath) {
@@ -687,6 +723,34 @@ export class Animator {
         }
       }
 
+      const externalStateLoads = [
+        { key: 'runClip', path: runPath, name: runClipName, pattern: /run|sprint/i, warning: `run animation ${runPath}` },
+        { key: 'fallClip', path: fallPath, name: fallClipName, pattern: /fall|drop/i, warning: `fall animation ${fallPath}` },
+        { key: 'landClip', path: landPath, name: landClipName, pattern: /land|landing|hard/i, warning: `landing animation ${landPath}` },
+      ];
+
+      for (const stateLoad of externalStateLoads) {
+        if (!stateLoad.path) {
+          continue;
+        }
+        try {
+          const stateAsset = await this.loadFbxAsset(loader, stateLoad.path, resolvedBasePath);
+          const clips = Array.isArray(stateAsset.asset.animations) ? stateAsset.asset.animations : [];
+          const externalClip = this.findAnimationClip(clips, stateLoad.name, stateLoad.pattern);
+          const preparedClip = this.prepareClipForRig(externalClip, rigNodeNames, rigNodeNameMap, `external ${stateLoad.key}`, {
+            preferBoneTracks: true,
+            rigBoneNames,
+            stripRootPosition: true,
+            minQuaternionTracks: 8,
+          });
+          if (preparedClip) {
+            this[stateLoad.key] = preparedClip;
+          }
+        } catch (error) {
+          this.warn(`Failed to load ${stateLoad.warning}. ${error?.message ?? error}`);
+        }
+      }
+
       if (!this.walkClip && this.idleClip) {
         this.walkClip = this.idleClip;
       }
@@ -699,12 +763,27 @@ export class Animator {
         this.jumpClip = this.walkClip;
       }
 
-      this.log(`Player clips: walk=${this.walkClip?.name ?? 'none'}, idle=${this.idleClip?.name ?? 'none'}, jump=${this.jumpClip?.name ?? 'none'}`);
+      if (!this.runClip && this.walkClip) {
+        this.runClip = this.walkClip;
+      }
+
+      if (!this.fallClip && this.jumpClip) {
+        this.fallClip = this.jumpClip;
+      }
+
+      if (!this.landClip && this.jumpClip) {
+        this.landClip = this.jumpClip;
+      }
+
+      this.log(`Player clips: walk=${this.walkClip?.name ?? 'none'}, idle=${this.idleClip?.name ?? 'none'}, jump=${this.jumpClip?.name ?? 'none'}, run=${this.runClip?.name ?? 'none'}, fall=${this.fallClip?.name ?? 'none'}, land=${this.landClip?.name ?? 'none'}`);
 
       this.sceneAnimationClips = {
         walkClip: this.walkClip,
         idleClip: this.idleClip,
         jumpClip: this.jumpClip,
+        runClip: this.runClip,
+        fallClip: this.fallClip,
+        landClip: this.landClip,
       };
 
       if (!this.modelTemplate) {

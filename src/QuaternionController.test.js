@@ -21,3 +21,11 @@ test('QuaternionController tracks and updates yaw correctly', () => {
   controller.applyTo(group);
   assert.ok(group.quaternion instanceof THREE.Quaternion);
 });
+
+test('QuaternionController chooses the shortest yaw path across the 0/360 boundary', () => {
+  const controller = new QuaternionController({ yaw: 0 });
+  controller.targetYaw = Math.PI * 2 - 0.05;
+  controller.update(1);
+
+  assert.ok(Math.abs(controller.yaw) < 0.1);
+});
