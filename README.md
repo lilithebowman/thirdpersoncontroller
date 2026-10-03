@@ -6,8 +6,9 @@ This project is a browser-based 3D demo and editor for a third-person controller
 
 - Renders a playable third-person controller scene at `/`
 - Provides a scene editor at `/editor`
+- Adds an Animation Editor mode with a bottom timeline and `.anim` export/import support
 - Lets you create and manipulate `gameObjects` with transforms and components
-- Supports lights, primitives, and OBJ/GLB/FBX model instances in the scene graph
+- Supports lights, primitives, OBJ/GLB/FBX model instances, and animation components in the scene graph
 - Exports or downloads JSON that matches the runtime manifest contract
 - Loads a scene from `public/scene-manifest.json`
 
@@ -21,6 +22,7 @@ This project is a browser-based 3D demo and editor for a third-person controller
 - Primitive creation (`box`, `cube`, `cylinder`, floor-like shapes)
 - OBJ/MTL, GLB, and FBX asset loading and placement from manifest data
 - Clickable interaction components for hover outline, teleport, and link-driven scene navigation
+- Animation Editor timeline for track-by-track GameObject property keyframing and `.anim` export/import
 - Copy/download scene JSON output for re-use in the runtime app
 
 ## Run locally
@@ -112,17 +114,19 @@ This is the shape the runtime expects:
 - Primitive items are created as a `GameObject` whose component is a `primitive`
 - Legacy flat `objects` entries are kept only for backward compatibility and should not be treated as the main export format
 - `modelType: "glb"` and `modelType: "fbx"` are supported alongside `modelType: "obj"` for runtime/editor loading
+- `type: "animation"` is a supported scene component for `.anim` JSON references and should resolve to `animationPath` and metadata
 - The editor Copy/Download actions should write `gameObjects`-based JSON
 
-For full setup and collider examples, see [`SCENESETUP.md`](SCENESETUP.md).
+For full setup and collider examples, see [`SCENESETUP.md`](SCENESETUP.md). For animation authoring and file format details, see [`docs/ANIMATION_EDITOR.md`](docs/ANIMATION_EDITOR.md).
 
 ## Editor workflow
 
 1. Open `/editor`
 2. Add a primitive, OBJ, GLB, or FBX model from the toolbar
 3. Edit its transform and component values in the inspector
-4. Use Copy JSON or Download to export the current scene
-5. Reload the gameplay route or replace `public/scene-manifest.json` with the exported manifest
+4. Switch to Animation Editor to pick a GameObject/property, add keyframes, and export an `.anim` asset
+5. Use Copy JSON or Download to export the current scene, optionally including an `animation` component that points at the `.anim` file
+6. Reload the gameplay route or replace `public/scene-manifest.json` with the exported manifest
 
 ## Notes
 

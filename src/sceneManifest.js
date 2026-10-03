@@ -65,6 +65,38 @@ function normalizeClickableDistance(data, fallback = DEFAULT_CLICKABLE_DISTANCE)
   return Number.isFinite(candidate) && candidate > 0 ? candidate : fallback;
 }
 
+function normalizeAnimationComponent(component) {
+  const normalized = cloneValue(component) ?? {};
+  const animationPath = typeof normalized.animationPath === 'string' && normalized.animationPath.trim()
+    ? normalized.animationPath.trim()
+    : typeof normalized.path === 'string' && normalized.path.trim()
+      ? normalized.path.trim()
+      : '';
+
+  normalized.type = 'animation';
+  normalized.animationPath = animationPath || (typeof normalized.uri === 'string' && normalized.uri.trim() ? normalized.uri.trim() : undefined);
+  normalized.animationName = typeof normalized.animationName === 'string' && normalized.animationName.trim()
+    ? normalized.animationName.trim()
+    : typeof normalized.name === 'string' && normalized.name.trim()
+      ? normalized.name.trim()
+      : animationPath ? animationPath.split(/[\\/]/).pop()?.replace(/\.anim$/i, '') ?? 'animation' : 'animation';
+  normalized.duration = Number.isFinite(normalized.duration) ? normalized.duration : 0;
+  normalized.loop = normalized.loop !== false;
+  normalized.speed = Number.isFinite(normalized.speed) ? normalized.speed : 1;
+  normalized.enabled = normalized.enabled !== false;
+  if (Array.isArray(normalized.tracks)) {
+    normalized.tracks = normalized.tracks.map((track) => ({
+      gameObjectId: typeof track?.gameObjectId === 'string' ? track.gameObjectId : track?.id ?? 'unknown-game-object',
+      propertyPath: typeof track?.propertyPath === 'string' ? track.propertyPath : 'transform.position.x',
+      keyframes: Array.isArray(track?.keyframes) ? track.keyframes.map((keyframe) => ({
+        time: Number.isFinite(keyframe?.time) ? Number(keyframe.time) : 0,
+        value: keyframe?.value ?? 0,
+      })) : [],
+    }));
+  }
+  return normalized;
+}
+
 function normalizeComponent(component) {
   if (!component || typeof component !== 'object') {
     return null;
@@ -73,6 +105,10 @@ function normalizeComponent(component) {
   const normalized = cloneValue(component);
   if (!normalized.type) {
     normalized.type = 'script';
+  }
+
+  if (normalized.type === 'animation') {
+    return normalizeAnimationComponent(normalized);
   }
 
   if (normalized.type === 'clickable') {
@@ -212,6 +248,19 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
       type: 'scene',
       manifestPath: item.manifestPath ?? item.path ?? null,
       stream: cloneValue(item.stream) ?? undefined,
+    }));
+  }
+
+  if (item.type === 'animation' || item.animationPath || item.path?.endsWith?.('.anim') || item.uri?.endsWith?.('.anim')) {
+    gameObject.components.push(normalizeComponent({
+      type: 'animation',
+      animationPath: item.animationPath ?? item.path ?? item.uri ?? '',
+      animationName: item.animationName ?? item.name ?? undefined,
+      duration: Number.isFinite(item.duration) ? item.duration : undefined,
+      loop: item.loop !== false,
+      speed: Number.isFinite(item.speed) ? item.speed : 1,
+      tracks: Array.isArray(item.tracks) ? item.tracks : undefined,
+      enabled: item.enabled !== false,
     }));
   }
 
@@ -577,6 +626,23 @@ function gameObjectToLegacyItems(gameObject) {
         name: gameObject.name,
         manifestPath: component.manifestPath ?? undefined,
         stream: cloneValue(component.stream) ?? undefined,
+        position: transform.position ?? [0, 0, 0],
+        rotation: transform.rotation ?? [0, 0, 0],
+        scale: transform.scale ?? [1, 1, 1],
+      });
+      continue;
+    }
+
+    if (component.type === 'animation') {
+      legacyItems.push({
+        type: 'animation',
+        name: component.animationName ?? gameObject.name,
+        animationPath: component.animationPath ?? undefined,
+        animationName: component.animationName ?? undefined,
+        duration: Number.isFinite(component.duration) ? component.duration : undefined,
+        loop: component.loop !== false,
+        speed: Number.isFinite(component.speed) ? component.speed : 1,
+        tracks: cloneValue(component.tracks) ?? undefined,
         position: transform.position ?? [0, 0, 0],
         rotation: transform.rotation ?? [0, 0, 0],
         scale: transform.scale ?? [1, 1, 1],

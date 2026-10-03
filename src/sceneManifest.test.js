@@ -419,6 +419,35 @@ test('normalizeSceneManifest accepts legacy clickable items and converts them to
   assert.strictEqual(normalized.gameObjects[0].components[0].url, '/scenes/OtherScene.json');
 });
 
+test('normalizeSceneManifest supports animation components and keeps them in export output', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [{
+      id: 'anim-root',
+      name: 'Hero',
+      transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      components: [{
+        type: 'animation',
+        animationPath: '/animations/hero-idle.anim',
+        animationName: 'hero-idle',
+        loop: true,
+        speed: 1.25,
+      }],
+      children: []
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[0].type, 'animation');
+  assert.strictEqual(normalized.gameObjects[0].components[0].animationPath, '/animations/hero-idle.anim');
+  assert.strictEqual(normalized.objects[0].type, 'animation');
+  assert.strictEqual(normalized.objects[0].animationPath, '/animations/hero-idle.anim');
+
+  const exported = toExportManifest(sampleManifest);
+  assert.strictEqual(exported.gameObjects[0].components[0].type, 'animation');
+  assert.strictEqual(exported.gameObjects[0].components[0].animationPath, '/animations/hero-idle.anim');
+});
+
 test('toExportManifest emits GameObject-first JSON without legacy object entries', () => {
   const sampleManifest = {
     version: 2,

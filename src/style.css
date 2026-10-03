@@ -14,7 +14,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   height: 100%;
   overflow: hidden;
@@ -271,6 +272,7 @@ canvas {
     transform: scale(0.6);
     opacity: 0.4;
   }
+
   100% {
     transform: scale(1.2);
     opacity: 1;
@@ -312,7 +314,7 @@ canvas {
 
 .scene-editor-shell {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   width: 100%;
   height: 100%;
 }
@@ -378,6 +380,7 @@ canvas {
   grid-template-columns: minmax(260px, 300px) 1fr minmax(320px, 360px);
   grid-template-rows: 1fr;
   grid-auto-flow: column;
+  grid-row: 2;
   min-height: 0;
   width: 100%;
   height: 100%;
@@ -422,6 +425,102 @@ canvas {
   min-height: 0;
   overflow: auto;
   padding: 12px;
+}
+
+.scene-editor-animation-panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-row: 3;
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 12, 18, 0.82);
+}
+
+.scene-editor-animation-panel[hidden] {
+  display: none;
+}
+
+.scene-editor-animation-panel__body {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px;
+  min-height: 220px;
+}
+
+.scene-editor-animation-controls {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.scene-editor-animation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scene-editor-animation-timeline {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+}
+
+.scene-editor-animation-timeline__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(233, 246, 255, 0.72);
+}
+
+.scene-editor-animation-list {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.scene-editor-animation-track {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.scene-editor-animation-track__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 0.76rem;
+  color: rgba(233, 246, 255, 0.76);
+}
+
+.scene-editor-animation-keyframes {
+  display: grid;
+  gap: 6px;
+}
+
+.scene-editor-animation-keyframe-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(120, 174, 220, 0.08);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.72rem;
+}
+
+.scene-editor-empty-state--compact {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.72rem;
 }
 
 .scene-editor-viewport {

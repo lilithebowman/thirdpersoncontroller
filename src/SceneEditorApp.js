@@ -25,6 +25,15 @@ import { Loader } from './Loader.js';
 import { assetMetaService } from './AssetMetaService.js';
 import { MaterialRenderService } from './MaterialRenderService.js';
 
+export function resolveModeSelection(currentMode, requestedMode) {
+  const nextRequestedMode = requestedMode === 'animation' ? 'animation' : 'scene';
+  if (nextRequestedMode === 'animation' && currentMode === 'animation') {
+    return 'scene';
+  }
+
+  return nextRequestedMode;
+}
+
 export class SceneEditorApp {
   constructor({ mountSelector = '#app', manifestPath = '/scene-manifest.json' } = {}) {
     this.mountSelector = mountSelector;
@@ -47,7 +56,20 @@ export class SceneEditorApp {
     this.toolbarRoot = this.mount.querySelector('[data-role="toolbar-root"]');
     this.statusRoot = this.mount.querySelector('[data-role="status-root"]');
     this.jsonInput = this.mount.querySelector('[data-role="json-input"]');
+    this.animationInput = this.mount.querySelector('[data-role="animation-input"]');
+    this.animationPanel = this.mount.querySelector('[data-role="animation-panel"]');
+    this.animationTrackRoot = this.mount.querySelector('[data-role="animation-track-root"]');
+    this.animationListRoot = this.mount.querySelector('[data-role="animation-list-root"]');
+    this.animationNameInput = this.mount.querySelector('[data-role="animation-name-input"]');
+    this.animationTimeInput = this.mount.querySelector('[data-role="animation-time-input"]');
+    this.animationValueInput = this.mount.querySelector('[data-role="animation-value-input"]');
+    this.animationObjectSelect = this.mount.querySelector('[data-role="animation-object-select"]');
+    this.animationPropertySelect = this.mount.querySelector('[data-role="animation-property-select"]');
     this.hierarchyContextMenuRoot = this.mount.querySelector('[data-role="hierarchy-context-menu"]');
+    if (this.animationPanel) {
+      this.animationPanel.hidden = true;
+      this.animationPanel.setAttribute('hidden', 'hidden');
+    }
 
     this.loader = new Loader({
       mountElement: this.app,
@@ -118,6 +140,10 @@ export class SceneEditorApp {
     this.gameObjectOrder = [];
     this.currentManifest = normalizeSceneManifest({});
     this.selectedNode = null;
+    this.editorMode = 'scene';
+    this.animationTracks = [];
+    this.animationSelectedObjectId = null;
+    this.animationSelectedProperty = 'transform.position.x';
     this.activeTransformMode = 'translate';
     this.undoStack = [];
     this.redoStack = [];
@@ -143,6 +169,7 @@ export class SceneEditorApp {
     this.setTransformMode('translate');
     this.bindToolbarActions();
     this.bindHierarchyContextMenuActions();
+    this.setEditorMode('scene');
   }
 
   createShell() {
@@ -155,6 +182,8 @@ export class SceneEditorApp {
           <span>Hierarchy, scene, and inspector</span>
         </div>
         <div class="scene-editor-toolbar__actions">
+          <button type="button" data-action="mode-scene" class="is-active">Scene Editor</button>
+          <button type="button" data-action="mode-animation">Animation Editor</button>
           <button type="button" data-action="undo">Undo</button>
           <button type="button" data-action="redo">Redo</button>
           <button type="button" data-action="add-obj">Add OBJ</button>
@@ -188,6 +217,49 @@ export class SceneEditorApp {
           <div class="scene-editor-panel__body" data-role="inspector-root"></div>
         </aside>
       </main>
+      <section class="scene-editor-animation-panel" data-role="animation-panel" hidden>
+        <div class="scene-editor-panel__header">
+          <h2>Animation Editor</h2>
+          <span data-role="animation-status">Timeline ready</span>
+        </div>
+        <div class="scene-editor-animation-panel__body">
+          <div class="scene-editor-animation-controls">
+            <label class="scene-editor-field">
+              <span>Name</span>
+              <input data-role="animation-name-input" type="text" value="untitled-animation" />
+            </label>
+            <label class="scene-editor-field">
+              <span>GameObject</span>
+              <select data-role="animation-object-select"></select>
+            </label>
+            <label class="scene-editor-field">
+              <span>Property</span>
+              <select data-role="animation-property-select"></select>
+            </label>
+            <label class="scene-editor-field">
+              <span>Time (s)</span>
+              <input data-role="animation-time-input" type="number" min="0" step="0.1" value="0" />
+            </label>
+            <label class="scene-editor-field">
+              <span>Value</span>
+              <input data-role="animation-value-input" type="number" step="0.1" value="0" />
+            </label>
+            <div class="scene-editor-animation-actions">
+              <button type="button" data-action="animation-add-keyframe">Add Keyframe</button>
+              <button type="button" data-action="animation-export">Export .anim</button>
+              <button type="button" data-action="animation-import">Import .anim</button>
+            </div>
+            <input data-role="animation-input" type="file" accept="application/json,.anim,.json" hidden />
+          </div>
+          <div class="scene-editor-animation-timeline" data-role="animation-track-root">
+            <div class="scene-editor-animation-timeline__header">
+              <span>Timeline</span>
+              <span data-role="animation-track-summary">0 tracks</span>
+            </div>
+            <div class="scene-editor-animation-list" data-role="animation-list-root"></div>
+          </div>
+        </div>
+      </section>
       <div class="scene-editor-context-menu" data-role="hierarchy-context-menu" hidden></div>
     `;
 
@@ -202,6 +274,8 @@ export class SceneEditorApp {
       }
 
       const action = button.dataset.action;
+      if (action === 'mode-scene') this.setEditorMode('scene');
+      if (action === 'mode-animation') this.setEditorMode(resolveModeSelection(this.editorMode, 'animation'));
       if (action === 'undo') this.undoHistory();
       if (action === 'redo') this.redoHistory();
       if (action === 'add-obj') await this.addGameObject('obj');
@@ -215,6 +289,9 @@ export class SceneEditorApp {
       if (action === 'copy') await this.copyManifestJson();
       if (action === 'download') this.downloadManifest();
       if (action === 'import-unity') this.jsonInput.click();
+      if (action === 'animation-add-keyframe') this.addAnimationKeyframe();
+      if (action === 'animation-export') this.exportAnimationJson();
+      if (action === 'animation-import') this.animationInput.click();
     });
 
     this.jsonInput.addEventListener('change', async () => {
@@ -231,6 +308,33 @@ export class SceneEditorApp {
       } catch (error) {
         this.setStatus(`Import failed: ${error?.message ?? error}`);
       }
+    });
+
+    this.animationInput.addEventListener('change', async () => {
+      const file = this.animationInput.files?.[0];
+      this.animationInput.value = '';
+      if (!file) {
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        this.loadAnimationJson(parsed);
+        this.setStatus(`Loaded animation ${parsed?.animationName ?? parsed?.name ?? file.name}.`);
+      } catch (error) {
+        this.setStatus(`Animation import failed: ${error?.message ?? error}`);
+      }
+    });
+
+    this.animationObjectSelect?.addEventListener('change', () => {
+      this.animationSelectedObjectId = this.animationObjectSelect.value || null;
+      this.refreshAnimationEditor();
+    });
+
+    this.animationPropertySelect?.addEventListener('change', () => {
+      this.animationSelectedProperty = this.animationPropertySelect.value || 'transform.position.x';
+      this.refreshAnimationEditor();
     });
   }
 
@@ -314,6 +418,215 @@ export class SceneEditorApp {
     }
   }
 
+  setEditorMode(mode) {
+    const nextMode = mode === 'animation' ? 'animation' : 'scene';
+    this.editorMode = nextMode;
+
+    const modeButtons = this.toolbarRoot?.querySelectorAll('button[data-action^="mode-"]');
+    modeButtons?.forEach((button) => {
+      const isActive = button.dataset.action === (nextMode === 'scene' ? 'mode-scene' : 'mode-animation');
+      button.classList.toggle('is-active', isActive);
+    });
+
+    if (this.animationPanel) {
+      const isHidden = nextMode !== 'animation';
+      this.animationPanel.hidden = isHidden;
+      this.animationPanel.toggleAttribute('hidden', isHidden);
+    }
+
+    if (nextMode === 'animation') {
+      this.refreshAnimationEditor();
+    }
+  }
+
+  getAnimationPropertyOptions() {
+    return [
+      'transform.position.x',
+      'transform.position.y',
+      'transform.position.z',
+      'transform.rotation.x',
+      'transform.rotation.y',
+      'transform.rotation.z',
+      'transform.scale.x',
+      'transform.scale.y',
+      'transform.scale.z',
+      'name',
+      'active',
+      'tag',
+      'layer',
+      'static',
+    ];
+  }
+
+  refreshAnimationEditor() {
+    if (!this.animationObjectSelect || !this.animationPropertySelect) {
+      return;
+    }
+
+    const records = this.currentManifest?.gameObjects ?? [];
+    const selectedGameObject = records.find((record) => record.id === this.animationSelectedObjectId)
+      ?? records[0]
+      ?? null;
+
+    if (this.animationSelectedObjectId !== selectedGameObject?.id) {
+      this.animationSelectedObjectId = selectedGameObject?.id ?? null;
+    }
+
+    const propertyOptions = this.getAnimationPropertyOptions();
+    this.animationPropertySelect.innerHTML = propertyOptions
+      .map((property) => `<option value="${property}" ${property === (this.animationSelectedProperty ?? 'transform.position.x') ? 'selected' : ''}>${property}</option>`)
+      .join('');
+
+    this.animationObjectSelect.innerHTML = records.length
+      ? records.map((record) => `<option value="${record.id}" ${record.id === this.animationSelectedObjectId ? 'selected' : ''}>${record.name}</option>`).join('')
+      : '<option value="">No GameObjects</option>';
+
+    if (!records.length) {
+      this.animationSelectedObjectId = null;
+      this.animationPropertySelect.disabled = true;
+      this.animationObjectSelect.disabled = true;
+      this.animationListRoot.innerHTML = '<div class="scene-editor-empty-state">Add a GameObject to the scene before authoring animation tracks.</div>';
+      return;
+    }
+
+    this.animationPropertySelect.disabled = false;
+    this.animationObjectSelect.disabled = false;
+
+    if (!this.animationSelectedObjectId && selectedGameObject) {
+      this.animationSelectedObjectId = selectedGameObject.id;
+    }
+
+    if (this.animationSelectedObjectId && !records.some((record) => record.id === this.animationSelectedObjectId)) {
+      this.animationSelectedObjectId = records[0].id;
+    }
+
+    if (this.animationSelectedObjectId) {
+      this.animationObjectSelect.value = this.animationSelectedObjectId;
+    }
+
+    if (this.animationSelectedProperty) {
+      this.animationPropertySelect.value = this.animationSelectedProperty;
+    }
+
+    this.renderAnimationTimeline();
+  }
+
+  renderAnimationTimeline() {
+    if (!this.animationListRoot) {
+      return;
+    }
+
+    const selectedGameObject = this.currentManifest?.gameObjects?.find((record) => record.id === this.animationSelectedObjectId) ?? null;
+    const currentTrack = this.animationTracks.filter((track) => track.gameObjectId === this.animationSelectedObjectId && track.propertyPath === this.animationSelectedProperty);
+    const trackEntries = currentTrack.length ? currentTrack : [{ gameObjectId: this.animationSelectedObjectId, propertyPath: this.animationSelectedProperty, keyframes: [] }];
+    const flattenedTracks = this.animationTracks.length > 0 ? this.animationTracks : trackEntries;
+
+    const totalKeyframes = flattenedTracks.reduce((count, track) => count + track.keyframes.length, 0);
+    if (this.animationTrackRoot) {
+      const summary = this.animationTrackRoot.querySelector('[data-role="animation-track-summary"]');
+      if (summary) {
+        summary.textContent = `${flattenedTracks.length} track${flattenedTracks.length === 1 ? '' : 's'} / ${totalKeyframes} keyframe${totalKeyframes === 1 ? '' : 's'}`;
+      }
+    }
+
+    if (!selectedGameObject && !flattenedTracks.length) {
+      this.animationListRoot.innerHTML = '<div class="scene-editor-empty-state">Choose a GameObject and a property to begin building the timeline.</div>';
+      return;
+    }
+
+    const rows = flattenedTracks.map((track) => {
+      const propertyDisplay = track.propertyPath || 'transform.position.x';
+      const keyframeRows = (track.keyframes ?? []).slice().sort((a, b) => (a.time ?? 0) - (b.time ?? 0)).map((keyframe) => `
+        <div class="scene-editor-animation-keyframe-row">
+          <span>${Number(keyframe.time ?? 0).toFixed(1)}s</span>
+          <span>${Number(keyframe.value ?? 0).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      const sender = this.currentManifest?.gameObjects?.find((record) => record.id === track.gameObjectId)?.name ?? 'GameObject';
+      return `
+        <div class="scene-editor-animation-track">
+          <div class="scene-editor-animation-track__header">
+            <strong>${sender}</strong>
+            <span>${propertyDisplay}</span>
+          </div>
+          <div class="scene-editor-animation-keyframes">${keyframeRows || '<span class="scene-editor-empty-state scene-editor-empty-state--compact">No keyframes yet</span>'}</div>
+        </div>
+      `;
+    }).join('');
+
+    this.animationListRoot.innerHTML = rows || '<div class="scene-editor-empty-state">No animation tracks created yet.</div>';
+  }
+
+  addAnimationKeyframe() {
+    if (!this.animationSelectedObjectId) {
+      this.setStatus('Select a GameObject before adding a keyframe.');
+      return;
+    }
+
+    const timeValue = Number(this.animationTimeInput?.value ?? 0);
+    const valueValue = Number(this.animationValueInput?.value ?? 0);
+    const trackKey = `${this.animationSelectedObjectId}::${this.animationSelectedProperty}`;
+    const nextTrack = this.animationTracks.find((track) => `${track.gameObjectId}::${track.propertyPath}` === trackKey)
+      ?? { gameObjectId: this.animationSelectedObjectId, propertyPath: this.animationSelectedProperty, keyframes: [] };
+
+    nextTrack.keyframes = [...(nextTrack.keyframes ?? []), { time: Number.isFinite(timeValue) ? timeValue : 0, value: Number.isFinite(valueValue) ? valueValue : 0 }];
+    nextTrack.keyframes.sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
+
+    const existingIndex = this.animationTracks.findIndex((track) => `${track.gameObjectId}::${track.propertyPath}` === trackKey);
+    if (existingIndex >= 0) {
+      this.animationTracks[existingIndex] = nextTrack;
+    } else {
+      this.animationTracks.push(nextTrack);
+    }
+
+    this.animationValueInput.value = '0';
+    this.animationTimeInput.value = String((Number(this.animationTimeInput.value ?? 0) + 0.5).toFixed(1));
+    this.renderAnimationTimeline();
+    this.setStatus(`Added keyframe for ${this.animationSelectedProperty}.`);
+  }
+
+  exportAnimationJson() {
+    const animationName = String(this.animationNameInput?.value ?? 'untitled-animation').trim() || 'untitled-animation';
+    const fileName = `${animationName.replace(/\s+/g, '-').toLowerCase()}.anim`;
+    const payload = {
+      version: 2,
+      name: animationName,
+      duration: Math.max(0, ...this.animationTracks.flatMap((track) => track.keyframes.map((keyframe) => Number(keyframe.time ?? 0)))) || 0,
+      tracks: this.animationTracks.map((track) => ({
+        gameObjectId: track.gameObjectId,
+        propertyPath: track.propertyPath,
+        keyframes: (track.keyframes ?? []).slice().sort((a, b) => (a.time ?? 0) - (b.time ?? 0)),
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    this.setStatus(`Exported ${fileName}.`);
+  }
+
+  loadAnimationJson(parsed) {
+    const trackData = Array.isArray(parsed?.tracks) ? parsed.tracks : [];
+    this.animationTracks = trackData.map((track) => ({
+      gameObjectId: track?.gameObjectId ?? this.animationSelectedObjectId ?? null,
+      propertyPath: track?.propertyPath ?? 'transform.position.x',
+      keyframes: Array.isArray(track?.keyframes) ? track.keyframes.map((keyframe) => ({
+        time: Number(keyframe?.time ?? 0),
+        value: Number(keyframe?.value ?? 0),
+      })) : [],
+    }));
+    this.animationNameInput.value = parsed?.name ?? this.animationNameInput.value ?? 'untitled-animation';
+    this.animationSelectedObjectId = this.animationTracks[0]?.gameObjectId ?? this.animationSelectedObjectId;
+    this.animationSelectedProperty = this.animationTracks[0]?.propertyPath ?? this.animationSelectedProperty;
+    this.renderAnimationTimeline();
+  }
+
   async init() {
     this.loader.show('Loading scene editor...');
     try {
@@ -341,6 +654,7 @@ export class SceneEditorApp {
 
     await this.rebuildSceneGraph();
     this.refreshHierarchy();
+    this.refreshAnimationEditor();
 
     if (this.gameObjectOrder.length > 0) {
       this.selectGameObject(this.gameObjectOrder[0]);
@@ -1262,6 +1576,7 @@ export class SceneEditorApp {
 
     await this.rebuildSceneGraph();
     this.refreshHierarchy();
+    this.refreshAnimationEditor();
 
     const nextSelection = this.findRecordById(childRecord.id, this.currentManifest.gameObjects ?? []);
     if (nextSelection) {
@@ -1287,6 +1602,7 @@ export class SceneEditorApp {
 
     await this.rebuildSceneGraph();
     this.refreshHierarchy();
+    this.refreshAnimationEditor();
 
     const nextSelection = this.findRecordById(clone.id, this.currentManifest.gameObjects ?? []);
     if (nextSelection) {
@@ -1363,6 +1679,7 @@ export class SceneEditorApp {
 
     await this.rebuildSceneGraph();
     this.refreshHierarchy();
+    this.refreshAnimationEditor();
 
     if (this.gameObjectOrder.length > 0) {
       this.selectGameObject(this.gameObjectOrder[0], { frameSelection: false });
@@ -1667,6 +1984,7 @@ export class SceneEditorApp {
 
     await this.rebuildSceneGraph();
     this.refreshHierarchy();
+    this.refreshAnimationEditor();
 
     const selectedRecord = this.findRecordById(nextGameObject.id, this.currentManifest.gameObjects ?? []);
     if (selectedRecord) {
