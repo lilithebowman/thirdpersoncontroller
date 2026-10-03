@@ -2,7 +2,8 @@
   "version": 2,
   "name": "primitive-cube-y-bob-animation",
   "duration": 5.5,
-  "playOnAwake": "true",
+  "playOnAwake": true,
+  "loop": true,
   "tracks": [
     {
       "gameObjectId": "primitive-cf19f4dc-ddad-42ca-8f3b-1d448ca2aeca",

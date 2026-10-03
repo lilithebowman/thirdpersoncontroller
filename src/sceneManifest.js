@@ -65,6 +65,25 @@ function normalizeClickableDistance(data, fallback = DEFAULT_CLICKABLE_DISTANCE)
   return Number.isFinite(candidate) && candidate > 0 ? candidate : fallback;
 }
 
+function normalizeBoolean(value, fallback = false) {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const lowered = value.trim().toLowerCase();
+    if (lowered === 'true') {
+      return true;
+    }
+    if (lowered === 'false') {
+      return false;
+    }
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  return fallback;
+}
+
 function normalizeAnimationComponent(component) {
   const normalized = cloneValue(component) ?? {};
   const animationPath = typeof normalized.animationPath === 'string' && normalized.animationPath.trim()
@@ -81,9 +100,10 @@ function normalizeAnimationComponent(component) {
       ? normalized.name.trim()
       : animationPath ? animationPath.split(/[\\/]/).pop()?.replace(/\.anim$/i, '') ?? 'animation' : 'animation';
   normalized.duration = Number.isFinite(normalized.duration) ? normalized.duration : 0;
-  normalized.loop = normalized.loop !== false;
+  normalized.loop = normalizeBoolean(normalized.loop, true);
   normalized.speed = Number.isFinite(normalized.speed) ? normalized.speed : 1;
-  normalized.enabled = normalized.enabled !== false;
+  normalized.enabled = normalizeBoolean(normalized.enabled, true);
+  normalized.playOnAwake = normalizeBoolean(normalized.playOnAwake, true);
   if (Array.isArray(normalized.tracks)) {
     normalized.tracks = normalized.tracks.map((track) => ({
       gameObjectId: typeof track?.gameObjectId === 'string' ? track.gameObjectId : track?.id ?? 'unknown-game-object',
@@ -254,11 +274,13 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
   if (item.type === 'animation' || item.animationPath || item.path?.endsWith?.('.anim') || item.uri?.endsWith?.('.anim')) {
     gameObject.components.push(normalizeComponent({
       type: 'animation',
+      gameObjectId: gameObject.id,
       animationPath: item.animationPath ?? item.path ?? item.uri ?? '',
       animationName: item.animationName ?? item.name ?? undefined,
       duration: Number.isFinite(item.duration) ? item.duration : undefined,
       loop: item.loop !== false,
       speed: Number.isFinite(item.speed) ? item.speed : 1,
+      playOnAwake: normalizeBoolean(item.playOnAwake, true),
       tracks: Array.isArray(item.tracks) ? item.tracks : undefined,
       enabled: item.enabled !== false,
     }));
@@ -371,6 +393,10 @@ function gameObjectToLegacyItems(gameObject) {
 
   const transform = gameObject.transform ?? {};
   const legacyItems = [];
+  const objectIdentity = {
+    id: typeof gameObject.id === 'string' ? gameObject.id : undefined,
+    gameObjectId: typeof gameObject.id === 'string' ? gameObject.id : undefined,
+  };
   const clickableComponent = (gameObject.components ?? []).find((entry) => entry?.type === 'clickable' && entry.enabled !== false);
   const clickablePayload = clickableComponent
     ? {
@@ -408,6 +434,7 @@ function gameObjectToLegacyItems(gameObject) {
 
     if (component.type === 'light') {
       legacyItems.push({
+        ...objectIdentity,
         type: 'light',
         name: gameObject.name,
         lightType: component.lightType ?? 'directional',
@@ -430,6 +457,7 @@ function gameObjectToLegacyItems(gameObject) {
     if (component.type === 'primitive') {
       const legacyType = component.primitiveType ?? 'box';
       const legacyItem = {
+        ...objectIdentity,
         type: legacyType,
         name: gameObject.name,
         position: transform.position ?? [0, 0, 0],
@@ -483,6 +511,7 @@ function gameObjectToLegacyItems(gameObject) {
       if (!hasRenderableComponent && component.collider) {
         const colliderConfig = component.collider;
         const legacyItem = {
+          ...objectIdentity,
           type: 'box',
           name: gameObject.name,
           position: transform.position ?? [0, 0, 0],
@@ -501,6 +530,7 @@ function gameObjectToLegacyItems(gameObject) {
     if (component.type === 'model') {
       if (component.modelType === 'glb') {
         const legacyItem = {
+          ...objectIdentity,
           type: 'glb',
           name: gameObject.name,
           glbPath: component.glbPath ?? component.path ?? '',
@@ -527,6 +557,7 @@ function gameObjectToLegacyItems(gameObject) {
 
       if (component.modelType === 'fbx') {
         const legacyItem = {
+          ...objectIdentity,
           type: 'fbx',
           name: gameObject.name,
           fbxPath: component.fbxPath ?? component.path ?? '',
@@ -556,6 +587,7 @@ function gameObjectToLegacyItems(gameObject) {
       }
 
       const legacyItem = {
+        ...objectIdentity,
         type: 'obj',
         name: gameObject.name,
         objPath: component.objPath ?? '',
@@ -600,6 +632,7 @@ function gameObjectToLegacyItems(gameObject) {
         : typeof component.link === 'string' ? component.link
         : undefined;
       const clickItem = {
+        ...objectIdentity,
         type: 'clickable',
         name: gameObject.name,
         action: clickAction,
@@ -622,6 +655,7 @@ function gameObjectToLegacyItems(gameObject) {
 
     if (component.type === 'scene') {
       legacyItems.push({
+        ...objectIdentity,
         type: 'scene',
         name: gameObject.name,
         manifestPath: component.manifestPath ?? undefined,
@@ -635,12 +669,16 @@ function gameObjectToLegacyItems(gameObject) {
 
     if (component.type === 'animation') {
       legacyItems.push({
+        ...objectIdentity,
         type: 'animation',
+        id: gameObject.id,
+        gameObjectId: gameObject.id,
         name: component.animationName ?? gameObject.name,
         animationPath: component.animationPath ?? undefined,
         animationName: component.animationName ?? undefined,
         duration: Number.isFinite(component.duration) ? component.duration : undefined,
         loop: component.loop !== false,
+        playOnAwake: normalizeBoolean(component.playOnAwake, true),
         speed: Number.isFinite(component.speed) ? component.speed : 1,
         tracks: cloneValue(component.tracks) ?? undefined,
         position: transform.position ?? [0, 0, 0],
@@ -652,6 +690,7 @@ function gameObjectToLegacyItems(gameObject) {
 
     if (component.type === 'skybox') {
       legacyItems.push({
+        ...objectIdentity,
         type: 'skybox',
         name: gameObject.name,
         skyboxType: component.skyboxType ?? 'color',

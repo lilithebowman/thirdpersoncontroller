@@ -63,6 +63,8 @@ export class SceneEditorApp {
     this.animationNameInput = this.mount.querySelector('[data-role="animation-name-input"]');
     this.animationTimeInput = this.mount.querySelector('[data-role="animation-time-input"]');
     this.animationValueInput = this.mount.querySelector('[data-role="animation-value-input"]');
+    this.animationPlayOnAwakeInput = this.mount.querySelector('[data-role="animation-play-on-awake-input"]');
+    this.animationLoopInput = this.mount.querySelector('[data-role="animation-loop-input"]');
     this.animationObjectSelect = this.mount.querySelector('[data-role="animation-object-select"]');
     this.animationPropertySelect = this.mount.querySelector('[data-role="animation-property-select"]');
     this.hierarchyContextMenuRoot = this.mount.querySelector('[data-role="hierarchy-context-menu"]');
@@ -145,6 +147,8 @@ export class SceneEditorApp {
     this.animationSelectedObjectId = null;
     this.animationSelectedProperty = 'transform.position.x';
     this.animationSelectedTime = 0;
+    this.animationPlayOnAwake = true;
+    this.animationLoop = true;
     this.activeTransformMode = 'translate';
     this.undoStack = [];
     this.redoStack = [];
@@ -244,6 +248,14 @@ export class SceneEditorApp {
             <label class="scene-editor-field">
               <span>Value</span>
               <input data-role="animation-value-input" type="number" step="0.1" value="0" />
+            </label>
+            <label class="scene-editor-field scene-editor-field--checkbox">
+              <span>Play on Awake</span>
+              <input data-role="animation-play-on-awake-input" type="checkbox" checked />
+            </label>
+            <label class="scene-editor-field scene-editor-field--checkbox">
+              <span>Loop</span>
+              <input data-role="animation-loop-input" type="checkbox" checked />
             </label>
             <div class="scene-editor-animation-actions">
               <button type="button" data-action="animation-add-keyframe">Add Keyframe</button>
@@ -360,6 +372,14 @@ export class SceneEditorApp {
     this.animationTimeInput?.addEventListener('change', () => {
       const nextTime = this.normalizeAnimationTimeValue(this.animationTimeInput.value);
       this.setAnimationSelectedTime(nextTime);
+    });
+
+    this.animationPlayOnAwakeInput?.addEventListener('change', () => {
+      this.animationPlayOnAwake = this.animationPlayOnAwakeInput.checked;
+    });
+
+    this.animationLoopInput?.addEventListener('change', () => {
+      this.animationLoop = this.animationLoopInput.checked;
     });
   }
 
@@ -562,6 +582,13 @@ export class SceneEditorApp {
       this.animationPropertySelect.value = this.animationSelectedProperty;
     }
 
+    if (this.animationPlayOnAwakeInput) {
+      this.animationPlayOnAwakeInput.checked = this.animationPlayOnAwake;
+    }
+    if (this.animationLoopInput) {
+      this.animationLoopInput.checked = this.animationLoop;
+    }
+
     this.renderAnimationTimeline();
   }
 
@@ -656,6 +683,8 @@ export class SceneEditorApp {
       version: 2,
       name: animationName,
       duration: Math.max(0, ...this.animationTracks.flatMap((track) => track.keyframes.map((keyframe) => Number(keyframe.time ?? 0)))) || 0,
+      loop: !!this.animationLoop,
+      playOnAwake: !!this.animationPlayOnAwake,
       tracks: this.animationTracks.map((track) => ({
         gameObjectId: track.gameObjectId,
         propertyPath: track.propertyPath,
@@ -685,6 +714,14 @@ export class SceneEditorApp {
       })) : [],
     }));
     this.animationNameInput.value = parsed?.name ?? this.animationNameInput.value ?? 'untitled-animation';
+    this.animationPlayOnAwake = parsed?.playOnAwake !== false;
+    this.animationLoop = parsed?.loop !== false;
+    if (this.animationPlayOnAwakeInput) {
+      this.animationPlayOnAwakeInput.checked = this.animationPlayOnAwake;
+    }
+    if (this.animationLoopInput) {
+      this.animationLoopInput.checked = this.animationLoop;
+    }
     this.animationSelectedObjectId = this.animationTracks[0]?.gameObjectId ?? this.animationSelectedObjectId;
     this.animationSelectedProperty = this.animationTracks[0]?.propertyPath ?? this.animationSelectedProperty;
     this.renderAnimationTimeline();

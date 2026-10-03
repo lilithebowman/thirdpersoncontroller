@@ -287,6 +287,15 @@
             1
           ],
           "color": "#8ecae6"
+        },
+        {
+          "type": "animation",
+          "animationPath": "/animations/primitive-cube-y-bob-animation.anim",
+          "animationName": "primitive-cube-y-bob-animation",
+          "loop": true,
+          "speed": 1,
+          "playOnAwake": true,
+          "enabled": true
         }
       ],
       "children": []

@@ -6,9 +6,10 @@ The editor now includes an Animation Editor mode for creating lightweight `.anim
 
 1. Open the editor at `/editor`.
 2. Click the `Animation Editor` toolbar button to switch out of scene-authoring mode.
-3. Pick a GameObject from the dropdown, choose a property such as `transform.position.x`, and set a time/value pair.
-4. Click `Add Keyframe` to store the change on the timeline.
-5. Export the resulting animation with `Export .anim` to produce a file named like `hero-idle.anim`.
+3. Pick a GameObject from the dropdown, choose a property such as `transform.position.x`, set the time you want to affect, and enter a value.
+4. Toggle `Play on Awake` if the clip should begin as soon as the scene loads, and enable `Loop` if the clip should repeat continuously.
+5. Click existing timeline keyframes to select a time value, or enter a time manually in the Time field before adding a new keyframe. If no time is selected, the editor uses `0s` at the beginning of the clip.
+6. Export the resulting animation with `Export .anim` to produce a file named like `hero-idle.anim`.
 6. Import an existing animation file with `Import .anim` or drop it into a scene JSON as a GameObject component reference.
 
 ## .anim file structure

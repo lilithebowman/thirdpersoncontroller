@@ -32,6 +32,7 @@ import { Loader } from './Loader.js';
 import { MultiplayerService } from './MultiplayerService.js';
 import { VoiceChatService } from './VoiceChatService.js';
 import { Clickable } from './Clickable.js';
+import { AnimationClipPlayer } from './AnimationClipPlayer.js';
 import { normalizeSceneManifest } from './sceneManifest.js';
 
 export class ThirdPersonControllerApp {
@@ -124,6 +125,7 @@ export class ThirdPersonControllerApp {
     });
 
     this.force = new Force();
+    this.animationPlayers = [];
     this.playerRigidbody = new Rigidbody({
       mass: 1,
       gravity: new THREE.Vector3(0, -26, 0),
@@ -597,6 +599,7 @@ export class ThirdPersonControllerApp {
       if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
         const mesh = this.sceneLoader.createPrimitiveMesh(item);
         if (mesh) {
+          mesh.userData.gameObjectId = item.gameObjectId ?? item.id ?? null;
           mesh.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
           mesh.rotation.set(
             THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
@@ -613,6 +616,40 @@ export class ThirdPersonControllerApp {
             ? new THREE.Vector3(120, 0.2, 120)
             : this.sceneLoader.toVector3(item.size, new THREE.Vector3(1, 1, 1));
           this.registerColliderFromManifestItem(item, fallbackSize);
+        }
+        continue;
+      }
+
+      if (item.type === 'animation') {
+        if (!item.animationPath) {
+          continue;
+        }
+
+        const targetId = item.gameObjectId ?? item.id ?? null;
+        const clipTarget = (targetId
+          ? this.scene.children.find((child) => child.userData?.gameObjectId === targetId)
+          : null)
+          ?? this.scene.getObjectByName(item.name ?? 'Primitive Model')
+          ?? this.scene.children.find((child) => child.name === (item.animationName ?? item.name ?? ''))
+          ?? null;
+
+        if (!clipTarget) {
+          continue;
+        }
+
+        const player = new AnimationClipPlayer({
+          target: clipTarget,
+          animationPath: item.animationPath,
+          resolveScenePath: this.resolveScenePath.bind(this),
+          name: item.animationName ?? item.name ?? 'animation',
+          loop: item.loop !== false,
+          speed: Number.isFinite(item.speed) ? Number(item.speed) : 1,
+          playOnAwake: item.playOnAwake !== false,
+        });
+        await player.loadFromPath(item.animationPath);
+        this.animationPlayers.push(player);
+        if (item.playOnAwake !== false) {
+          player.play();
         }
         continue;
       }
@@ -644,6 +681,7 @@ export class ThirdPersonControllerApp {
                   mtlPath: item.mtlPath,
                   materialRenderType: item.materialRenderType ?? 'cutout',
                 });
+          model.userData.gameObjectId = item.gameObjectId ?? item.id ?? null;
           model.position.set(item.position?.[0] ?? 0, item.position?.[1] ?? 0, item.position?.[2] ?? 0);
           model.rotation.set(
             THREE.MathUtils.degToRad(item.rotation?.[0] ?? 0),
@@ -753,6 +791,7 @@ export class ThirdPersonControllerApp {
       await this.skybox.apply(skyboxConfig);
     }
 
+    this.animationPlayers = [];
     await this.processManifestObjects(items);
     this.playWorldLoadSound();
   }
@@ -1007,6 +1046,7 @@ export class ThirdPersonControllerApp {
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta, { isPresenting: this.renderer.xr.isPresenting });
     this.updatePlayerAnimation(delta);
+    this.animationPlayers.forEach((player) => player.update(delta));
     this.updateRemotePlayerMeshes(delta);
     this.cameraController.update(this.playerCharacter.root, {
       isPresenting: this.renderer.xr.isPresenting,

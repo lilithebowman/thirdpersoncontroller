@@ -29,6 +29,36 @@ test('normalizeSceneManifest handles legacy objects correctly', () => {
   assert.strictEqual(legacyRoundtrip[0].type, 'box');
 });
 
+test('normalizeSceneManifest preserves playOnAwake on animation components', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [{
+      id: 'animated-cube',
+      name: 'Animated Cube',
+      transform: { position: [0, 5, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      components: [{
+        type: 'animation',
+        animationPath: '/animations/primitive-cube-y-bob-animation.anim',
+        animationName: 'primitive-cube-y-bob-animation',
+        loop: true,
+        playOnAwake: true,
+        tracks: [{
+          gameObjectId: 'animated-cube',
+          propertyPath: 'transform.position.y',
+          keyframes: [{ time: 0, value: 5 }, { time: 2.5, value: 6 }, { time: 5.5, value: 5 }],
+        }],
+      }],
+    }],
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[0].playOnAwake, true);
+  assert.strictEqual(normalized.gameObjects[0].components[0].loop, true);
+  assert.strictEqual(normalized.objects[0].playOnAwake, true);
+  assert.strictEqual(normalized.objects[0].loop, true);
+  assert.strictEqual(normalized.objects[0].gameObjectId, 'animated-cube');
+});
+
 test('normalizeSceneManifest preserves collider on primitive gameObjects correctly', () => {
   const sampleManifest = {
     version: 2,
