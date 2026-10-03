@@ -43,6 +43,12 @@ if (typeof globalThis.document === 'undefined') {
           if (selector === '#eye-offset-z') {
             return { value: '0', addEventListener: () => {} };
           }
+          if (selector === '#player-name') {
+            return { value: '', addEventListener: () => {} };
+          }
+          if (selector === '#player-token') {
+            return { value: '', addEventListener: () => {} };
+          }
           return null;
         },
         closest: () => null,
@@ -52,6 +58,19 @@ if (typeof globalThis.document === 'undefined') {
     fullscreenElement: null,
     documentElement: { requestFullscreen: () => {}, },
     exitFullscreen: () => {},
+  };
+}
+
+if (typeof globalThis.localStorage === 'undefined') {
+  const storage = {};
+  globalThis.localStorage = {
+    getItem: (key) => (Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null),
+    setItem: (key, value) => {
+      storage[key] = String(value);
+    },
+    removeItem: (key) => {
+      delete storage[key];
+    },
   };
 }
 
@@ -92,4 +111,22 @@ test('GameMenu exposes eye offset controls and passes offsets with model selecti
 
   assert.strictEqual(capturedFile.name, 'avatar.fbx');
   assert.deepStrictEqual(capturedOffset, rawOffset);
+});
+
+test('GameMenu exposes a visible player token and persists manual entries', () => {
+  const mountElement = document.createElement('div');
+  let lastToken = null;
+  const menu = new GameMenu({
+    mountElement,
+    onRespawn: () => {},
+    onLog: () => {},
+    onPlayerTokenChange: (token) => {
+      lastToken = token;
+    },
+  });
+
+  menu.setPlayerToken('player-token-123');
+  assert.strictEqual(menu.getPlayerToken(), 'player-token-123');
+  assert.strictEqual(lastToken, 'player-token-123');
+  assert.strictEqual(localStorage.getItem('thirdpersoncontroller-player-guid'), 'player-token-123');
 });

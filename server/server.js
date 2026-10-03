@@ -29,6 +29,7 @@ const players = new Map();
 const rateLimits = new Map();
 
 const STALE_TIMEOUT_MS = 15000;
+const PLAYER_RETENTION_MS = 1000 * 60 * 60 * 24 * 60; // 60 days
 const MAX_MODEL_DATA_URL_LENGTH = 32 * 1024 * 1024; // 32MB
 const MAX_TRANSFORM_BODY_SIZE = MAX_MODEL_DATA_URL_LENGTH + 4096; // allow safe model uploads
 const MAX_VOICE_BODY_SIZE = 256 * 1024; // 256KB
@@ -138,6 +139,8 @@ async function loadPersistedPlayers() {
       };
       players.set(entry.guid, storedPlayer);
     }
+
+    await cleanupExpiredPlayers();
   } catch (error) {
     if (error?.code !== 'ENOENT') {
       console.warn('Failed to load persisted player state:', error?.message ?? error);
@@ -145,11 +148,27 @@ async function loadPersistedPlayers() {
   }
 }
 
+async function cleanupExpiredPlayers() {
+  const now = Date.now();
+  let changed = false;
+  for (const [guid, data] of players.entries()) {
+    if (now - (data.lastUpdated ?? now) > PLAYER_RETENTION_MS) {
+      players.delete(guid);
+      rateLimits.delete(guid);
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    await persistPlayers();
+  }
+}
+
 async function cleanupStalePlayers() {
   const now = Date.now();
   let changed = false;
   for (const [guid, data] of players.entries()) {
-    if (now - data.lastUpdated > STALE_TIMEOUT_MS) {
+    if (now - (data.lastUpdated ?? now) > STALE_TIMEOUT_MS) {
       players.delete(guid);
       rateLimits.delete(guid);
       changed = true;
@@ -440,6 +459,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (pathname === '/api/players' && req.method === 'GET') {
+    await cleanupExpiredPlayers();
     await cleanupStalePlayers();
     const now = Date.now();
     const activePlayers = Array.from(players.values()).map((p) => ({
@@ -471,4 +491,8 @@ if (process.argv[1] === import.meta.url || process.argv[1]?.endsWith('server.js'
   });
 }
 
-export { server, players, cleanupStalePlayers };
+setInterval(() => {
+  cleanupExpiredPlayers().catch(() => {});
+}, 60 * 60 * 1000);
+
+export { server, players, cleanupExpiredPlayers, cleanupStalePlayers };

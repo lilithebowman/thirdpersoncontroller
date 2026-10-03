@@ -16,7 +16,7 @@ export class GameMenu {
    * @param {Function} options.onRespawn - Callback triggered when respawn is clicked
    * @param {Function} options.onLog - Optional logging callback
    */
-  constructor({ mountElement, onRespawn, onLog, onThresholdChange, onSelectPlayerModel, onEyeOffsetChange } = {}) {
+  constructor({ mountElement, onRespawn, onLog, onThresholdChange, onSelectPlayerModel, onEyeOffsetChange, onPlayerNameChange, onPlayerTokenChange, defaultPlayerName = '', defaultPlayerToken = '' } = {}) {
     if (!mountElement) {
       throw new Error('GameMenu requires a mountElement.');
     }
@@ -27,8 +27,12 @@ export class GameMenu {
     this.onThresholdChange = typeof onThresholdChange === 'function' ? onThresholdChange : () => {};
     this.onSelectPlayerModel = typeof onSelectPlayerModel === 'function' ? onSelectPlayerModel : () => {};
     this.onEyeOffsetChange = typeof onEyeOffsetChange === 'function' ? onEyeOffsetChange : () => {};
+    this.onPlayerNameChange = typeof onPlayerNameChange === 'function' ? onPlayerNameChange : () => {};
+    this.onPlayerTokenChange = typeof onPlayerTokenChange === 'function' ? onPlayerTokenChange : () => {};
     this.isOpen = false;
     this.eyeOffset = { x: 0, y: 1.6, z: 0 };
+    this.playerName = this.normalizePlayerName(typeof localStorage !== 'undefined' ? localStorage.getItem('thirdpersoncontroller-player-name') ?? defaultPlayerName : defaultPlayerName);
+    this.playerToken = this.normalizePlayerToken(typeof localStorage !== 'undefined' ? localStorage.getItem('thirdpersoncontroller-player-guid') ?? defaultPlayerToken : defaultPlayerToken);
     this.fileInput = document.createElement('input');
     this.fileInput.type = 'file';
     this.fileInput.accept = '.zip,.fbx,.gltf,.glb,.obj';
@@ -59,6 +63,14 @@ export class GameMenu {
     modal.innerHTML = `
       <h2>Game Menu</h2>
       <div style="margin: 12px 0; text-align: left;">
+        <label for="player-name" style="display: block; font-size: 14px; margin-bottom: 4px;">Player Name</label>
+        <input type="text" id="player-name" maxlength="24" value="${this.escapeHtml(this.playerName)}" placeholder="Your display name" style="width: 100%; box-sizing: border-box;">
+      </div>
+      <div style="margin: 12px 0; text-align: left;">
+        <label for="player-token" style="display: block; font-size: 14px; margin-bottom: 4px;">Player Token</label>
+        <input type="text" id="player-token" value="${this.escapeHtml(this.playerToken)}" placeholder="Paste your saved token here" style="width: 100%; box-sizing: border-box;">
+      </div>
+      <div style="margin: 12px 0; text-align: left;">
         <label for="mic-threshold" style="display: block; font-size: 14px; margin-bottom: 4px;">Mic Threshold: <span id="threshold-display">0.05</span></label>
         <input type="range" id="mic-threshold" min="0.005" max="0.5" step="0.005" value="0.05" style="width: 100%; cursor: pointer;">
       </div>
@@ -86,6 +98,31 @@ export class GameMenu {
           thresholdDisplay.textContent = val.toFixed(3);
         }
         this.onThresholdChange(val);
+      });
+    }
+
+    const playerNameInput = modalQuery('#player-name');
+    const playerTokenInput = modalQuery('#player-token');
+    if (playerNameInput) {
+      playerNameInput.value = this.playerName;
+      playerNameInput.addEventListener('input', (event) => {
+        const nextValue = this.normalizePlayerName(event.target.value);
+        this.playerName = nextValue;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('thirdpersoncontroller-player-name', nextValue);
+        }
+        this.onPlayerNameChange(nextValue);
+      });
+    }
+    if (playerTokenInput) {
+      playerTokenInput.value = this.playerToken;
+      playerTokenInput.addEventListener('input', (event) => {
+        const nextValue = this.normalizePlayerToken(event.target.value);
+        this.playerToken = nextValue;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('thirdpersoncontroller-player-guid', nextValue || '');
+        }
+        this.onPlayerTokenChange(nextValue);
       });
     }
 
@@ -140,6 +177,49 @@ export class GameMenu {
     overlay.appendChild(modal);
     this.mountElement.appendChild(overlay);
     return overlay;
+  }
+
+  normalizePlayerName(value) {
+    return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, 24) || 'Player';
+  }
+
+  normalizePlayerToken(value) {
+    const token = String(value ?? '').trim();
+    return token.length > 0 ? token.slice(0, 128) : '';
+  }
+
+  escapeHtml(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  setPlayerName(name) {
+    this.playerName = this.normalizePlayerName(name);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('thirdpersoncontroller-player-name', this.playerName);
+    }
+    const input = this.overlay?.querySelector?.('#player-name');
+    if (input) {
+      input.value = this.playerName;
+    }
+    this.onPlayerNameChange(this.playerName);
+    return this.playerName;
+  }
+
+  setPlayerToken(token) {
+    this.playerToken = this.normalizePlayerToken(token);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('thirdpersoncontroller-player-guid', this.playerToken || '');
+    }
+    const input = this.overlay?.querySelector?.('#player-token');
+    if (input) {
+      input.value = this.playerToken;
+    }
+    this.onPlayerTokenChange(this.playerToken);
+    return this.playerToken;
+  }
+
+  getPlayerToken() {
+    return this.playerToken;
   }
 
   setEyeOffset(offset = {}) {

@@ -54,6 +54,25 @@ export class MultiplayerService {
     return typeof storedValue === 'string' && storedValue.trim() ? storedValue.trim() : null;
   }
 
+  normalizeGuid(guid) {
+    const value = typeof guid === 'string' ? guid.trim() : '';
+    return value.length > 0 ? value.slice(0, 128) : null;
+  }
+
+  setGuid(guid, persist = true) {
+    const normalized = this.normalizeGuid(guid);
+    if (!normalized) {
+      return null;
+    }
+
+    this.guid = normalized;
+    this.isRegistered = true;
+    if (persist) {
+      this.persistGuid(this.guid);
+    }
+    return this.guid;
+  }
+
   persistGuid(guid = this.guid) {
     if (typeof localStorage === 'undefined' || !guid) {
       return;

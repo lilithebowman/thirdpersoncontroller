@@ -122,6 +122,18 @@ export class ThirdPersonControllerApp {
         const eyePosition = new THREE.Vector3(offset.x ?? 0, offset.y ?? 1.6, offset.z ?? 0);
         this.cameraController.setEyePosition(eyePosition);
       },
+      onPlayerTokenChange: (token) => {
+        const nextToken = this.multiplayerService?.normalizeGuid?.(token) ?? token;
+        if (!nextToken) {
+          return;
+        }
+        this.multiplayerService.setGuid(nextToken, true);
+        this.voiceChatService?.init?.(this.multiplayerService.guid);
+        this.restorePersistedPlayerState().catch(() => {});
+      },
+      onPlayerNameChange: (name) => {
+        this.playerName = name;
+      },
     });
 
     this.localSpeakerSprite = null;
