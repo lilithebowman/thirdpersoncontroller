@@ -454,7 +454,7 @@ export class ThirdPersonControllerApp {
         : Number.isFinite(rigidbody.gravity)
           ? rigidbody.gravity !== 0
           : rigidbody.gravityVector instanceof THREE.Vector3 && rigidbody.gravityVector.lengthSq() > 0;
-      rigidbody.useGravity = gravityConfigured && rigidbody.useGravity !== false;
+      rigidbody.useGravity = gravityConfigured;
       rigidbody.integrate(object.position, delta, {
         collider: object.userData.collider,
         colliders: this.worldColliders,
@@ -847,6 +847,7 @@ export class ThirdPersonControllerApp {
       });
       object.userData.rigidbody = rigidbody;
       object.userData.respawnPosition = object.userData.respawnPosition ?? object.position.clone();
+      object.userData.rigidbody.useGravity = typeof rigidbody.hasGravity === 'function' ? rigidbody.hasGravity() : true;
       this.dynamicRigidbodies.push({ object, rigidbody });
     }
 

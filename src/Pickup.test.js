@@ -8,6 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import * as THREE from 'three';
 import { Pickup } from './Pickup.js';
+import { Rigidbody } from './Rigidbody.js';
 
 test('Pickup toggles an object between the player root and the scene', () => {
   const scene = new THREE.Scene();
@@ -73,4 +74,28 @@ test('Pickup attaches to the player right hand bone and preserves world position
   assert.strictEqual(pickup.drop(playerRoot, scene), true);
   assert.strictEqual(target.parent, scene);
   assert.ok(target.position.distanceTo(worldBeforeDrop) < 0.0001);
+});
+
+test('Pickup restores configured gravity when the object is released', () => {
+  const scene = new THREE.Scene();
+  const playerRoot = new THREE.Group();
+  scene.add(playerRoot);
+
+  const target = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xfdd835 })
+  );
+  target.position.set(3, 1, 0);
+  scene.add(target);
+
+  const rigidbody = new Rigidbody({ gravity: new THREE.Vector3(0, -9.8, 0), mass: 1 });
+  target.userData.rigidbody = rigidbody;
+
+  const pickup = new Pickup({ target, scene, playerRoot });
+
+  assert.strictEqual(pickup.pickup(playerRoot, scene), true);
+  assert.strictEqual(rigidbody.useGravity, false);
+
+  assert.strictEqual(pickup.drop(playerRoot, scene), true);
+  assert.strictEqual(rigidbody.useGravity, true);
 });

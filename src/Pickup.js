@@ -95,7 +95,7 @@ export class Pickup {
 
     const rigidbody = this.target.userData?.rigidbody ?? null;
     if (rigidbody) {
-      rigidbody.useGravity = true;
+      rigidbody.useGravity = typeof rigidbody.hasGravity === 'function' ? rigidbody.hasGravity() : true;
       rigidbody.velocity.set(0, 0, 0);
       rigidbody.clearForces();
     }
