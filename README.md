@@ -116,7 +116,7 @@ This is the shape the runtime expects:
 - Primitive items are created as a `GameObject` whose component is a `primitive`
 - Legacy flat `objects` entries are kept only for backward compatibility and should not be treated as the main export format
 - `modelType: "glb"` and `modelType: "fbx"` are supported alongside `modelType: "obj"` for runtime/editor loading
-- `type: "animation"` is a supported scene component for `.anim` JSON references and should resolve to `animationPath` and metadata
+- `type: "animation"` is a supported scene component for `.anim` JSON references and should resolve to `animationPath` and metadata as well as supporting `playOnAwake` and `loop` boolean states
 - The editor Copy/Download actions should write `gameObjects`-based JSON
 
 For full setup and collider examples, see [`SCENESETUP.md`](SCENESETUP.md). For animation authoring and file format details, see [`docs/ANIMATION_EDITOR.md`](docs/ANIMATION_EDITOR.md).
@@ -130,6 +130,8 @@ For full setup and collider examples, see [`SCENESETUP.md`](SCENESETUP.md). For 
 5. Use Copy JSON or Download to export the current scene, optionally including an `animation` component that points at the `.anim` file
 6. Reload the gameplay route or replace `public/scene-manifest.json` with the exported manifest
 
-## Notes
+## Addendum
 
-This project is intentionally a lightweight prototype for scene authoring and runtime composition. The current architecture favors explicit scene data, editor-authored GameObjects, and reusable manifest-driven world setup over ad hoc hardcoded scene placement.
+Note that many features are currently in a very early alpha testing state. It is the project goal to make a fully-fledged third person controller style game engine capable of social gaming with the ability for users to load in their own ZIP files with JSON manifest and necessary model, sound, animation, and other assets to be used as their own player model.
+
+In the future it would be ideal to support some kind of permanent state on the server side so that when users come back, they can see their own avatar on their player and be left in the same position with the same game state.
