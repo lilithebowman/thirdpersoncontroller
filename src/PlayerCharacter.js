@@ -10,6 +10,7 @@
 
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { Armature } from './Armature.js';
 
 export class PlayerCharacter {
   /**
@@ -127,22 +128,7 @@ export class PlayerCharacter {
    * @returns {THREE.Object3D|null} Head bone or null
    */
   findHeadBone(root) {
-    if (!root || typeof root.traverse !== 'function') {
-      return null;
-    }
-
-    let bestMatch = null;
-    root.traverse((child) => {
-      if (bestMatch || !child?.isBone || !child?.name) {
-        return;
-      }
-      const canonical = this.canonicalizeNodeName(child.name);
-      if (canonical && canonical.includes('head')) {
-        bestMatch = child;
-      }
-    });
-
-    return bestMatch;
+    return Armature.findBone(root || this.root, ['head', 'skull', 'face', 'jaw']);
   }
 
   /**
@@ -151,51 +137,7 @@ export class PlayerCharacter {
    * @returns {THREE.Object3D[]} Array of eye bones
    */
   findRightHandBone(root) {
-    if (!root || typeof root.traverse !== 'function') {
-      return null;
-    }
-
-    let bestMatch = null;
-    let bestScore = -1;
-
-    root.traverse((child) => {
-      if (!child?.isBone || !child?.name) {
-        return;
-      }
-
-      const canonical = this.canonicalizeNodeName(child.name);
-      if (!canonical) {
-        return;
-      }
-
-      const normalized = canonical.replace(/_/g, '');
-      let score = 0;
-      if (normalized.includes('right') || normalized.includes('righthand') || normalized.includes('handr') || normalized.endsWith('r') && normalized.includes('hand')) {
-        score += 5;
-      }
-      if (normalized.includes('hand')) {
-        score += 6;
-      }
-      if (normalized.includes('wrist')) {
-        score += 2;
-      }
-      if (normalized.includes('palm')) {
-        score += 2;
-      }
-      if (normalized.includes('arm')) {
-        score += 1;
-      }
-      if (normalized.includes('forearm')) {
-        score += 1;
-      }
-
-      if (score > bestScore) {
-        bestMatch = child;
-        bestScore = score;
-      }
-    });
-
-    return bestScore > 0 ? bestMatch : null;
+    return Armature.findBone(root || this.root, { role: 'hand', side: 'right' });
   }
 
   findEyeBones(root) {
