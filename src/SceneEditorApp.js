@@ -144,6 +144,7 @@ export class SceneEditorApp {
     this.animationTracks = [];
     this.animationSelectedObjectId = null;
     this.animationSelectedProperty = 'transform.position.x';
+    this.animationSelectedTime = 0;
     this.activeTransformMode = 'translate';
     this.undoStack = [];
     this.redoStack = [];
@@ -289,9 +290,22 @@ export class SceneEditorApp {
       if (action === 'copy') await this.copyManifestJson();
       if (action === 'download') this.downloadManifest();
       if (action === 'import-unity') this.jsonInput.click();
+    });
+
+    this.animationPanel?.addEventListener('click', async (event) => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) {
+        return;
+      }
+
+      const action = button.dataset.action;
       if (action === 'animation-add-keyframe') this.addAnimationKeyframe();
       if (action === 'animation-export') this.exportAnimationJson();
       if (action === 'animation-import') this.animationInput.click();
+      if (action === 'animation-select-time') {
+        const selectedTime = Number(button.dataset.animationTime ?? this.animationSelectedTime ?? 0);
+        this.selectAnimationTime(selectedTime);
+      }
     });
 
     this.jsonInput.addEventListener('change', async () => {
@@ -335,6 +349,17 @@ export class SceneEditorApp {
     this.animationPropertySelect?.addEventListener('change', () => {
       this.animationSelectedProperty = this.animationPropertySelect.value || 'transform.position.x';
       this.refreshAnimationEditor();
+    });
+
+    this.animationTimeInput?.addEventListener('input', () => {
+      const nextTime = this.normalizeAnimationTimeValue(this.animationTimeInput.value);
+      this.animationSelectedTime = nextTime;
+      this.renderAnimationTimeline();
+    });
+
+    this.animationTimeInput?.addEventListener('change', () => {
+      const nextTime = this.normalizeAnimationTimeValue(this.animationTimeInput.value);
+      this.setAnimationSelectedTime(nextTime);
     });
   }
 
@@ -458,6 +483,35 @@ export class SceneEditorApp {
     ];
   }
 
+  normalizeAnimationTimeValue(value, fallback = 0) {
+    const nextTime = Number(value ?? fallback);
+    return Number.isFinite(nextTime) ? nextTime : Number(fallback ?? 0);
+  }
+
+  getSelectedAnimationTime() {
+    const nextTime = this.normalizeAnimationTimeValue(this.animationTimeInput?.value ?? this.animationSelectedTime ?? 0);
+    if (this.animationTimeInput) {
+      this.animationTimeInput.value = String(nextTime.toFixed(1));
+    }
+    this.animationSelectedTime = nextTime;
+    return nextTime;
+  }
+
+  setAnimationSelectedTime(timeValue) {
+    const nextTime = this.normalizeAnimationTimeValue(timeValue ?? 0, 0);
+    this.animationSelectedTime = nextTime;
+    if (this.animationTimeInput) {
+      this.animationTimeInput.value = String(nextTime.toFixed(1));
+    }
+    return nextTime;
+  }
+
+  selectAnimationTime(timeValue) {
+    const nextTime = this.setAnimationSelectedTime(timeValue);
+    this.renderAnimationTimeline();
+    return nextTime;
+  }
+
   refreshAnimationEditor() {
     if (!this.animationObjectSelect || !this.animationPropertySelect) {
       return;
@@ -536,12 +590,21 @@ export class SceneEditorApp {
 
     const rows = flattenedTracks.map((track) => {
       const propertyDisplay = track.propertyPath || 'transform.position.x';
-      const keyframeRows = (track.keyframes ?? []).slice().sort((a, b) => (a.time ?? 0) - (b.time ?? 0)).map((keyframe) => `
-        <div class="scene-editor-animation-keyframe-row">
-          <span>${Number(keyframe.time ?? 0).toFixed(1)}s</span>
-          <span>${Number(keyframe.value ?? 0).toFixed(2)}</span>
-        </div>
-      `).join('');
+      const keyframeRows = (track.keyframes ?? []).slice().sort((a, b) => (a.time ?? 0) - (b.time ?? 0)).map((keyframe) => {
+        const keyframeTime = Number(keyframe.time ?? 0);
+        const isSelected = Math.abs(keyframeTime - this.animationSelectedTime) < 0.0001;
+        return `
+          <button
+            type="button"
+            class="scene-editor-animation-keyframe-row${isSelected ? ' is-selected' : ''}"
+            data-action="animation-select-time"
+            data-animation-time="${keyframeTime.toFixed(1)}"
+          >
+            <span>${keyframeTime.toFixed(1)}s</span>
+            <span>${Number(keyframe.value ?? 0).toFixed(2)}</span>
+          </button>
+        `;
+      }).join('');
 
       const sender = this.currentManifest?.gameObjects?.find((record) => record.id === track.gameObjectId)?.name ?? 'GameObject';
       return `
@@ -564,7 +627,7 @@ export class SceneEditorApp {
       return;
     }
 
-    const timeValue = Number(this.animationTimeInput?.value ?? 0);
+    const timeValue = this.getSelectedAnimationTime();
     const valueValue = Number(this.animationValueInput?.value ?? 0);
     const trackKey = `${this.animationSelectedObjectId}::${this.animationSelectedProperty}`;
     const nextTrack = this.animationTracks.find((track) => `${track.gameObjectId}::${track.propertyPath}` === trackKey)
@@ -581,9 +644,9 @@ export class SceneEditorApp {
     }
 
     this.animationValueInput.value = '0';
-    this.animationTimeInput.value = String((Number(this.animationTimeInput.value ?? 0) + 0.5).toFixed(1));
+    this.setAnimationSelectedTime(timeValue + 0.5);
     this.renderAnimationTimeline();
-    this.setStatus(`Added keyframe for ${this.animationSelectedProperty}.`);
+    this.setStatus(`Added keyframe for ${this.animationSelectedProperty} at ${timeValue.toFixed(1)}s.`);
   }
 
   exportAnimationJson() {
