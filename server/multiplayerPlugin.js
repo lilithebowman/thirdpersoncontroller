@@ -11,15 +11,26 @@ const players = new Map();
 const rateLimits = new Map();
 
 const STALE_TIMEOUT_MS = 15000;
+const PLAYER_RETENTION_MS = 1000 * 60 * 60 * 24 * 60; // 60 days
 const MAX_TRANSFORM_BODY_SIZE = 2048; // 2KB
 const MAX_VOICE_BODY_SIZE = 256 * 1024; // 256KB
 const RATE_LIMIT_WINDOW_MS = 1000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 
+function cleanupExpiredPlayers() {
+  const now = Date.now();
+  for (const [guid, data] of players.entries()) {
+    if (now - (data.lastUpdated ?? now) > PLAYER_RETENTION_MS) {
+      players.delete(guid);
+      rateLimits.delete(guid);
+    }
+  }
+}
+
 function cleanupStalePlayers() {
   const now = Date.now();
   for (const [guid, data] of players.entries()) {
-    if (now - data.lastUpdated > STALE_TIMEOUT_MS) {
+    if (now - (data.lastUpdated ?? now) > STALE_TIMEOUT_MS) {
       players.delete(guid);
       rateLimits.delete(guid);
     }
@@ -53,6 +64,7 @@ export function multiplayerPlugin() {
         }
 
         if (req.method === 'POST' && pathname === '/register') {
+          cleanupExpiredPlayers();
           const guid = crypto.randomUUID();
           const now = Date.now();
           players.set(guid, {

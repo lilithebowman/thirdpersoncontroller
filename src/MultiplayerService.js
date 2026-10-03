@@ -22,9 +22,10 @@ export class MultiplayerService {
     this.apiEndpoint = options.apiEndpoint ?? '/api/players';
     this.submitIntervalMs = options.submitIntervalMs ?? 100;
     this.pollIntervalMs = options.pollIntervalMs ?? 100;
+    this.storageKey = options.storageKey ?? 'thirdpersoncontroller-player-guid';
 
-    this.guid = null;
-    this.isRegistered = false;
+    this.guid = this.readStoredGuid();
+    this.isRegistered = Boolean(this.guid);
     this.isRunning = false;
 
     this.latestLocalTransform = {
@@ -44,6 +45,57 @@ export class MultiplayerService {
     this._pollTimer = null;
   }
 
+  readStoredGuid() {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    const storedValue = localStorage.getItem(this.storageKey);
+    return typeof storedValue === 'string' && storedValue.trim() ? storedValue.trim() : null;
+  }
+
+  normalizeGuid(guid) {
+    const value = typeof guid === 'string' ? guid.trim() : '';
+    return value.length > 0 ? value.slice(0, 128) : null;
+  }
+
+  setGuid(guid, persist = true) {
+    const normalized = this.normalizeGuid(guid);
+    if (!normalized) {
+      return null;
+    }
+
+    this.guid = normalized;
+    this.isRegistered = true;
+    if (persist) {
+      this.persistGuid(this.guid);
+    }
+    return this.guid;
+  }
+
+  persistGuid(guid = this.guid) {
+    if (typeof localStorage === 'undefined' || !guid) {
+      return;
+    }
+
+    localStorage.setItem(this.storageKey, String(guid));
+  }
+
+  async ensureGuid() {
+    if (this.guid) {
+      return this.guid;
+    }
+
+    const storedGuid = this.readStoredGuid();
+    if (storedGuid) {
+      this.guid = storedGuid;
+      this.isRegistered = true;
+      return this.guid;
+    }
+
+    return this.register();
+  }
+
   /**
    * Registers the player with the backend to obtain a unique GUID.
    * @returns {Promise<string>} The assigned player GUID
@@ -59,6 +111,7 @@ export class MultiplayerService {
         const data = await response.json();
         if (data.success && data.guid) {
           this.guid = data.guid;
+          this.persistGuid(this.guid);
           this.isRegistered = true;
           return this.guid;
         }
@@ -69,6 +122,7 @@ export class MultiplayerService {
 
     if (!this.guid) {
       this.guid = 'client-fallback-' + Math.random().toString(36).substring(2, 11);
+      this.persistGuid(this.guid);
       this.isRegistered = true;
     }
 
@@ -135,6 +189,43 @@ export class MultiplayerService {
     return this.remotePlayers;
   }
 
+  async restoreSession() {
+    if (!this.guid) {
+      await this.ensureGuid();
+    }
+
+    if (!this.guid) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.apiEndpoint}/session?guid=${encodeURIComponent(this.guid)}`);
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      const session = data?.session ?? null;
+      if (!session) {
+        return null;
+      }
+
+      this.latestLocalTransform = {
+        position: session.position ?? this.latestLocalTransform.position,
+        rotation: session.rotation ?? this.latestLocalTransform.rotation,
+        yaw: typeof session.yaw === 'number' ? session.yaw : this.latestLocalTransform.yaw,
+        direction: session.direction ?? this.latestLocalTransform.direction,
+        animationState: session.animationState ?? this.latestLocalTransform.animationState,
+        isSpeaking: Boolean(session.isSpeaking),
+        model: session.model ?? this.latestLocalTransform.model,
+      };
+
+      return this.latestLocalTransform;
+    } catch (error) {
+      return null;
+    }
+  }
+
   /**
    * Starts the periodic update loops for submitting transform and polling remote players.
    */
@@ -142,9 +233,8 @@ export class MultiplayerService {
     if (this.isRunning) return;
     this.isRunning = true;
 
-    // Initial register if needed
     if (!this.guid) {
-      this.register().catch(() => {});
+      this.ensureGuid().catch(() => {});
     }
 
     this._submitTimer = setInterval(async () => {

@@ -31,6 +31,20 @@ test('PlayerModel serializes valid file metadata and preserves rig state', async
   assert.strictEqual(model.isRigged, false);
 });
 
+test('PlayerModel.fromDataUrl retains eye position and manifest metadata', async () => {
+  const model = await PlayerModel.fromDataUrl({
+    name: 'Hero.fbx',
+    dataUrl: 'data:model/vnd.fbx;base64,QUJDRA==',
+    mimeType: 'model/vnd.fbx',
+    eyePosition: { x: 0.2, y: 1.8, z: -0.1 },
+    manifest: { name: 'Hero', version: 1 },
+  });
+
+  assert.deepStrictEqual(model.eyePosition, { x: 0.2, y: 1.8, z: -0.1 });
+  assert.strictEqual(model.manifest.name, 'Hero');
+  assert.strictEqual(model.manifest.version, 1);
+});
+
 test('PlayerModel can unpack a zip bundle with player-manifest.json and linked assets', async () => {
   const zip = new JSZip();
   zip.file('player-manifest.json', JSON.stringify({

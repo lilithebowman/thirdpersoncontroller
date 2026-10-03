@@ -378,6 +378,11 @@ export class PlayerModel {
       dataUrl,
       hasHumanoidRig: Boolean(hasHumanoidRig),
       isRigged: Boolean(isRigged),
+      manifest: manifest && typeof manifest === 'object' ? cleanManifestObject(manifest) : null,
+      eyePosition,
+      boneNames: Array.isArray(boneNames) ? boneNames : normalizeBoneNames(boneNames),
+      materialData,
+      bundleFiles,
     });
   }
 

@@ -122,6 +122,18 @@ export class ThirdPersonControllerApp {
         const eyePosition = new THREE.Vector3(offset.x ?? 0, offset.y ?? 1.6, offset.z ?? 0);
         this.cameraController.setEyePosition(eyePosition);
       },
+      onPlayerTokenChange: (token) => {
+        const nextToken = this.multiplayerService?.normalizeGuid?.(token) ?? token;
+        if (!nextToken) {
+          return;
+        }
+        this.multiplayerService.setGuid(nextToken, true);
+        this.voiceChatService?.init?.(this.multiplayerService.guid);
+        this.restorePersistedPlayerState().catch(() => {});
+      },
+      onPlayerNameChange: (name) => {
+        this.playerName = name;
+      },
     });
 
     this.localSpeakerSprite = null;
@@ -378,6 +390,57 @@ export class ThirdPersonControllerApp {
     this.spawnPlayerAt(spawnPosition);
   }
 
+  async restorePersistedPlayerState() {
+    if (!this.multiplayerService) {
+      return;
+    }
+
+    try {
+      const guid = await this.multiplayerService.ensureGuid();
+      if (!guid) {
+        return;
+      }
+
+      const session = await this.multiplayerService.restoreSession();
+      if (!session) {
+        return;
+      }
+
+      if (this.playerCharacter?.root && session.position) {
+        this.playerCharacter.root.position.set(session.position.x ?? 0, session.position.y ?? 0, session.position.z ?? 0);
+      }
+
+      if (typeof session.yaw === 'number') {
+        this.playerYaw = session.yaw;
+        this.playerTargetYaw = session.yaw;
+        this.playerRotationController.setYaw(this.playerYaw);
+        this.playerRotationQuaternion.copy(this.playerRotationController.quaternion);
+        if (this.playerCharacter?.root) {
+          this.playerCharacter.root.quaternion.copy(this.playerRotationQuaternion);
+        }
+      }
+
+      const restoredModelPayload = session.model ?? this.readLocalStoragePlayerModel();
+      if (restoredModelPayload && !this.playerModel) {
+        const restoredModel = await PlayerModel.fromDataUrl(restoredModelPayload);
+        this.playerModel = restoredModel;
+        await this.animator.applyCustomPlayerModel(restoredModel);
+
+        if (restoredModel.eyePosition) {
+          const nextEyeOffset = new THREE.Vector3(
+            restoredModel.eyePosition.x ?? 0,
+            restoredModel.eyePosition.y ?? 1.6,
+            restoredModel.eyePosition.z ?? 0,
+          );
+          this.gameMenu?.setEyeOffset?.(nextEyeOffset);
+          this.cameraController.setEyePosition(nextEyeOffset);
+        }
+      }
+    } catch (error) {
+      console.warn('Unable to restore persisted player session:', error);
+    }
+  }
+
   spawnPlayerAt(spawnPosition) {
     this.playerCharacter.spawn(this.scene, spawnPosition);
     this.playerYaw = this.cameraController ? this.cameraController.state.yaw : 0;
@@ -396,12 +459,39 @@ export class ThirdPersonControllerApp {
       this.playerCharacter.root.add(this.localSpeakerSprite);
     }
 
-    if (this.multiplayerService.guid) {
-      this.voiceChatService.init(this.multiplayerService.guid);
-    } else {
-      this.multiplayerService.register().then((guid) => {
-        this.voiceChatService.init(guid);
-      });
+    this.multiplayerService.ensureGuid().then((guid) => {
+      this.voiceChatService.init(guid);
+      this.restorePersistedPlayerState().catch(() => {});
+    }).catch(() => {});
+  }
+
+  readLocalStoragePlayerModel() {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    try {
+      const rawValue = localStorage.getItem('thirdpersoncontroller-player-model');
+      if (!rawValue) {
+        return null;
+      }
+
+      const parsed = JSON.parse(rawValue);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  persistLocalStoragePlayerModel(model) {
+    if (typeof localStorage === 'undefined' || !model) {
+      return;
+    }
+
+    try {
+      localStorage.setItem('thirdpersoncontroller-player-model', JSON.stringify(model.toJSON ? model.toJSON() : model));
+    } catch (error) {
+      // ignore write errors from restricted browser storage
     }
   }
 
@@ -416,9 +506,11 @@ export class ThirdPersonControllerApp {
         ? new THREE.Vector3(eyeOffset.x ?? 0, eyeOffset.y ?? 1.6, eyeOffset.z ?? 0)
         : this.cameraController?.eyePosition?.clone?.() ?? new THREE.Vector3(0, 1.6, 0);
       this.cameraController.setEyePosition(nextEyeOffset);
+      this.gameMenu?.setEyeOffset?.(nextEyeOffset);
 
       const playerModel = await PlayerModel.fromFile(modelFile);
       this.playerModel = playerModel;
+      this.persistLocalStoragePlayerModel(playerModel);
       await this.animator.applyCustomPlayerModel(playerModel);
 
       const spawnPosition = this.playerCharacter?.root?.position?.clone?.() ?? this.resolvePlayerSpawnFromManifest(this.currentManifest ?? {}) ?? new THREE.Vector3(0, 0, 0);
@@ -1044,6 +1136,10 @@ export class ThirdPersonControllerApp {
     this.inputEnabledAt = performance.now() + 150;
     this.clock.reset();
     this.isRunning = true;
+    this.multiplayerService.ensureGuid().then((guid) => {
+      this.voiceChatService.init(guid);
+      this.restorePersistedPlayerState().catch(() => {});
+    }).catch(() => {});
     this.multiplayerService.start();
     this.renderer.setAnimationLoop(this.tick);
   }

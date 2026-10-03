@@ -134,4 +134,4 @@ For full setup and collider examples, see [`SCENESETUP.md`](SCENESETUP.md). For 
 
 Note that many features are currently in a very early alpha testing state. It is the project goal to make a fully-fledged third person controller style game engine capable of social gaming with the ability for users to load in their own ZIP files with JSON manifest and necessary model, sound, animation, and other assets to be used as their own player model.
 
-In the future it would be ideal to support some kind of permanent state on the server side so that when users come back, they can see their own avatar on their player and be left in the same position with the same game state.
+The backend now persists player session state on disk so that when users return with the same browser GUID, they can restore their own avatar, position, orientation, and basic game state.
