@@ -100,6 +100,7 @@ function normalizeAnimationComponent(component) {
       ? normalized.name.trim()
       : animationPath ? animationPath.split(/[\\/]/).pop()?.replace(/\.anim$/i, '') ?? 'animation' : 'animation';
   normalized.duration = Number.isFinite(normalized.duration) ? normalized.duration : 0;
+  normalized.space = normalized.space === 'world' ? 'world' : 'local';
   normalized.loop = normalizeBoolean(normalized.loop, true);
   normalized.speed = Number.isFinite(normalized.speed) ? normalized.speed : 1;
   normalized.enabled = normalizeBoolean(normalized.enabled, true);
@@ -277,6 +278,7 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
       gameObjectId: gameObject.id,
       animationPath: item.animationPath ?? item.path ?? item.uri ?? '',
       animationName: item.animationName ?? item.name ?? undefined,
+      space: item.space === 'world' ? 'world' : 'local',
       duration: Number.isFinite(item.duration) ? item.duration : undefined,
       loop: item.loop !== false,
       speed: Number.isFinite(item.speed) ? item.speed : 1,
@@ -676,6 +678,7 @@ function gameObjectToLegacyItems(gameObject) {
         name: component.animationName ?? gameObject.name,
         animationPath: component.animationPath ?? undefined,
         animationName: component.animationName ?? undefined,
+        space: component.space === 'world' ? 'world' : 'local',
         duration: Number.isFinite(component.duration) ? component.duration : undefined,
         loop: component.loop !== false,
         playOnAwake: normalizeBoolean(component.playOnAwake, true),

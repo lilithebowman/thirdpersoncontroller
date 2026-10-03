@@ -682,6 +682,7 @@ export class SceneEditorApp {
     const payload = {
       version: 2,
       name: animationName,
+      space: 'local',
       duration: Math.max(0, ...this.animationTracks.flatMap((track) => track.keyframes.map((keyframe) => Number(keyframe.time ?? 0)))) || 0,
       loop: !!this.animationLoop,
       playOnAwake: !!this.animationPlayOnAwake,

@@ -17,6 +17,7 @@ export class AnimationClipPlayer {
     loop = true,
     speed = 1,
     playOnAwake = false,
+    space = 'local',
   } = {}) {
     this.target = target;
     this.animationPath = animationPath;
@@ -25,10 +26,12 @@ export class AnimationClipPlayer {
     this.loop = loop !== false;
     this.speed = Number.isFinite(speed) && speed > 0 ? speed : 1;
     this.playOnAwake = playOnAwake === true;
+    this.space = space === 'world' ? 'world' : 'local';
     this.tracks = [];
     this.duration = 0;
     this.time = 0;
     this.isPlaying = false;
+    this.trackBaseValues = new Map();
   }
 
   normalizeBoolean(value, fallback = false) {
@@ -65,10 +68,12 @@ export class AnimationClipPlayer {
   }
 
   loadData(payload = {}) {
+    this.trackBaseValues.clear();
     this.name = typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim() : this.name;
     this.loop = this.normalizeBoolean(payload.loop, this.loop);
     this.speed = Number.isFinite(payload.speed) && payload.speed > 0 ? Number(payload.speed) : this.speed;
     this.playOnAwake = this.normalizeBoolean(payload.playOnAwake, this.playOnAwake);
+    this.space = payload?.space === 'world' ? 'world' : 'local';
     this.tracks = Array.isArray(payload.tracks) ? payload.tracks.map((track) => ({
       gameObjectId: track?.gameObjectId ?? null,
       propertyPath: typeof track?.propertyPath === 'string' ? track.propertyPath : 'transform.position.x',
@@ -80,6 +85,8 @@ export class AnimationClipPlayer {
         .sort((a, b) => (a.time ?? 0) - (b.time ?? 0))
         : [],
     })) : [];
+
+    this.captureBaseValues();
 
     const maxKeyframeTime = this.tracks.reduce((max, track) => {
       const trackMax = track.keyframes.reduce((candidate, frame) => Math.max(candidate, Number(frame.time ?? 0)), 0);
@@ -96,6 +103,7 @@ export class AnimationClipPlayer {
   }
 
   play() {
+    this.captureBaseValues();
     this.isPlaying = true;
     if (!Number.isFinite(this.time) || this.time < 0) {
       this.time = 0;
@@ -112,6 +120,7 @@ export class AnimationClipPlayer {
 
   setTarget(target) {
     this.target = target;
+    this.captureBaseValues();
     this.applyCurrentState();
   }
 
@@ -163,6 +172,79 @@ export class AnimationClipPlayer {
     return frames[frames.length - 1].value ?? 0;
   }
 
+  getTargetPropertyValue(propertyPath) {
+    const pathSegments = typeof propertyPath === 'string' ? propertyPath.split('.') : [];
+    if (pathSegments.length < 2 || !this.target) {
+      return undefined;
+    }
+
+    const [rootKey, propertyKey, axis] = pathSegments;
+    if (rootKey !== 'transform') {
+      return undefined;
+    }
+
+    const rootObject = this.target[propertyKey];
+    if (!rootObject) {
+      return undefined;
+    }
+
+    if (axis && typeof rootObject[axis] === 'number') {
+      return rootObject[axis];
+    }
+
+    if (typeof rootObject === 'number') {
+      return rootObject;
+    }
+
+    return undefined;
+  }
+
+  setTargetPropertyValue(propertyPath, value) {
+    const pathSegments = typeof propertyPath === 'string' ? propertyPath.split('.') : [];
+    if (pathSegments.length < 2 || !this.target) {
+      return;
+    }
+
+    const [rootKey, propertyKey, axis] = pathSegments;
+    if (rootKey !== 'transform') {
+      return;
+    }
+
+    const rootObject = this.target[propertyKey];
+    if (!rootObject) {
+      return;
+    }
+
+    if (axis && typeof rootObject[axis] === 'number') {
+      rootObject[axis] = value;
+      return;
+    }
+
+    if (typeof rootObject === 'number') {
+      this.target[propertyKey] = value;
+    }
+  }
+
+  captureBaseValues() {
+    if (!this.target || !Array.isArray(this.tracks)) {
+      return;
+    }
+
+    this.trackBaseValues.clear();
+
+    for (const track of this.tracks) {
+      const propertyPath = typeof track?.propertyPath === 'string' ? track.propertyPath : null;
+      if (!propertyPath) {
+        continue;
+      }
+
+      const currentValue = this.getTargetPropertyValue(propertyPath);
+      if (Number.isFinite(currentValue)) {
+        this.trackBaseValues.set(propertyPath, currentValue);
+      }
+    }
+  }
+
   applyCurrentState() {
     if (!this.target || !Array.isArray(this.tracks)) {
       return;
@@ -174,32 +256,12 @@ export class AnimationClipPlayer {
         continue;
       }
 
-      const value = this.getInterpolatedValue(track, this.time);
-      const pathSegments = propertyPath.split('.');
-      if (pathSegments.length < 2) {
-        continue;
-      }
-
-      const rootKey = pathSegments[0];
-      const propertyKey = pathSegments[1];
-      const axis = pathSegments[2];
-
-      if (rootKey !== 'transform') {
-        continue;
-      }
-
-      if (!this.target[propertyKey]) {
-        continue;
-      }
-
-      if (axis && typeof this.target[propertyKey][axis] === 'number') {
-        this.target[propertyKey][axis] = value;
-        continue;
-      }
-
-      if (typeof this.target[propertyKey] === 'number') {
-        this.target[propertyKey] = value;
-      }
+      const offsetValue = this.getInterpolatedValue(track, this.time);
+      const baselineValue = this.trackBaseValues.has(propertyPath)
+        ? Number(this.trackBaseValues.get(propertyPath))
+        : this.getTargetPropertyValue(propertyPath);
+      const nextValue = Number.isFinite(baselineValue) ? baselineValue + offsetValue : offsetValue;
+      this.setTargetPropertyValue(propertyPath, nextValue);
     }
   }
 }
