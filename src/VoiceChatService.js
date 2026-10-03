@@ -18,9 +18,11 @@ export class VoiceChatService {
     this.apiEndpoint = options.apiEndpoint ?? '/api/players';
     this.threshold = options.threshold ?? 0.05;
     this.onSpeakingChange = options.onSpeakingChange ?? (() => {});
+    this.onMutedChange = options.onMutedChange ?? (() => {});
 
     this.guid = null;
     this.isListening = false;
+    this.isMuted = false;
     this.isSpeaking = false;
     this.audioContext = null;
     this.analyser = null;
@@ -74,7 +76,7 @@ export class VoiceChatService {
 
       this.captureNode = this.audioContext.createScriptProcessor(2048, 1, 1);
       this.captureNode.onaudioprocess = (event) => {
-        if (!this.isSpeaking) {
+        if (this.isMuted || !this.isSpeaking) {
           this.pcmChunkBuffer = [];
           this.pcmChunkSampleCount = 0;
           return;
@@ -225,7 +227,7 @@ export class VoiceChatService {
   }
 
   async sendVoiceChunk(audioBase64) {
-    if (!this.guid) return;
+    if (!this.guid || this.isMuted) return;
     try {
       await fetch(`${this.apiEndpoint}/voice`, {
         method: 'POST',
@@ -241,6 +243,16 @@ export class VoiceChatService {
     const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
     const checkLevel = () => {
       if (!this.analyser || !this.isListening) return;
+
+      if (this.isMuted) {
+        if (this.isSpeaking) {
+          this.isSpeaking = false;
+          this.onSpeakingChange(this.isSpeaking);
+        }
+        this._animationFrameId = requestAnimationFrame(checkLevel);
+        return;
+      }
+
       this.analyser.getByteFrequencyData(dataArray);
       let sum = 0;
       for (let i = 0; i < dataArray.length; i++) {
@@ -267,9 +279,30 @@ export class VoiceChatService {
     this.threshold = Math.max(0, Math.min(1, Number(value) || 0.05));
   }
 
+  setMuted(value) {
+    const nextMuted = Boolean(value);
+    if (this.isMuted === nextMuted) {
+      return this.isMuted;
+    }
+
+    this.isMuted = nextMuted;
+    if (this.isSpeaking) {
+      this.isSpeaking = false;
+      this.onSpeakingChange(this.isSpeaking);
+    }
+    this.onMutedChange(this.isMuted);
+    return this.isMuted;
+  }
+
+  toggleMuted() {
+    return this.setMuted(!this.isMuted);
+  }
+
   stop() {
     this.isListening = false;
     this.isSpeaking = false;
+    this.isMuted = false;
+    this.onMutedChange(this.isMuted);
     if (this._animationFrameId) {
       cancelAnimationFrame(this._animationFrameId);
       this._animationFrameId = null;

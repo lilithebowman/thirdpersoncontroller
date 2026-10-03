@@ -95,11 +95,15 @@ export class ThirdPersonControllerApp {
       debugDisplay: this.debugDisplay,
     });
 
+    this.voiceMuteButton = this.createVoiceMuteButton();
     this.voiceChatService = new VoiceChatService({
       onSpeakingChange: (isSpeaking) => {
         if (this.localSpeakerSprite) {
-          this.localSpeakerSprite.visible = isSpeaking;
+          this.localSpeakerSprite.visible = !this.voiceChatService.isMuted && isSpeaking;
         }
+      },
+      onMutedChange: (isMuted) => {
+        this.updateVoiceMuteButton(isMuted);
       },
     });
 
@@ -251,6 +255,30 @@ export class ThirdPersonControllerApp {
       }
     });
     document.addEventListener('pointerlockchange', this.onPointerLockChange.bind(this));
+  }
+
+  createVoiceMuteButton() {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'voice-toggle-button';
+    button.setAttribute('aria-label', 'Toggle voice chat mute');
+    button.addEventListener('click', () => {
+      this.voiceChatService?.toggleMuted();
+    });
+    this.app.appendChild(button);
+    this.updateVoiceMuteButton(this.voiceChatService?.isMuted ?? false);
+    return button;
+  }
+
+  updateVoiceMuteButton(isMuted = false) {
+    if (!this.voiceMuteButton) {
+      return;
+    }
+
+    const muted = Boolean(isMuted);
+    this.voiceMuteButton.textContent = muted ? '🔇 Voice Off' : '🔊 Voice On';
+    this.voiceMuteButton.classList.toggle('is-muted', muted);
+    this.voiceMuteButton.setAttribute('aria-pressed', String(muted));
   }
 
   onPointerLockChange() {
@@ -1010,6 +1038,10 @@ export class ThirdPersonControllerApp {
 
     this.clock.update(time);
     const delta = Math.min(this.clock.getDelta(), 0.05);
+
+    if (this.keyboardInput.consumePress('KeyV')) {
+      this.voiceChatService?.toggleMuted();
+    }
 
     if (this.keyboardInput.consumePress('Escape')) {
       this.gameMenu.toggle();

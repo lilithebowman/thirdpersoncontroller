@@ -16,6 +16,7 @@ This project is a browser-based 3D demo and editor for a third-person controller
 
 - Third-person character controller using WASD / arrow keys
 - Sprinting and jumping support
+- Voice chat toggle with V key or the on-screen mute button
 - Cinematic / orbit-style editor viewport for scene layout
 - Hierarchy and inspector editing for scene objects
 - Real `gameObjects` + component system, not flat legacy top-level objects

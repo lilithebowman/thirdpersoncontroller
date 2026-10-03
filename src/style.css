@@ -69,6 +69,33 @@ canvas {
   opacity: 0.9;
 }
 
+.voice-toggle-button {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 20;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(10, 22, 34, 0.85);
+  color: #e6f4ff;
+  padding: 0.65rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(10px);
+}
+
+.voice-toggle-button:hover {
+  background: rgba(20, 35, 50, 0.95);
+}
+
+.voice-toggle-button.is-muted {
+  background: rgba(70, 20, 20, 0.9);
+  border-color: rgba(255, 170, 170, 0.5);
+}
+
 .debug-overlay {
   position: absolute;
   top: 18px;

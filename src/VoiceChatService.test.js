@@ -55,6 +55,22 @@ test('VoiceChatService encodePcm16Wav generates valid RIFF/WAVE header', () => {
   assert.ok(wavBuffer.byteLength > 44);
 });
 
+test('VoiceChatService can mute and unmute voice chat', () => {
+  const service = new VoiceChatService();
+  let mutedState = null;
+  service.onMutedChange = (value) => {
+    mutedState = value;
+  };
+
+  service.setMuted(true);
+  assert.strictEqual(service.isMuted, true);
+  assert.strictEqual(mutedState, true);
+
+  service.toggleMuted();
+  assert.strictEqual(service.isMuted, false);
+  assert.strictEqual(mutedState, false);
+});
+
 test('VoiceChatService stops correctly', () => {
   const service = new VoiceChatService();
   service.isListening = true;
@@ -63,4 +79,5 @@ test('VoiceChatService stops correctly', () => {
 
   assert.strictEqual(service.isListening, false);
   assert.strictEqual(service.isSpeaking, false);
+  assert.strictEqual(service.isMuted, false);
 });
