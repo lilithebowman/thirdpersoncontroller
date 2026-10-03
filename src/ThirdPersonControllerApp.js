@@ -378,6 +378,46 @@ export class ThirdPersonControllerApp {
     this.spawnPlayerAt(spawnPosition);
   }
 
+  async restorePersistedPlayerState() {
+    if (!this.multiplayerService) {
+      return;
+    }
+
+    try {
+      const guid = await this.multiplayerService.ensureGuid();
+      if (!guid) {
+        return;
+      }
+
+      const session = await this.multiplayerService.restoreSession();
+      if (!session) {
+        return;
+      }
+
+      if (this.playerCharacter?.root && session.position) {
+        this.playerCharacter.root.position.set(session.position.x ?? 0, session.position.y ?? 0, session.position.z ?? 0);
+      }
+
+      if (typeof session.yaw === 'number') {
+        this.playerYaw = session.yaw;
+        this.playerTargetYaw = session.yaw;
+        this.playerRotationController.setYaw(this.playerYaw);
+        this.playerRotationQuaternion.copy(this.playerRotationController.quaternion);
+        if (this.playerCharacter?.root) {
+          this.playerCharacter.root.quaternion.copy(this.playerRotationQuaternion);
+        }
+      }
+
+      if (session.model && !this.playerModel) {
+        const restoredModel = await PlayerModel.fromDataUrl(session.model);
+        this.playerModel = restoredModel;
+        await this.animator.applyCustomPlayerModel(restoredModel);
+      }
+    } catch (error) {
+      console.warn('Unable to restore persisted player session:', error);
+    }
+  }
+
   spawnPlayerAt(spawnPosition) {
     this.playerCharacter.spawn(this.scene, spawnPosition);
     this.playerYaw = this.cameraController ? this.cameraController.state.yaw : 0;
@@ -396,13 +436,10 @@ export class ThirdPersonControllerApp {
       this.playerCharacter.root.add(this.localSpeakerSprite);
     }
 
-    if (this.multiplayerService.guid) {
-      this.voiceChatService.init(this.multiplayerService.guid);
-    } else {
-      this.multiplayerService.register().then((guid) => {
-        this.voiceChatService.init(guid);
-      });
-    }
+    this.multiplayerService.ensureGuid().then((guid) => {
+      this.voiceChatService.init(guid);
+      this.restorePersistedPlayerState().catch(() => {});
+    }).catch(() => {});
   }
 
   async selectPlayerModel(file, eyeOffset = null) {
@@ -1044,6 +1081,10 @@ export class ThirdPersonControllerApp {
     this.inputEnabledAt = performance.now() + 150;
     this.clock.reset();
     this.isRunning = true;
+    this.multiplayerService.ensureGuid().then((guid) => {
+      this.voiceChatService.init(guid);
+      this.restorePersistedPlayerState().catch(() => {});
+    }).catch(() => {});
     this.multiplayerService.start();
     this.renderer.setAnimationLoop(this.tick);
   }

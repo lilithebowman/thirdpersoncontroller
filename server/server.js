@@ -14,7 +14,15 @@
  */
 
 import http from 'node:http';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const STORAGE_DIR = path.join(__dirname, 'data');
+const PLAYER_STATE_PATH = path.join(STORAGE_DIR, 'players.json');
 
 const PORT = process.env.PORT || 3000;
 const players = new Map();
@@ -78,13 +86,78 @@ function sanitizeModelPayload(model) {
   };
 }
 
-function cleanupStalePlayers() {
+async function ensureStorageDirectory() {
+  await fs.mkdir(STORAGE_DIR, { recursive: true });
+}
+
+async function persistPlayers() {
+  await ensureStorageDirectory();
+  const snapshot = Array.from(players.values()).map((player) => ({
+    guid: player.guid,
+    position: player.position ?? { x: 0, y: 0, z: 0 },
+    rotation: player.rotation ?? { x: 0, y: 0, z: 0, w: 1 },
+    yaw: Number.isFinite(player.yaw) ? player.yaw : 0,
+    direction: player.direction ?? { x: 0, y: 0, z: -1 },
+    animationState: typeof player.animationState === 'string' ? player.animationState.slice(0, 32) : 'idle',
+    isSpeaking: Boolean(player.isSpeaking),
+    model: player.model ?? null,
+    lastUpdated: player.lastUpdated ?? Date.now(),
+    createdAt: player.createdAt ?? player.lastUpdated ?? Date.now(),
+  }));
+
+  await fs.writeFile(PLAYER_STATE_PATH, JSON.stringify({ players: snapshot }, null, 2), 'utf8');
+}
+
+async function loadPersistedPlayers() {
+  try {
+    await ensureStorageDirectory();
+    const content = await fs.readFile(PLAYER_STATE_PATH, 'utf8');
+    if (!content.trim()) {
+      return;
+    }
+
+    const parsed = JSON.parse(content);
+    const entries = Array.isArray(parsed?.players) ? parsed.players : [];
+    for (const entry of entries) {
+      if (!entry || typeof entry.guid !== 'string') {
+        continue;
+      }
+
+      const storedPlayer = {
+        guid: entry.guid,
+        position: entry.position ?? { x: 0, y: 0, z: 0 },
+        rotation: entry.rotation ?? { x: 0, y: 0, z: 0, w: 1 },
+        yaw: Number.isFinite(entry.yaw) ? entry.yaw : 0,
+        direction: entry.direction ?? { x: 0, y: 0, z: -1 },
+        animationState: typeof entry.animationState === 'string' ? entry.animationState.slice(0, 32) : 'idle',
+        isSpeaking: Boolean(entry.isSpeaking),
+        model: sanitizeModelPayload(entry.model),
+        voiceData: null,
+        lastUpdated: Number.isFinite(entry.lastUpdated) ? entry.lastUpdated : Date.now(),
+        createdAt: Number.isFinite(entry.createdAt) ? entry.createdAt : Date.now(),
+      };
+      players.set(entry.guid, storedPlayer);
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      console.warn('Failed to load persisted player state:', error?.message ?? error);
+    }
+  }
+}
+
+async function cleanupStalePlayers() {
   const now = Date.now();
+  let changed = false;
   for (const [guid, data] of players.entries()) {
     if (now - data.lastUpdated > STALE_TIMEOUT_MS) {
       players.delete(guid);
       rateLimits.delete(guid);
+      changed = true;
     }
+  }
+
+  if (changed) {
+    await persistPlayers();
   }
 }
 
@@ -132,7 +205,10 @@ const server = http.createServer((req, res) => {
       model: null,
       voiceData: null,
       lastUpdated: now,
+      createdAt: now,
     });
+
+    persistPlayers().catch(() => {});
 
     res.statusCode = 201;
     res.setHeader('Content-Type', 'application/json');
@@ -154,7 +230,7 @@ const server = http.createServer((req, res) => {
       body += chunk;
     });
 
-    req.on('end', () => {
+    req.on('end', async () => {
       if (payloadTooLarge) {
         res.statusCode = 413;
         res.setHeader('Content-Type', 'application/json');
@@ -174,7 +250,6 @@ const server = http.createServer((req, res) => {
         }
 
         if (!players.has(guid)) {
-          // Auto-register if not yet registered
           players.set(guid, {
             guid,
             position: { x: 0, y: 0, z: 0 },
@@ -186,6 +261,7 @@ const server = http.createServer((req, res) => {
             model: null,
             voiceData: null,
             lastUpdated: Date.now(),
+            createdAt: Date.now(),
           });
         }
 
@@ -196,7 +272,6 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Validate position
         if (!position || typeof position.x !== 'number' || !Number.isFinite(position.x) ||
             typeof position.y !== 'number' || !Number.isFinite(position.y) ||
             typeof position.z !== 'number' || !Number.isFinite(position.z)) {
@@ -242,6 +317,7 @@ const server = http.createServer((req, res) => {
         }
 
         player.lastUpdated = Date.now();
+        await persistPlayers();
 
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
@@ -269,7 +345,7 @@ const server = http.createServer((req, res) => {
       body += chunk;
     });
 
-    req.on('end', () => {
+    req.on('end', async () => {
       if (payloadTooLarge) {
         res.statusCode = 413;
         res.setHeader('Content-Type', 'application/json');
@@ -294,9 +370,13 @@ const server = http.createServer((req, res) => {
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0, w: 1 },
             yaw: 0,
+            direction: { x: 0, y: 0, z: -1 },
             animationState: 'idle',
+            isSpeaking: false,
+            model: null,
             voiceData: null,
             lastUpdated: Date.now(),
+            createdAt: Date.now(),
           });
         }
 
@@ -314,6 +394,7 @@ const server = http.createServer((req, res) => {
             timestamp: Date.now(),
           };
           player.lastUpdated = Date.now();
+          await persistPlayers();
         }
 
         res.statusCode = 200;
@@ -328,8 +409,38 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (pathname === '/api/players/session' && req.method === 'GET') {
+    const guid = url.searchParams.get('guid');
+    const player = guid ? players.get(guid) : null;
+    if (!player) {
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ success: false, message: 'No persisted session found.' }));
+      return;
+    }
+
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
+      success: true,
+      session: {
+        guid: player.guid,
+        position: player.position ?? { x: 0, y: 0, z: 0 },
+        rotation: player.rotation ?? { x: 0, y: 0, z: 0, w: 1 },
+        yaw: Number.isFinite(player.yaw) ? player.yaw : 0,
+        direction: player.direction ?? { x: 0, y: 0, z: -1 },
+        animationState: player.animationState ?? 'idle',
+        isSpeaking: Boolean(player.isSpeaking),
+        model: player.model ?? null,
+        lastUpdated: player.lastUpdated ?? Date.now(),
+        createdAt: player.createdAt ?? player.lastUpdated ?? Date.now(),
+      },
+    }));
+    return;
+  }
+
   if (pathname === '/api/players' && req.method === 'GET') {
-    cleanupStalePlayers();
+    await cleanupStalePlayers();
     const now = Date.now();
     const activePlayers = Array.from(players.values()).map((p) => ({
       guid: p.guid,
