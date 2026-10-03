@@ -76,22 +76,22 @@
       "type": "multi-texture",
       "textures": {
         "up": {
-          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/01_up.png"
+          "texture": "models/PlanetaryEarth4k/01_up.png"
         },
         "left": {
-          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/02_left.png"
+          "texture": "models/PlanetaryEarth4k/02_left.png"
         },
         "front": {
-          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/03_back.png"
+          "texture": "models/PlanetaryEarth4k/03_back.png"
         },
         "right": {
-          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/04_right.png"
+          "texture": "models/PlanetaryEarth4k/04_right.png"
         },
         "back": {
-          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/05_front.png"
+          "texture": "models/PlanetaryEarth4k/05_front.png"
         },
         "down": {
-          "texture": "models/2026-CozyCon-Cafe/PlanetaryEarth4k/06_down.png",
+          "texture": "models/PlanetaryEarth4k/06_down.png",
           "rotation": 180
         }
       }
