@@ -23,6 +23,7 @@ This project is a browser-based 3D demo and editor for a third-person controller
 - OBJ/MTL, GLB, and FBX asset loading and placement from manifest data
 - Clickable interaction components for hover outline, teleport, and link-driven scene navigation
 - Animation Editor timeline for track-by-track GameObject property keyframing, time selection, `playOnAwake` toggles, `Loop` controls, and `.anim` export/import
+- Five local-space Y-bob animation variants are assigned to the floating sky cubes for a subtle animated backdrop
 - Copy/download scene JSON output for re-use in the runtime app
 
 ## Run locally

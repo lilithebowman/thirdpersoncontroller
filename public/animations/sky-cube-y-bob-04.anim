@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "name": "sky-cube-y-bob-04",
+  "space": "local",
+  "duration": 6,
+  "loop": true,
+  "playOnAwake": true,
+  "tracks": [
+    {
+      "propertyPath": "transform.position.y",
+      "keyframes": [
+        { "time": 0, "value": 0 },
+        { "time": 1, "value": 0.6 },
+        { "time": 2, "value": 1.2 },
+        { "time": 3, "value": 0.8 },
+        { "time": 4, "value": 0 },
+        { "time": 5, "value": -0.4 },
+        { "time": 6, "value": 0 }
+      ]
+    }
+  ]
+}
