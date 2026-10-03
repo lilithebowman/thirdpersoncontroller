@@ -30,7 +30,7 @@ export class GameMenu {
     this.onPlayerNameChange = typeof onPlayerNameChange === 'function' ? onPlayerNameChange : () => {};
     this.onPlayerTokenChange = typeof onPlayerTokenChange === 'function' ? onPlayerTokenChange : () => {};
     this.isOpen = false;
-    this.eyeOffset = { x: 0, y: 1.6, z: 0 };
+    this.eyeOffset = this.readStoredEyeOffset() ?? { x: 0, y: 1.6, z: 0 };
     this.playerName = this.normalizePlayerName(typeof localStorage !== 'undefined' ? localStorage.getItem('thirdpersoncontroller-player-name') ?? defaultPlayerName : defaultPlayerName);
     this.playerToken = this.normalizePlayerToken(typeof localStorage !== 'undefined' ? localStorage.getItem('thirdpersoncontroller-player-guid') ?? defaultPlayerToken : defaultPlayerToken);
     this.fileInput = document.createElement('input');
@@ -179,6 +179,33 @@ export class GameMenu {
     return overlay;
   }
 
+  readStoredEyeOffset() {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    try {
+      const rawValue = localStorage.getItem('thirdpersoncontroller-eye-offset');
+      if (!rawValue) {
+        return null;
+      }
+
+      const parsed = JSON.parse(rawValue);
+      if (!parsed || typeof parsed !== 'object') {
+        return null;
+      }
+
+      const next = {
+        x: Number.isFinite(Number(parsed.x)) ? Number(parsed.x) : 0,
+        y: Number.isFinite(Number(parsed.y)) ? Number(parsed.y) : 1.6,
+        z: Number.isFinite(Number(parsed.z)) ? Number(parsed.z) : 0,
+      };
+      return { x: next.x, y: next.y, z: next.z };
+    } catch (error) {
+      return null;
+    }
+  }
+
   normalizePlayerName(value) {
     return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, 24) || 'Player';
   }
@@ -237,6 +264,9 @@ export class GameMenu {
     if (xInput) xInput.value = String(x);
     if (yInput) yInput.value = String(y);
     if (zInput) zInput.value = String(z);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('thirdpersoncontroller-eye-offset', JSON.stringify({ x, y, z }));
+    }
     this.onEyeOffsetChange({ ...this.eyeOffset });
   }
 

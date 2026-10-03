@@ -420,10 +420,21 @@ export class ThirdPersonControllerApp {
         }
       }
 
-      if (session.model && !this.playerModel) {
-        const restoredModel = await PlayerModel.fromDataUrl(session.model);
+      const restoredModelPayload = session.model ?? this.readLocalStoragePlayerModel();
+      if (restoredModelPayload && !this.playerModel) {
+        const restoredModel = await PlayerModel.fromDataUrl(restoredModelPayload);
         this.playerModel = restoredModel;
         await this.animator.applyCustomPlayerModel(restoredModel);
+
+        if (restoredModel.eyePosition) {
+          const nextEyeOffset = new THREE.Vector3(
+            restoredModel.eyePosition.x ?? 0,
+            restoredModel.eyePosition.y ?? 1.6,
+            restoredModel.eyePosition.z ?? 0,
+          );
+          this.gameMenu?.setEyeOffset?.(nextEyeOffset);
+          this.cameraController.setEyePosition(nextEyeOffset);
+        }
       }
     } catch (error) {
       console.warn('Unable to restore persisted player session:', error);
@@ -454,6 +465,36 @@ export class ThirdPersonControllerApp {
     }).catch(() => {});
   }
 
+  readLocalStoragePlayerModel() {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    try {
+      const rawValue = localStorage.getItem('thirdpersoncontroller-player-model');
+      if (!rawValue) {
+        return null;
+      }
+
+      const parsed = JSON.parse(rawValue);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  persistLocalStoragePlayerModel(model) {
+    if (typeof localStorage === 'undefined' || !model) {
+      return;
+    }
+
+    try {
+      localStorage.setItem('thirdpersoncontroller-player-model', JSON.stringify(model.toJSON ? model.toJSON() : model));
+    } catch (error) {
+      // ignore write errors from restricted browser storage
+    }
+  }
+
   async selectPlayerModel(file, eyeOffset = null) {
     try {
       const modelFile = file || null;
@@ -465,9 +506,11 @@ export class ThirdPersonControllerApp {
         ? new THREE.Vector3(eyeOffset.x ?? 0, eyeOffset.y ?? 1.6, eyeOffset.z ?? 0)
         : this.cameraController?.eyePosition?.clone?.() ?? new THREE.Vector3(0, 1.6, 0);
       this.cameraController.setEyePosition(nextEyeOffset);
+      this.gameMenu?.setEyeOffset?.(nextEyeOffset);
 
       const playerModel = await PlayerModel.fromFile(modelFile);
       this.playerModel = playerModel;
+      this.persistLocalStoragePlayerModel(playerModel);
       await this.animator.applyCustomPlayerModel(playerModel);
 
       const spawnPosition = this.playerCharacter?.root?.position?.clone?.() ?? this.resolvePlayerSpawnFromManifest(this.currentManifest ?? {}) ?? new THREE.Vector3(0, 0, 0);
