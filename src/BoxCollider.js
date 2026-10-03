@@ -19,8 +19,8 @@ export class BoxCollider extends Collider {
    * @param {boolean} [options.physicsCollision=true] - Whether collider resolves physical overlaps
    * @param {number} [options.maxWalkableSlope=0.2] - Maximum walkable incline slope
    */
-  constructor({ size = new THREE.Vector3(1, 1, 1), offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2 } = {}) {
-    super({ type: 'BoxCollider', offset, physicsCollision, maxWalkableSlope });
+  constructor({ size = new THREE.Vector3(1, 1, 1), offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2, physicsMaterial = 'default', restitution, mass = 1 } = {}) {
+    super({ type: 'BoxCollider', offset, physicsCollision, maxWalkableSlope, physicsMaterial, restitution, mass });
     this.size = size.clone();
     this.halfSize = this.size.clone().multiplyScalar(0.5);
   }

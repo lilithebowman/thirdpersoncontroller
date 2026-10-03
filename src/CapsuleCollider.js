@@ -9,8 +9,8 @@ import * as THREE from 'three';
 import { Collider } from './Collider.js';
 
 export class CapsuleCollider extends Collider {
-  constructor({ radius = 0.45, height = 1.6, offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2 } = {}) {
-    super({ type: 'CapsuleCollider', offset, physicsCollision, maxWalkableSlope });
+  constructor({ radius = 0.45, height = 1.6, offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2, physicsMaterial = 'default', restitution } = {}) {
+    super({ type: 'CapsuleCollider', offset, physicsCollision, maxWalkableSlope, physicsMaterial, restitution });
     this.radius = Math.max(0, radius);
     this.height = Math.max(this.radius * 2, height);
   }

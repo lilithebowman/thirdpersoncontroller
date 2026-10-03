@@ -12,14 +12,31 @@
  */
 
 import * as THREE from 'three';
+import { Force } from './Force.js';
 
 export class Rigidbody {
-  constructor({ mass = 1, gravity = new THREE.Vector3(0, -24, 0), linearDamping = 0, enablePhysicsCollision = false, maxWalkableSlope = 0.2 } = {}) {
+  constructor({
+    mass = 1,
+    gravity = new THREE.Vector3(0, -24, 0),
+    linearDamping = 0,
+    enablePhysicsCollision = false,
+    maxWalkableSlope = 0.2,
+    physicsMaterial = 'default',
+    restitution,
+    kinetic = false,
+  } = {}) {
     this.mass = Math.max(0.0001, mass);
-    this.gravity = gravity.clone();
+    this.gravity = Number.isFinite(gravity) ? Number(gravity) : (gravity instanceof THREE.Vector3 ? gravity.clone() : new THREE.Vector3(0, -24, 0));
+    this.gravityVector = this.getGravityVector();
     this.linearDamping = Math.max(0, linearDamping);
     this.enablePhysicsCollision = enablePhysicsCollision === true;
     this.maxWalkableSlope = Number.isFinite(maxWalkableSlope) ? maxWalkableSlope : 0.2;
+    this.physicsMaterial = typeof physicsMaterial === 'string' ? physicsMaterial.toLowerCase() : 'default';
+    this.restitution = Number.isFinite(restitution)
+      ? Math.min(1, Math.max(0, restitution))
+      : Rigidbody.getRestitutionForMaterial(this.physicsMaterial);
+    this.kinetic = kinetic === true;
+    this.collisionPoints = [];
 
     this.velocity = new THREE.Vector3();
     this.accumulatedForce = new THREE.Vector3();
@@ -36,6 +53,18 @@ export class Rigidbody {
     this._groundProbePosition = new THREE.Vector3();
   }
 
+  static getRestitutionForMaterial(material = 'default') {
+    const normalized = typeof material === 'string' ? material.toLowerCase() : 'default';
+    const restitutionByMaterial = {
+      default: 0,
+      bouncy: 0.9,
+      rubber: 0.75,
+      soft: 0.2,
+      ice: 0.08,
+    };
+    return Number.isFinite(restitutionByMaterial[normalized]) ? restitutionByMaterial[normalized] : 0;
+  }
+
   addForce(force) {
     this.accumulatedForce.add(force);
   }
@@ -44,8 +73,69 @@ export class Rigidbody {
     this.velocity.addScaledVector(impulse, 1 / this.mass);
   }
 
+  getGravityVector() {
+    if (Number.isFinite(this.gravity)) {
+      return new THREE.Vector3(0, Number(this.gravity), 0);
+    }
+    if (this.gravity instanceof THREE.Vector3) {
+      return this.gravity.clone();
+    }
+    return new THREE.Vector3(0, -24, 0);
+  }
+
   clearForces() {
     this.accumulatedForce.set(0, 0, 0);
+  }
+
+  registerCollisionPoint(point, impulse = null) {
+    if (!this.kinetic) {
+      return;
+    }
+    const collisionPoint = point instanceof THREE.Vector3 ? point.clone() : new THREE.Vector3();
+    const impulseVector = impulse instanceof THREE.Vector3 ? impulse.clone() : new THREE.Vector3();
+    this.collisionPoints.push({ point: collisionPoint, impulse: impulseVector });
+    if (impulseVector.lengthSq() > 0) {
+      this.addImpulse(impulseVector);
+    }
+  }
+
+  resolveRigidBodyCollision(other, position, otherPosition, normal = null) {
+    if (!other || typeof other.mass !== 'number' || !Number.isFinite(other.mass)) {
+      return false;
+    }
+
+    const otherVelocity = other.velocity instanceof THREE.Vector3 ? other.velocity : new THREE.Vector3();
+    const collisionNormal = normal instanceof THREE.Vector3
+      ? normal.clone().normalize()
+      : new THREE.Vector3().subVectors(otherPosition, position).normalize();
+
+    if (collisionNormal.lengthSq() === 0) {
+      return false;
+    }
+
+    const relativeVelocity = otherVelocity.clone().sub(this.velocity);
+    const closingVelocity = relativeVelocity.dot(collisionNormal);
+    if (closingVelocity >= 0) {
+      return false;
+    }
+
+    const restitution = Math.max(this.restitution ?? 0, other.restitution ?? 0);
+    const forceResult = new Force().applyCollisionImpulse({
+      bodyA: this,
+      bodyB: other,
+      normal: collisionNormal,
+      relativeVelocity,
+      restitution,
+    });
+
+    if (forceResult.applied) {
+      this.registerCollisionPoint(position, forceResult.impulse.clone());
+      if (other && typeof other.registerCollisionPoint === 'function') {
+        other.registerCollisionPoint(otherPosition, forceResult.impulse.clone().multiplyScalar(-1));
+      }
+    }
+
+    return forceResult.applied;
   }
 
   getGroundHeightAt(position, colliders) {
@@ -93,8 +183,10 @@ export class Rigidbody {
     const groundedFromCollision = this.isGroundedAgainstWorld(position, this._previousPosition, collider, colliders);
     const isCurrentlyGrounded = groundedFromCollision || (effectiveInitialGround !== null && Math.abs(position.y - effectiveInitialGround) < 0.35 && this.velocity.y <= 0.2);
 
+    this.gravityVector = this.getGravityVector();
+
     if (this.useGravity && !isCurrentlyGrounded) {
-      this._tmpForce.copy(this.gravity).multiplyScalar(this.mass);
+      this._tmpForce.copy(this.gravityVector).multiplyScalar(this.mass);
       this.addForce(this._tmpForce);
     } else {
       this.accumulatedForce.y = 0;

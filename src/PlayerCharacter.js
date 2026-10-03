@@ -26,6 +26,7 @@ export class PlayerCharacter {
     this.root = null;
     this.visual = null;
     this.headBone = null;
+    this.rightHandBone = null;
     this.eyeBones = [];
     this.modelTemplate = null;
     this.manifestConfig = {
@@ -93,8 +94,10 @@ export class PlayerCharacter {
     this.root.position.copy(spawnPosition);
 
     this.headBone = this.findHeadBone(this.root);
+    this.rightHandBone = this.findRightHandBone(this.root);
     this.eyeBones = this.findEyeBones(this.root);
     this.root.userData.headBone = this.headBone;
+    this.root.userData.rightHandBone = this.rightHandBone;
     this.root.userData.eyeBones = this.eyeBones;
 
     scene.add(this.root);
@@ -147,6 +150,54 @@ export class PlayerCharacter {
    * @param {THREE.Object3D} root - Rig root object
    * @returns {THREE.Object3D[]} Array of eye bones
    */
+  findRightHandBone(root) {
+    if (!root || typeof root.traverse !== 'function') {
+      return null;
+    }
+
+    let bestMatch = null;
+    let bestScore = -1;
+
+    root.traverse((child) => {
+      if (!child?.isBone || !child?.name) {
+        return;
+      }
+
+      const canonical = this.canonicalizeNodeName(child.name);
+      if (!canonical) {
+        return;
+      }
+
+      const normalized = canonical.replace(/_/g, '');
+      let score = 0;
+      if (normalized.includes('right') || normalized.includes('righthand') || normalized.includes('handr') || normalized.endsWith('r') && normalized.includes('hand')) {
+        score += 5;
+      }
+      if (normalized.includes('hand')) {
+        score += 6;
+      }
+      if (normalized.includes('wrist')) {
+        score += 2;
+      }
+      if (normalized.includes('palm')) {
+        score += 2;
+      }
+      if (normalized.includes('arm')) {
+        score += 1;
+      }
+      if (normalized.includes('forearm')) {
+        score += 1;
+      }
+
+      if (score > bestScore) {
+        bestMatch = child;
+        bestScore = score;
+      }
+    });
+
+    return bestScore > 0 ? bestMatch : null;
+  }
+
   findEyeBones(root) {
     if (!root || typeof root.traverse !== 'function') {
       return [];

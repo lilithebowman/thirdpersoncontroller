@@ -254,6 +254,68 @@
       "children": []
     },
     {
+      "id": "beachball-01",
+      "name": "Beachball",
+      "active": true,
+      "tag": "Untagged",
+      "layer": 0,
+      "static": false,
+      "transform": {
+        "position": [
+          31.17447130250808,
+          0.9,
+          -18
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "mass": 1.8,
+      "gravity": -9.8,
+      "kinetic": true,
+      "components": [
+        {
+          "type": "primitive",
+          "primitiveType": "sphere",
+          "radius": 0.9,
+          "segments": 32,
+          "color": "#fdf4cf",
+          "roughness": 0.85,
+          "metalness": 0.1
+        },
+        {
+          "type": "collider",
+          "collider": {
+            "type": "sphere",
+            "radius": 0.9,
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "physicsCollision": true,
+            "physicsMaterial": "bouncy",
+            "mass": 1.8
+          }
+        },
+        {
+          "type": "pickup",
+          "label": "Pick up beachball",
+          "distance": 2.5,
+          "outlineColor": "#00f5ff",
+          "enabled": true
+        }
+      ],
+      "children": []
+    },
+    {
       "id": "primitive-cf19f4dc-ddad-42ca-8f3b-1d448ca2aeca",
       "name": "Primitive Model",
       "active": true,

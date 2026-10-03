@@ -20,12 +20,37 @@ export class Collider {
    * @param {boolean} [options.physicsCollision=true] - Whether collider participates in physics resolution
    * @param {number} [options.maxWalkableSlope=0.2] - Maximum walkable incline slope
    */
-  constructor({ type = 'Collider', offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2 } = {}) {
+  constructor({
+    type = 'Collider',
+    offset = new THREE.Vector3(),
+    physicsCollision = true,
+    maxWalkableSlope = 0.2,
+    physicsMaterial = 'default',
+    restitution,
+    mass = 1,
+  } = {}) {
     this.type = type;
     this.offset = offset.clone();
     this.physicsCollision = physicsCollision === true;
     this.maxWalkableSlope = Number.isFinite(maxWalkableSlope) ? maxWalkableSlope : 0.2;
+    this.physicsMaterial = typeof physicsMaterial === 'string' ? physicsMaterial.toLowerCase() : 'default';
+    this.restitution = Number.isFinite(restitution)
+      ? Math.min(1, Math.max(0, restitution))
+      : Collider.getRestitutionForMaterial(this.physicsMaterial);
+    this.mass = Number.isFinite(mass) ? Math.max(0.0001, mass) : 1;
     this._tmpBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
+  }
+
+  static getRestitutionForMaterial(material = 'default') {
+    const normalized = typeof material === 'string' ? material.toLowerCase() : 'default';
+    const restitutionByMaterial = {
+      default: 0,
+      bouncy: 0.9,
+      rubber: 0.75,
+      soft: 0.2,
+      ice: 0.08,
+    };
+    return Number.isFinite(restitutionByMaterial[normalized]) ? restitutionByMaterial[normalized] : 0;
   }
 
   /**

@@ -35,6 +35,7 @@ import { Loader } from './Loader.js';
 import { MultiplayerService } from './MultiplayerService.js';
 import { VoiceChatService } from './VoiceChatService.js';
 import { Clickable } from './Clickable.js';
+import { Pickup } from './Pickup.js';
 import { AnimationClipPlayer } from './AnimationClipPlayer.js';
 import { normalizeSceneManifest } from './sceneManifest.js';
 
@@ -162,6 +163,9 @@ export class ThirdPersonControllerApp {
     });
 
     this.worldColliders = [];
+    this.dynamicRigidbodies = [];
+    this.pickups = [];
+    this.currentHeldPickup = null;
     this.directionalLights = [];
     this.jumpImpulseVector = new THREE.Vector3();
 
@@ -190,6 +194,7 @@ export class ThirdPersonControllerApp {
       camera: this.camera,
       raycaster: this.raycaster,
       onTeleport: (destination) => this.spawnPlayerAt(destination),
+      onPickup: (data) => this.handlePickupInteraction(data),
     });
     this.viewRayPointer = new THREE.Vector2(0, 0);
     this.mouseBeamStart = new THREE.Vector3();
@@ -382,6 +387,66 @@ export class ThirdPersonControllerApp {
     this.hitMarker.visible = true;
   }
 
+  updatePickups() {
+    const playerRoot = this.playerCharacter?.root ?? null;
+    if (!playerRoot) {
+      return;
+    }
+
+    for (const entry of this.pickups) {
+      entry.instance?.update(playerRoot, this.scene);
+    }
+  }
+
+  updateDynamicRigidbodies(delta) {
+    if (!Number.isFinite(delta) || delta <= 0) {
+      return;
+    }
+
+    const playerRoot = this.playerCharacter?.root ?? null;
+    for (const entry of this.dynamicRigidbodies) {
+      const { object, rigidbody } = entry;
+      if (!object || !rigidbody || !object.userData?.collider) {
+        continue;
+      }
+
+      const isHeldByPlayer = this.currentHeldPickup?.object === object || (playerRoot && this.isDescendantOf(object, playerRoot));
+      if (isHeldByPlayer) {
+        rigidbody.useGravity = false;
+        rigidbody.velocity.set(0, 0, 0);
+        continue;
+      }
+
+      rigidbody.useGravity = Boolean(rigidbody.gravityVector || rigidbody.gravity !== 0 || rigidbody.useGravity !== false);
+      rigidbody.integrate(object.position, delta, {
+        collider: object.userData.collider,
+        colliders: this.worldColliders,
+      });
+
+      if (playerRoot && this.playerCollider && this.playerRigidbody) {
+        const playerBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
+        const bodyBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
+        this.playerCollider.getBounds(playerRoot.position, playerBounds);
+        object.userData.collider.getBounds(object.position, bodyBounds);
+        const intersects = !(
+          playerBounds.max.x <= bodyBounds.min.x ||
+          playerBounds.min.x >= bodyBounds.max.x ||
+          playerBounds.max.y <= bodyBounds.min.y ||
+          playerBounds.min.y >= bodyBounds.max.y ||
+          playerBounds.max.z <= bodyBounds.min.z ||
+          playerBounds.min.z >= bodyBounds.max.z
+        );
+
+        if (intersects) {
+          const normal = new THREE.Vector3().subVectors(object.position, playerRoot.position).normalize();
+          if (normal.lengthSq() > 0) {
+            rigidbody.resolveRigidBodyCollision(this.playerRigidbody, object.position, playerRoot.position, normal);
+          }
+        }
+      }
+    }
+  }
+
   /**
    * Respawns the player at the configured spawn position.
    */
@@ -443,6 +508,7 @@ export class ThirdPersonControllerApp {
 
   spawnPlayerAt(spawnPosition) {
     this.playerCharacter.spawn(this.scene, spawnPosition);
+    this.syncPickupAnchors();
     this.playerYaw = this.cameraController ? this.cameraController.state.yaw : 0;
     this.playerTargetYaw = this.playerYaw;
     this.playerRotationController.setYaw(this.playerYaw);
@@ -633,24 +699,143 @@ export class ThirdPersonControllerApp {
       const size = this.sceneLoader.toVector3(colliderConfig.size, fallbackSize);
       return {
         position,
-        collider: new BoxCollider({ size, offset, physicsCollision, maxWalkableSlope }),
+        collider: new BoxCollider({
+          size,
+          offset,
+          physicsCollision,
+          maxWalkableSlope,
+          physicsMaterial: colliderConfig.physicsMaterial ?? 'default',
+          restitution: Number.isFinite(colliderConfig.restitution) ? colliderConfig.restitution : undefined,
+          mass: Number.isFinite(colliderConfig.mass) ? colliderConfig.mass : 1,
+        }),
       };
     }
     if (colliderConfig.type === 'sphere') {
       const radius = colliderConfig.radius ?? 0.5;
       return {
         position,
-        collider: new SphereCollider({ radius, offset, physicsCollision, maxWalkableSlope }),
+        collider: new SphereCollider({
+          radius,
+          offset,
+          physicsCollision,
+          maxWalkableSlope,
+          physicsMaterial: colliderConfig.physicsMaterial ?? 'bouncy',
+          restitution: Number.isFinite(colliderConfig.restitution) ? colliderConfig.restitution : undefined,
+          mass: Number.isFinite(colliderConfig.mass) ? colliderConfig.mass : 1,
+        }),
       };
     }
     if (colliderConfig.type === 'mesh') {
       const mesh = context.mesh ?? null;
       return {
         position,
-        collider: new MeshCollider({ mesh, offset, physicsCollision, maxWalkableSlope }),
+        collider: new MeshCollider({
+          mesh,
+          offset,
+          physicsCollision,
+          maxWalkableSlope,
+          physicsMaterial: colliderConfig.physicsMaterial ?? 'default',
+          restitution: Number.isFinite(colliderConfig.restitution) ? colliderConfig.restitution : undefined,
+          mass: Number.isFinite(colliderConfig.mass) ? colliderConfig.mass : 1,
+        }),
       };
     }
     return null;
+  }
+
+  syncPickupAnchors() {
+    const rightHandBone = this.playerCharacter?.rightHandBone ?? null;
+    for (const entry of this.pickups) {
+      if (entry?.instance) {
+        entry.instance.anchorBone = rightHandBone;
+      }
+    }
+  }
+
+  registerPickupObject(object, data = {}) {
+    if (!object) {
+      return null;
+    }
+
+    const pickupId = data.pickupId ?? object.userData?.gameObjectId ?? object.name ?? `pickup-${this.pickups.length + 1}`;
+    const existingEntry = this.pickups.find((entry) => entry.id === pickupId);
+    if (existingEntry) {
+      existingEntry.object = object;
+      existingEntry.instance.target = object;
+      existingEntry.instance.anchorBone = this.playerCharacter?.rightHandBone ?? null;
+      return existingEntry.instance;
+    }
+
+    const pickup = new Pickup({
+      target: object,
+      scene: this.scene,
+      playerRoot: this.playerCharacter?.root ?? null,
+      anchorBone: this.playerCharacter?.rightHandBone ?? null,
+      anchorOffset: new THREE.Vector3(0.15, -0.05, 0.12),
+      dropOffset: new THREE.Vector3(1.4, 0.9, 0.8),
+      onPickup: () => {
+        this.currentHeldPickup = { id: pickupId, object, instance: pickup };
+      },
+      onDrop: () => {
+        if (this.currentHeldPickup?.id === pickupId) {
+          this.currentHeldPickup = null;
+        }
+      },
+    });
+
+    const entry = { id: pickupId, object, instance: pickup };
+    this.pickups.push(entry);
+    return pickup;
+  }
+
+  registerDynamicRigidbody(object, config = {}) {
+    if (!object || !config || !Number.isFinite(config.mass)) {
+      return null;
+    }
+
+    if (!object.userData.rigidbody) {
+      const rigidbody = new Rigidbody({
+        mass: config.mass,
+        gravity: Number.isFinite(config.gravity) ? Number(config.gravity) : -18,
+        linearDamping: 0.08,
+        enablePhysicsCollision: true,
+        physicsMaterial: config.physicsMaterial ?? 'bouncy',
+        restitution: Number.isFinite(config.restitution) ? config.restitution : undefined,
+        kinetic: config.kinetic === true,
+      });
+      object.userData.rigidbody = rigidbody;
+      this.dynamicRigidbodies.push({ object, rigidbody });
+    }
+
+    return object.userData.rigidbody;
+  }
+
+  handlePickupInteraction(data) {
+    const pickupId = data?.pickupId ?? data?.id ?? null;
+    if (!pickupId) {
+      if (this.currentHeldPickup?.instance?.isPickedUp) {
+        this.currentHeldPickup.instance.drop(this.playerCharacter?.root ?? null, this.scene);
+      }
+      return;
+    }
+
+    const entry = this.pickups.find((item) => item.id === pickupId);
+    if (!entry) {
+      return;
+    }
+
+    const playerRoot = this.playerCharacter?.root ?? null;
+    if (!playerRoot) {
+      return;
+    }
+
+    entry.instance.anchorBone = this.playerCharacter?.rightHandBone ?? null;
+
+    if (this.currentHeldPickup && this.currentHeldPickup.id !== pickupId && this.currentHeldPickup.instance?.isPickedUp) {
+      this.currentHeldPickup.instance.drop(playerRoot, this.scene);
+    }
+
+    entry.instance.toggle(playerRoot, this.scene);
   }
 
   registerColliderFromManifestItem(item, fallbackSize, context = {}) {
@@ -721,11 +906,14 @@ export class ThirdPersonControllerApp {
         );
         proxy.scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
         this.scene.add(proxy);
+        if (item.action === 'pickup') {
+          this.registerPickupObject(proxy, { pickupId: item.pickupId ?? item.id ?? item.gameObjectId ?? 'clickable-pickup' });
+        }
         this.clickable.registerObject(proxy, item);
         continue;
       }
 
-      if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
+      if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder' || item.type === 'sphere') {
         const mesh = this.sceneLoader.createPrimitiveMesh(item);
         if (mesh) {
           mesh.userData.gameObjectId = item.gameObjectId ?? item.id ?? null;
@@ -737,7 +925,21 @@ export class ThirdPersonControllerApp {
           );
           mesh.scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
           this.scene.add(mesh);
+          const colliderConfig = item.collider ?? null;
+          if (colliderConfig && Number.isFinite(item.mass)) {
+            mesh.userData.collider = this.buildManifestCollider(colliderConfig, new THREE.Vector3(...(item.position ?? [0, 0, 0])), this.sceneLoader.toVector3(item.size, new THREE.Vector3(1, 1, 1))).collider;
+            this.registerDynamicRigidbody(mesh, {
+              mass: item.mass,
+              gravity: Number.isFinite(item.gravity) ? Number(item.gravity) : -9.8,
+              physicsMaterial: colliderConfig.physicsMaterial ?? 'bouncy',
+              restitution: Number.isFinite(colliderConfig.restitution) ? colliderConfig.restitution : undefined,
+              kinetic: item.kinetic === true || colliderConfig.kinetic === true,
+            });
+          }
           if (item.clickable) {
+            if (item.clickable.action === 'pickup') {
+              this.registerPickupObject(mesh, { pickupId: item.clickable.pickupId ?? item.gameObjectId ?? item.id ?? mesh.name ?? 'pickup-item' });
+            }
             this.clickable.registerObject(mesh, item.clickable);
           }
           this.registerDistanceCullablesForObj(mesh, null, { ignoreCulling: item.ignoreCulling === true });
@@ -1184,9 +1386,14 @@ export class ThirdPersonControllerApp {
     }
 
     if (this.mouseInput.consumeClick()) {
-      this.clickable.tryHandleClick(this.viewRayPointer);
+      const handled = this.clickable.tryHandleClick(this.viewRayPointer);
+      if (!handled && this.currentHeldPickup?.instance?.isPickedUp) {
+        this.currentHeldPickup.instance.drop(this.playerCharacter?.root ?? null, this.scene);
+      }
     }
 
+    this.updatePickups();
+    this.updateDynamicRigidbodies(delta);
     this.updateMouseLook();
     this.updateAdaptiveFrustum(delta);
     this.updatePlayer(delta, { isPresenting: this.renderer.xr.isPresenting });

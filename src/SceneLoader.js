@@ -242,23 +242,36 @@ export class SceneLoader {
   }
 
   /**
-   * Creates a primitive mesh object (floor, box, cube, cylinder).
+   * Creates a primitive mesh object (floor, box, cube, cylinder, sphere).
    * @param {Object} item - Manifest object item
    * @returns {THREE.Mesh|null} Created mesh
    */
   createPrimitiveMesh(item) {
+    const primitiveType = item?.primitiveType ?? item?.type ?? 'box';
     let geometry = null;
 
-    if (item.type === 'floor') {
+    if (primitiveType === 'floor') {
       const size = Array.isArray(item.size) ? item.size : [120, 120];
       geometry = new THREE.PlaneGeometry(size[0] ?? 120, size[1] ?? 120);
-    } else if (item.type === 'cylinder') {
+    } else if (primitiveType === 'cylinder') {
       geometry = new THREE.CylinderGeometry(
         item.radiusTop ?? 0.2,
         item.radiusBottom ?? 0.2,
         item.height ?? 0.8,
         item.radialSegments ?? 12
       );
+    } else if (primitiveType === 'sphere') {
+      const radius = Number.isFinite(item.radius)
+        ? item.radius
+        : Array.isArray(item.size)
+          ? Math.max(item.size[0] ?? 1, item.size[1] ?? 1, item.size[2] ?? 1) / 2
+          : 0.5;
+      const segments = Number.isFinite(item.radialSegments)
+        ? item.radialSegments
+        : Number.isFinite(item.segments)
+          ? item.segments
+          : 32;
+      geometry = new THREE.SphereGeometry(radius, segments, segments);
     } else {
       const size = Array.isArray(item.size) ? item.size : [1, 1, 1];
       geometry = new THREE.BoxGeometry(size[0] ?? 1, size[1] ?? 1, size[2] ?? 1);

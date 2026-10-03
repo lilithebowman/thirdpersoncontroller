@@ -17,10 +17,11 @@ import * as THREE from 'three';
 const DEFAULT_CLICK_DISTANCE = 2;
 
 export class Clickable {
-  constructor({ camera = null, raycaster = new THREE.Raycaster(), onTeleport = null } = {}) {
+  constructor({ camera = null, raycaster = new THREE.Raycaster(), onTeleport = null, onPickup = null } = {}) {
     this.camera = camera;
     this.raycaster = raycaster;
     this.onTeleport = typeof onTeleport === 'function' ? onTeleport : null;
+    this.onPickup = typeof onPickup === 'function' ? onPickup : null;
     this.targets = [];
     this.hoveredTarget = null;
   }
@@ -32,7 +33,7 @@ export class Clickable {
 
     const actionValue = typeof data.action === 'string' ? data.action : typeof data.onClick === 'string' ? data.onClick : 'teleport';
     const action = String(actionValue).trim().toLowerCase();
-    const normalizedAction = action === 'link' ? 'link' : 'teleport';
+    const normalizedAction = action === 'link' ? 'link' : action === 'pickup' ? 'pickup' : 'teleport';
     const target = Array.isArray(data.target)
       ? data.target.slice()
       : Array.isArray(data.destination)
@@ -64,6 +65,9 @@ export class Clickable {
       label: typeof data.label === 'string' ? data.label : typeof data.hoverText === 'string' ? data.hoverText : undefined,
       outlineColor: typeof data.outlineColor === 'string' ? data.outlineColor : '#00f5ff',
       enabled: data.enabled !== false,
+      id: typeof data.id === 'string' ? data.id : undefined,
+      pickupId: typeof data.pickupId === 'string' ? data.pickupId : typeof data.id === 'string' ? data.id : undefined,
+      gameObjectId: typeof data.gameObjectId === 'string' ? data.gameObjectId : undefined,
     };
   }
 
@@ -223,6 +227,11 @@ export class Clickable {
         const nextLocation = destination.startsWith('http') ? destination : new URL(destination, window.location.href).toString();
         window.location.assign(nextLocation);
       }
+      return;
+    }
+
+    if (data.action === 'pickup') {
+      this.onPickup?.(data);
       return;
     }
 

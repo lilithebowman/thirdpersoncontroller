@@ -21,8 +21,8 @@ export class MeshCollider extends Collider {
    * @param {boolean} [options.physicsCollision=true] - Whether collider resolves physical overlaps
    * @param {number} [options.maxWalkableSlope=0.2] - Maximum walkable incline slope
    */
-  constructor({ mesh = null, offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2 } = {}) {
-    super({ type: 'MeshCollider', offset, physicsCollision, maxWalkableSlope });
+  constructor({ mesh = null, offset = new THREE.Vector3(), physicsCollision = true, maxWalkableSlope = 0.2, physicsMaterial = 'default', restitution } = {}) {
+    super({ type: 'MeshCollider', offset, physicsCollision, maxWalkableSlope, physicsMaterial, restitution });
     this.mesh = mesh;
     this.bounds = new THREE.Box3();
     this._triangle = new THREE.Triangle();

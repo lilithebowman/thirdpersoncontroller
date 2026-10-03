@@ -22,3 +22,22 @@ test('Force applies vector and array impulses correctly', () => {
   assert.strictEqual(rb.velocity.y, 5);
   assert.strictEqual(rb.velocity.z, 7);
 });
+
+test('Force calculates a collision impulse from mass and relative collision velocity', () => {
+  const a = new Rigidbody({ mass: 2, restitution: 0.85 });
+  const b = new Rigidbody({ mass: 4, restitution: 0.65 });
+  a.velocity.set(1, 0, 0);
+  b.velocity.set(-2, 0, 0);
+
+  const impulse = Force.calculateCollisionImpulse({
+    bodyA: a,
+    bodyB: b,
+    normal: new THREE.Vector3(1, 0, 0),
+    relativeVelocity: b.velocity.clone().sub(a.velocity),
+    restitution: 0.85,
+  });
+
+  assert.ok(impulse.x > 0);
+  assert.ok(Number.isFinite(impulse.x));
+  assert.ok(impulse.x < 10);
+});

@@ -929,6 +929,18 @@ export class SceneEditorApp {
           component.height ?? 0.8,
           component.radialSegments ?? 12
         );
+      } else if (primitiveType === 'sphere') {
+        const radius = Number.isFinite(component.radius)
+          ? component.radius
+          : Array.isArray(component.size)
+            ? Math.max(component.size[0] ?? 1, component.size[1] ?? 1, component.size[2] ?? 1) / 2
+            : 0.5;
+        const segments = Number.isFinite(component.radialSegments)
+          ? component.radialSegments
+          : Number.isFinite(component.segments)
+            ? component.segments
+            : 32;
+        geometry = new THREE.SphereGeometry(radius, segments, segments);
       } else {
         const size = Array.isArray(component.size) ? component.size : [1, 1, 1];
         geometry = new THREE.BoxGeometry(size[0] ?? 1, size[1] ?? 1, size[2] ?? 1);

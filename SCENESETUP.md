@@ -117,7 +117,7 @@ Example:
 The canonical world objects and scene hierarchy. Valid examples include:
 
 - `light` components
-- `primitive` components (`box`, `cube`, `cylinder`, floor-like shapes)
+- `primitive` components (`box`, `cube`, `cylinder`, `sphere`, floor-like shapes)
 - `model` components (`obj`, `glb`, or `fbx` assets)
 - `collider` components
 - nested `children`

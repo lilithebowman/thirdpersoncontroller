@@ -96,6 +96,46 @@ test('normalizeSceneManifest preserves collider on primitive gameObjects correct
   assert.deepStrictEqual(normalized.objects[0].collider.size, [120, 0.1, 120]);
 });
 
+test('normalizeSceneManifest preserves sphere primitive data through legacy conversion', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [
+      {
+        id: 'beachball',
+        name: 'Beachball',
+        transform: { position: [4, 4, -2], rotation: [0, 0, 0], scale: [1, 1, 1] },
+        components: [
+          {
+            type: 'primitive',
+            primitiveType: 'sphere',
+            radius: 0.9,
+            segments: 32,
+            color: '#f7f0d4'
+          },
+          {
+            type: 'collider',
+            collider: {
+              type: 'sphere',
+              radius: 0.9,
+              offset: [0, 0, 0],
+              physicsCollision: true,
+              physicsMaterial: 'bouncy'
+            }
+          }
+        ]
+      }
+    ]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[0].primitiveType, 'sphere');
+  assert.strictEqual(normalized.gameObjects[0].components[0].radius, 0.9);
+  assert.strictEqual(normalized.objects[0].type, 'sphere');
+  assert.strictEqual(normalized.objects[0].radius, 0.9);
+  assert.strictEqual(normalized.objects[0].collider.type, 'sphere');
+  assert.strictEqual(normalized.objects[0].collider.physicsMaterial, 'bouncy');
+});
+
 test('normalizeSceneManifest preserves primitive materialType through legacy conversion', () => {
   const sampleManifest = {
     version: 2,
@@ -496,4 +536,46 @@ test('toExportManifest emits GameObject-first JSON without legacy object entries
   assert.strictEqual(exported.gameObjects.length, 1);
   assert.strictEqual(exported.gameObjects[0].name, 'Export Cube');
   assert.strictEqual(exported.objects, undefined);
+});
+
+test('normalizeSceneManifest preserves pickup components through GameObject conversion', () => {
+  const sampleManifest = {
+    version: 2,
+    gameObjects: [{
+      id: 'beachball',
+      name: 'Beachball',
+      transform: { position: [2, 0.9, -5], rotation: [0, 0, 0], scale: [1, 1, 1] },
+      components: [
+        { type: 'primitive', primitiveType: 'sphere', radius: 0.9, segments: 32 },
+        { type: 'pickup', label: 'Pick up beachball', distance: 2.5, outlineColor: '#00f5ff' },
+      ],
+      children: []
+    }]
+  };
+
+  const normalized = normalizeSceneManifest(sampleManifest);
+  assert.strictEqual(normalized.gameObjects[0].components[1].type, 'pickup');
+  assert.strictEqual(normalized.objects[0].type, 'sphere');
+  assert.strictEqual(normalized.objects[0].clickable.action, 'pickup');
+  assert.strictEqual(normalized.objects[0].clickable.label, 'Pick up beachball');
+});
+
+test('Clickable normalizes pickup actions and invokes the pickup callback', () => {
+  const clickable = new Clickable({
+    onPickup: (data) => {
+      assert.strictEqual(data.action, 'pickup');
+      assert.deepStrictEqual(data.target, [4, 1, 2]);
+    },
+  });
+
+  const normalized = clickable.normalizeData({
+    action: 'pickup',
+    target: [4, 1, 2],
+    distance: 5,
+    label: 'Pick up beachball',
+  });
+
+  assert.strictEqual(normalized.action, 'pickup');
+  assert.deepStrictEqual(normalized.target, [4, 1, 2]);
+  clickable.performAction(normalized);
 });

@@ -34,6 +34,25 @@ test('Rigidbody respects ground plane and clamping', () => {
   assert.strictEqual(rb.velocity.y, 0);
 });
 
+test('Rigidbody applies the configured physics material restitution', () => {
+  const rb = new Rigidbody({ physicsMaterial: 'bouncy' });
+  assert.ok(rb.physicsMaterial === 'bouncy');
+  assert.ok(rb.restitution >= 0.8);
+});
+
+test('Rigidbody supports numeric gravity and kinetic collision force registration', () => {
+  const rb = new Rigidbody({ gravity: -9.8, kinetic: true, mass: 2 });
+  assert.strictEqual(rb.gravity, -9.8);
+  assert.strictEqual(rb.kinetic, true);
+  assert.ok(rb.getGravityVector().y < 0);
+
+  const point = new THREE.Vector3(1, 0, 0);
+  const impulse = new THREE.Vector3(10, 0, 0);
+  rb.registerCollisionPoint(point, impulse);
+  assert.strictEqual(rb.collisionPoints.length, 1);
+  assert.ok(rb.velocity.x > 0);
+});
+
 test('Rigidbody resolves collisions against MeshCollider walls', () => {
   const rb = new Rigidbody({ mass: 1, gravity: new THREE.Vector3(0, 0, 0), enablePhysicsCollision: true });
   const playerCollider = new BoxCollider({ size: new THREE.Vector3(1, 1, 1), offset: new THREE.Vector3(0, 0.5, 0) });

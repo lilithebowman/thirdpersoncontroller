@@ -51,7 +51,13 @@ function createGameObjectId(name, index, parentId = 'root') {
 function normalizeClickableAction(action) {
   const resolved = typeof action === 'string' ? action.trim().toLowerCase() : '';
   const normalized = resolved || 'teleport';
-  return normalized === 'link' ? 'link' : 'teleport';
+  if (normalized === 'link') {
+    return 'link';
+  }
+  if (normalized === 'pickup') {
+    return 'pickup';
+  }
+  return 'teleport';
 }
 
 function normalizeClickableDistance(data, fallback = DEFAULT_CLICKABLE_DISTANCE) {
@@ -215,15 +221,17 @@ export function legacyItemToGameObject(item, index = 0, parentId = 'root') {
     }));
   }
 
-  if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder') {
+  if (item.type === 'floor' || item.type === 'box' || item.type === 'cube' || item.type === 'cylinder' || item.type === 'sphere') {
     gameObject.components.push(normalizeComponent({
       type: 'primitive',
       primitiveType: item.type,
       size: vectorOrFallback(item.size, item.type === 'floor' ? [120, 120, 1] : [1, 1, 1]),
+      radius: Number.isFinite(item.radius) ? item.radius : undefined,
       radiusTop: Number.isFinite(item.radiusTop) ? item.radiusTop : undefined,
       radiusBottom: Number.isFinite(item.radiusBottom) ? item.radiusBottom : undefined,
       height: Number.isFinite(item.height) ? item.height : undefined,
       radialSegments: Number.isFinite(item.radialSegments) ? item.radialSegments : undefined,
+      segments: Number.isFinite(item.segments) ? item.segments : undefined,
       materialType: typeof item.materialType === 'string' ? item.materialType : typeof item.material === 'string' ? item.material : undefined,
       material: item.material && typeof item.material === 'object' ? cloneValue(item.material) : undefined,
       color: item.color ?? undefined,
@@ -476,6 +484,10 @@ function gameObjectToLegacyItems(gameObject) {
         legacyItem.size = component.size.slice();
       }
 
+      if (Number.isFinite(component.radius)) {
+        legacyItem.radius = component.radius;
+      }
+
       if (Number.isFinite(component.radiusTop)) {
         legacyItem.radiusTop = component.radiusTop;
       }
@@ -492,6 +504,10 @@ function gameObjectToLegacyItems(gameObject) {
         legacyItem.radialSegments = component.radialSegments;
       }
 
+      if (Number.isFinite(component.segments)) {
+        legacyItem.segments = component.segments;
+      }
+
       const colliderComponent = (gameObject.components ?? []).find((entry) => entry?.type === 'collider');
       if (colliderComponent?.collider) {
         legacyItem.collider = cloneValue(colliderComponent.collider);
@@ -499,6 +515,10 @@ function gameObjectToLegacyItems(gameObject) {
 
       if (clickablePayload) {
         legacyItem.clickable = cloneValue(clickablePayload);
+        clickableAttachedToRenderable = true;
+      }
+
+      if (!clickableAttachedToRenderable && legacyItem.clickable) {
         clickableAttachedToRenderable = true;
       }
 
@@ -613,6 +633,39 @@ function gameObjectToLegacyItems(gameObject) {
       }
 
       legacyItems.push(legacyItem);
+      continue;
+    }
+
+    if (component.type === 'pickup') {
+      const pickupConfig = {
+        action: 'pickup',
+        pickupId: gameObject.id,
+        target: Array.isArray(component.target)
+          ? component.target.slice()
+          : Array.isArray(transform.position)
+            ? transform.position.slice()
+            : [0, 0, 0],
+        label: typeof component.label === 'string' ? component.label : `Pick up ${gameObject.name}`,
+        distance: normalizeClickableDistance(component, DEFAULT_CLICKABLE_DISTANCE),
+        outlineColor: typeof component.outlineColor === 'string' ? component.outlineColor : '#00f5ff',
+        enabled: component.enabled !== false,
+      };
+
+      const lastRenderableItem = legacyItems[legacyItems.length - 1];
+      if (lastRenderableItem && !clickableAttachedToRenderable) {
+        lastRenderableItem.clickable = cloneValue(pickupConfig);
+        clickableAttachedToRenderable = true;
+      } else {
+        legacyItems.push({
+          ...objectIdentity,
+          type: 'clickable',
+          name: gameObject.name,
+          ...pickupConfig,
+          position: transform.position ?? [0, 0, 0],
+          rotation: transform.rotation ?? [0, 0, 0],
+          scale: transform.scale ?? [1, 1, 1],
+        });
+      }
       continue;
     }
 
