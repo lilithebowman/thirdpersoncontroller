@@ -24,6 +24,7 @@ export class Rigidbody {
     physicsMaterial = 'default',
     restitution,
     friction,
+    bounciness = 0,
     kinetic = false,
   } = {}) {
     this.mass = Math.max(0.0001, mass);
@@ -45,6 +46,7 @@ export class Rigidbody {
     this.friction = Number.isFinite(friction)
       ? Math.min(1, Math.max(0, friction))
       : Rigidbody.getFrictionForMaterial(this.physicsMaterial);
+    this.bounciness = Number.isFinite(bounciness) ? Math.max(0, bounciness) : 0;
     this.kinetic = kinetic === true;
     this.collisionPoints = [];
 
@@ -126,6 +128,31 @@ export class Rigidbody {
     const tangentDirection = tangentVelocity.clone().normalize();
     const retainedNormal = normalVector.clone().multiplyScalar(this.velocity.dot(normalVector));
     this.velocity.copy(retainedNormal.add(tangentDirection.multiplyScalar(reducedTangentialSpeed)));
+  }
+
+  applyBouncinessReaction(normal, incomingNormalVelocity = 0) {
+    if (!(normal instanceof THREE.Vector3) || !Number.isFinite(incomingNormalVelocity)) {
+      return false;
+    }
+    if (!Number.isFinite(this.bounciness) || this.bounciness <= 0) {
+      return false;
+    }
+    if (incomingNormalVelocity >= -1e-4) {
+      return false;
+    }
+
+    const reactionDirection = normal.clone().normalize();
+    if (reactionDirection.lengthSq() === 0) {
+      return false;
+    }
+
+    const reactionMagnitude = this.bounciness * this.mass;
+    if (!Number.isFinite(reactionMagnitude) || reactionMagnitude <= 0) {
+      return false;
+    }
+
+    this.velocity.addScaledVector(reactionDirection, reactionMagnitude);
+    return true;
   }
 
   hasGravity() {
@@ -291,7 +318,8 @@ export class Rigidbody {
       this.addForce(this._tmpForce);
     } else {
       this.accumulatedForce.y = 0;
-      if (this.velocity.y < 0) {
+      const preserveDownwardVelocityForBounce = Number.isFinite(this.bounciness) && this.bounciness > 0 && this.velocity.y < 0;
+      if (this.velocity.y < 0 && !preserveDownwardVelocityForBounce) {
         this.velocity.y = 0;
       }
     }
@@ -448,20 +476,26 @@ export class Rigidbody {
         const direction = this._centerA.x >= this._centerB.x ? 1 : -1;
         position.x += overlapX * direction;
         const collisionNormal = new THREE.Vector3(direction, 0, 0);
+        const incomingNormalVelocity = this.velocity.dot(collisionNormal);
         this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
         this.velocity.x = 0;
+        this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
       } else if (overlapY <= overlapX && overlapY <= overlapZ) {
         const direction = this._centerA.y >= this._centerB.y ? 1 : -1;
         position.y += overlapY * direction;
         const collisionNormal = new THREE.Vector3(0, direction, 0);
+        const incomingNormalVelocity = this.velocity.dot(collisionNormal);
         this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
         this.velocity.y = 0;
+        this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
       } else {
         const direction = this._centerA.z >= this._centerB.z ? 1 : -1;
         position.z += overlapZ * direction;
         const collisionNormal = new THREE.Vector3(0, 0, direction);
+        const incomingNormalVelocity = this.velocity.dot(collisionNormal);
         this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
         this.velocity.z = 0;
+        this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
       }
 
       collider.getBounds(position, this._boundsA);
@@ -476,7 +510,10 @@ export class Rigidbody {
     this._candidatePosition.set(targetX, previousPosition.y, previousPosition.z);
     if (this.intersectsWorldShapeAt(this._candidatePosition, movingCollider, worldCollisionShape, worldPosition)) {
       position.x = previousPosition.x;
+      const collisionNormal = new THREE.Vector3(targetX > previousPosition.x ? -1 : 1, 0, 0);
+      const incomingNormalVelocity = this.velocity.dot(collisionNormal);
       this.velocity.x = 0;
+      this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
     } else {
       position.x = targetX;
     }
@@ -484,7 +521,10 @@ export class Rigidbody {
     this._candidatePosition.set(position.x, targetY, previousPosition.z);
     if (this.intersectsWorldShapeAt(this._candidatePosition, movingCollider, worldCollisionShape, worldPosition)) {
       position.y = previousPosition.y;
+      const collisionNormal = new THREE.Vector3(0, targetY > previousPosition.y ? -1 : 1, 0);
+      const incomingNormalVelocity = this.velocity.dot(collisionNormal);
       this.velocity.y = 0;
+      this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
     } else {
       position.y = targetY;
     }
@@ -492,7 +532,10 @@ export class Rigidbody {
     this._candidatePosition.set(position.x, position.y, targetZ);
     if (this.intersectsWorldShapeAt(this._candidatePosition, movingCollider, worldCollisionShape, worldPosition)) {
       position.z = previousPosition.z;
+      const collisionNormal = new THREE.Vector3(0, 0, targetZ > previousPosition.z ? -1 : 1);
+      const incomingNormalVelocity = this.velocity.dot(collisionNormal);
       this.velocity.z = 0;
+      this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
     } else {
       position.z = targetZ;
     }
@@ -504,14 +547,23 @@ export class Rigidbody {
 
       if (dy >= dx && dy >= dz) {
         position.y = previousPosition.y;
+        const collisionNormal = new THREE.Vector3(0, targetY > previousPosition.y ? -1 : 1, 0);
+        const incomingNormalVelocity = this.velocity.dot(collisionNormal);
         this.velocity.y = 0;
+        this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
       } else if (dx >= dz) {
         position.x = previousPosition.x;
+        const collisionNormal = new THREE.Vector3(targetX > previousPosition.x ? -1 : 1, 0, 0);
+        const incomingNormalVelocity = this.velocity.dot(collisionNormal);
         this.velocity.x = 0;
+        this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
         position.z = targetZ;
       } else {
         position.z = previousPosition.z;
+        const collisionNormal = new THREE.Vector3(0, 0, targetZ > previousPosition.z ? -1 : 1);
+        const incomingNormalVelocity = this.velocity.dot(collisionNormal);
         this.velocity.z = 0;
+        this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
         position.x = targetX;
       }
     }

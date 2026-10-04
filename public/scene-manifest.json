@@ -298,7 +298,7 @@
               0
             ],
             "physicsCollision": true,
-            "physicsMaterial": "bouncy",
+            "bounciness": 0.5,
             "mass": 1.8,
             "kinetic": true,
             "gravity": -9.8

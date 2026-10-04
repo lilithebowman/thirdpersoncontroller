@@ -876,6 +876,7 @@ export class ThirdPersonControllerApp {
         enablePhysicsCollision: true,
         physicsMaterial: config.physicsMaterial ?? 'bouncy',
         restitution: Number.isFinite(config.restitution) ? config.restitution : undefined,
+        bounciness: Number.isFinite(config.bounciness) ? config.bounciness : 0,
         kinetic: config.kinetic === true,
       });
       object.userData.rigidbody = rigidbody;
@@ -1028,6 +1029,7 @@ export class ThirdPersonControllerApp {
               gravity: manifestGravity,
               physicsMaterial: colliderConfig.physicsMaterial ?? 'bouncy',
               restitution: Number.isFinite(colliderConfig.restitution) ? colliderConfig.restitution : undefined,
+              bounciness: Number.isFinite(colliderConfig.bounciness) ? colliderConfig.bounciness : 0,
               kinetic: manifestKinetic,
             });
           }

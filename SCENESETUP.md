@@ -262,9 +262,9 @@ Supported collider types:
 
 | Collider type | Required fields | Optional fields |
 | --- | --- | --- |
-| `box` | `type`, `size` | `offset`, `physicsCollision`, `position` |
-| `sphere` | `type` | `radius`, `offset`, `physicsCollision`, `position` |
-| `mesh` | `type` | `offset`, `physicsCollision`, `position` |
+| `box` | `type`, `size` | `offset`, `physicsCollision`, `position`, `mass`, `gravity`, `kinetic`, `bounciness`, `physicsMaterial`, `restitution` |
+| `sphere` | `type` | `radius`, `offset`, `physicsCollision`, `position`, `mass`, `gravity`, `kinetic`, `bounciness`, `physicsMaterial`, `restitution` |
+| `mesh` | `type` | `offset`, `physicsCollision`, `position`, `mass`, `gravity`, `kinetic`, `bounciness`, `physicsMaterial`, `restitution` |
 
 Example:
 
@@ -279,6 +279,8 @@ Example:
   }
 }
 ```
+
+For dynamic colliders, set `mass` and `kinetic` alongside `bounciness` when you want collision reaction force to be added in the opposite collision direction. For example, a beachball can use `"bounciness": 0.5` so ground contact produces an upward bounce.
 
 ## Controller physics settings
 

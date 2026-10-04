@@ -124,7 +124,7 @@ test('normalizeSceneManifest preserves sphere primitive data through legacy conv
               radius: 0.9,
               offset: [0, 0, 0],
               physicsCollision: true,
-              physicsMaterial: 'bouncy'
+              bounciness: 0.5
             }
           }
         ]
@@ -138,7 +138,7 @@ test('normalizeSceneManifest preserves sphere primitive data through legacy conv
   assert.strictEqual(normalized.objects[0].type, 'sphere');
   assert.strictEqual(normalized.objects[0].radius, 0.9);
   assert.strictEqual(normalized.objects[0].collider.type, 'sphere');
-  assert.strictEqual(normalized.objects[0].collider.physicsMaterial, 'bouncy');
+  assert.strictEqual(normalized.objects[0].collider.bounciness, 0.5);
 });
 
 test('normalizeSceneManifest preserves primitive materialType through legacy conversion', () => {

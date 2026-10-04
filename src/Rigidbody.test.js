@@ -178,3 +178,25 @@ test('Rigidbody does not snap back to the ground while the player is jumping upw
   assert.ok(rb.velocity.y > 0);
   assert.ok(position.y > 0.1);
 });
+
+test('Rigidbody applies upward bounce from bounciness when colliding with ground', () => {
+  const rb = new Rigidbody({
+    mass: 1.8,
+    gravity: new THREE.Vector3(0, 0, 0),
+    enablePhysicsCollision: true,
+    bounciness: 0.5,
+  });
+  const sphere = new SphereCollider({ radius: 0.9, offset: new THREE.Vector3(0, 0, 0), physicsCollision: true });
+  const floor = new BoxCollider({
+    size: new THREE.Vector3(120, 0.2, 120),
+    offset: new THREE.Vector3(0, 0, 0),
+    physicsCollision: true,
+  });
+  const colliders = [{ position: new THREE.Vector3(0, 0, 0), physicsCollision: true, collider: floor }];
+  const position = new THREE.Vector3(0, 0.98, 0);
+
+  rb.velocity.set(0, -2.5, 0);
+  rb.integrate(position, 0.016, { collider: sphere, colliders });
+
+  assert.ok(rb.velocity.y > 0);
+});
