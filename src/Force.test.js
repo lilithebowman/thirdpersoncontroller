@@ -9,6 +9,7 @@ import assert from 'node:assert';
 import * as THREE from 'three';
 import { Force } from './Force.js';
 import { Rigidbody } from './Rigidbody.js';
+import { Time } from './Time.js';
 
 test('Force applies vector and array impulses correctly', () => {
   const rb = new Rigidbody({ mass: 2 });
@@ -40,4 +41,13 @@ test('Force calculates a collision impulse from mass and relative collision velo
   assert.ok(impulse.x > 0);
   assert.ok(Number.isFinite(impulse.x));
   assert.ok(impulse.x < 10);
+});
+
+test('Force scales impulse application by Time.deltaTime', () => {
+  const rb = new Rigidbody({ mass: 2 });
+  const dt = new Time({ deltaTime: 0.5 });
+
+  Force.Impulse(rb, new THREE.Vector3(10, 0, 0), dt);
+
+  assert.ok(Math.abs(rb.velocity.x - 2.5) < 1e-6);
 });

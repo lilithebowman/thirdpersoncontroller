@@ -13,6 +13,7 @@
 
 import * as THREE from 'three';
 import { Force } from './Force.js';
+import { Time } from './Time.js';
 
 export class Rigidbody {
   constructor({
@@ -146,8 +147,10 @@ export class Rigidbody {
       return false;
     }
 
-    const reactionMagnitude = this.bounciness * this.mass;
-    if (!Number.isFinite(reactionMagnitude) || reactionMagnitude <= 0) {
+    const minimumReaction = this.bounciness * this.mass;
+    const restitutionReaction = Math.abs(incomingNormalVelocity) * Math.max(0, this.restitution ?? 0);
+    const reactionMagnitude = Math.max(minimumReaction, restitutionReaction);
+    if (!Number.isFinite(reactionMagnitude) || reactionMagnitude <= 1e-4) {
       return false;
     }
 
@@ -197,8 +200,9 @@ export class Rigidbody {
     }
   }
 
-  addImpulse(impulse) {
-    this.velocity.addScaledVector(impulse, 1 / this.mass);
+  addImpulse(impulse, time = null) {
+    const elapsedTime = time instanceof Time ? time.deltaTime : 1;
+    this.velocity.addScaledVector(impulse, (elapsedTime / this.mass));
   }
 
   getGravityVector() {
@@ -306,6 +310,7 @@ export class Rigidbody {
       return groundY !== null ? position.y <= groundY + 1e-6 : false;
     }
 
+    const physicsTime = new Time(delta);
     const initialGroundHeight = this.getGroundHeightAt(position, colliders);
     const effectiveInitialGround = initialGroundHeight !== null ? initialGroundHeight : groundY;
     const groundedFromCollision = this.isGroundedAgainstWorld(position, this._previousPosition, collider, colliders);
@@ -325,10 +330,10 @@ export class Rigidbody {
     }
 
     this._tmpAcceleration.copy(this.accumulatedForce).multiplyScalar(1 / this.mass);
-    this.velocity.addScaledVector(this._tmpAcceleration, delta);
+    this.velocity.addScaledVector(this._tmpAcceleration, physicsTime.deltaTime);
 
     if (this.linearDamping > 0) {
-      const damping = Math.max(0, 1 - this.linearDamping * delta);
+      const damping = Math.max(0, 1 - this.linearDamping * physicsTime.deltaTime);
       this.velocity.multiplyScalar(damping);
     }
 

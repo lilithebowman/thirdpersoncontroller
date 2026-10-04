@@ -451,6 +451,32 @@ export class ThirdPersonControllerApp {
     object.updateMatrixWorld?.(true);
   }
 
+  applyRollingMotionToSphere(object, rigidbody, delta) {
+    if (!object || !rigidbody || !Number.isFinite(delta) || delta <= 0) {
+      return;
+    }
+
+    const collider = object.userData?.collider ?? null;
+    if (!collider || collider.type !== 'SphereCollider' || !Number.isFinite(collider.radius) || collider.radius <= 0) {
+      return;
+    }
+
+    const horizontalVelocity = new THREE.Vector3(rigidbody.velocity.x, 0, rigidbody.velocity.z);
+    const speed = horizontalVelocity.length();
+    if (speed <= 1e-4) {
+      return;
+    }
+
+    const rotationAxis = new THREE.Vector3(-horizontalVelocity.z, 0, horizontalVelocity.x);
+    if (rotationAxis.lengthSq() <= 1e-8) {
+      return;
+    }
+
+    const rotationAngle = (speed / collider.radius) * delta;
+    object.rotateOnWorldAxis(rotationAxis.normalize(), rotationAngle);
+    object.updateMatrixWorld?.(true);
+  }
+
   updateDynamicRigidbodies(delta) {
     if (!Number.isFinite(delta) || delta <= 0) {
       return;
@@ -492,6 +518,7 @@ export class ThirdPersonControllerApp {
         collider: object.userData.collider,
         colliders: worldColliders,
       });
+      this.applyRollingMotionToSphere(object, rigidbody, delta);
 
       if (playerRoot && this.playerCollider && this.playerRigidbody) {
         const playerBounds = { min: new THREE.Vector3(), max: new THREE.Vector3() };
