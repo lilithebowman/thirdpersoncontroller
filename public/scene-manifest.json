@@ -369,7 +369,7 @@
       "active": true,
       "tag": "Untagged",
       "layer": 0,
-      "static": false,
+      "static": true,
       "transform": {
         "position": [
           -3,
@@ -398,6 +398,24 @@
           ],
           "materialType": "Mirror",
           "color": "#b8c6cc"
+        },
+        {
+          "type": "collider",
+          "collider": {
+            "type": "box",
+            "size": [
+              2.9638964503664087,
+              1,
+              0.0374501732611292
+            ],
+            "offset": [
+              0,
+              0,
+              0
+            ],
+            "physicsCollision": true,
+            "maxWalkableSlope": 0.2
+          }
         }
       ],
       "children": []
@@ -627,3682 +645,3683 @@
           "space": "local"
         }
       ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-01",
-      "name": "Sky Cube 01",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -30,
-          6.7774,
-          -12.8697
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#4ed2e4"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-02",
-      "name": "Sky Cube 02",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -30,
-          10.1262,
-          -7.9478
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#5ac8ed"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-03",
-      "name": "Sky Cube 03",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -30,
-          14.4903,
-          -1.2492
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#76bbe5"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-04",
-      "name": "Sky Cube 04",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -30,
-          18.375,
-          6.8488
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#3c8fe2"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-05",
-      "name": "Sky Cube 05",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -30,
-          20.5765,
-          14.91
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#4785eb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-06",
-      "name": "Sky Cube 06",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -25.25,
-          10.9521,
-          -17.4754
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#6584e2"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-07",
-      "name": "Sky Cube 07",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -25.25,
-          12.8427,
-          -9.6394
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#7180ea"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-08",
-      "name": "Sky Cube 08",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -25.25,
-          12.9483,
-          -3.4385
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#3535e9"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-09",
-      "name": "Sky Cube 09",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -25.25,
-          12.3574,
-          1.1267
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#6554de"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-10",
-      "name": "Sky Cube 10",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -25.25,
-          12.5809,
-          5.2932
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#815fe7"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-11",
-      "name": "Sky Cube 11",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -25.25,
-          14.6357,
-          10.6001
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#9d6cef"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-12",
-      "name": "Sky Cube 12",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -20.5,
-          4.8722,
-          -19.8479
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#8f43db"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-13",
-      "name": "Sky Cube 13",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -20.5,
-          7.236,
-          -14.1483
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#ac4ee4"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-14",
-      "name": "Sky Cube 14",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -20.5,
-          11.2157,
-          -6.6716
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#c85aed"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-15",
-      "name": "Sky Cube 15",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -20.5,
-          15.5498,
-          1.6161
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#d776e5"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-16",
-      "name": "Sky Cube 16",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -20.5,
-          18.7619,
-          9.1348
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#3ce2e2"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-17",
-      "name": "Sky Cube 17",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -20.5,
-          20.056,
-          14.8866
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#47d6eb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-18",
-      "name": "Sky Cube 18",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -15.75,
-          11.1986,
-          -15.6014
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#65c2e2"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-19",
-      "name": "Sky Cube 19",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -15.75,
-          12.196,
-          -10.2458
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#71bcea"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-20",
-      "name": "Sky Cube 20",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -15.75,
-          11.8007,
-          -6.0664
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#358fe9"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-21",
-      "name": "Sky Cube 21",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -15.75,
-          11.405,
-          -1.5341
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#5488de"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-22",
-      "name": "Sky Cube 22",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -15.75,
-          12.4013,
-          4.6133
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#5f81e7"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-23",
-      "name": "Sky Cube 23",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -15.75,
-          15.338,
-          12.4155
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#6c7cef"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-24",
-      "name": "Sky Cube 24",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -11,
-          4.8379,
-          -19.9466
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#4343db"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-25",
-      "name": "Sky Cube 25",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -11,
-          8.049,
-          -11.9104
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#604ee4"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-26",
-      "name": "Sky Cube 26",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -11,
-          12.3829,
-          -3.7906
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#7e5aed"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-27",
-      "name": "Sky Cube 27",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -11,
-          16.3633,
-          2.9598
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#a076e5"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-28",
-      "name": "Sky Cube 28",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -11,
-          18.7281,
-          7.9244
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#8f3ce2"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-29",
-      "name": "Sky Cube 29",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -11,
-          19.1955,
-          12.0381
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#ad47eb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-30",
-      "name": "Sky Cube 30",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -6.25,
-          11.0196,
-          -17.3192
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#c265e2"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-31",
-      "name": "Sky Cube 31",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -6.25,
-          11.2439,
-          -13.1796
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#db71ea"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-32",
-      "name": "Sky Cube 32",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -6.25,
-          10.653,
-          -7.9959
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#35e9e9"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-33",
-      "name": "Sky Cube 33",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -6.25,
-          10.7579,
-          -0.9991
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#54cdde"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-34",
-      "name": "Sky Cube 34",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -6.25,
-          12.6474,
-          7.2079
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#5fc5e7"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-35",
-      "name": "Sky Cube 35",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -6.25,
-          16.3279,
-          15.1062
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#6cbeef"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-36",
-      "name": "Sky Cube 36",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -1.5,
-          5.2242,
-          -17.1303
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#438fdb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-37",
-      "name": "Sky Cube 37",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -1.5,
-          9.1083,
-          -9.5072
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#4e86e4"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-38",
-      "name": "Sky Cube 38",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -1.5,
-          13.4726,
-          -3.6192
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#5a7eed"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-39",
-      "name": "Sky Cube 39",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -1.5,
-          16.8223,
-          0.7698
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#7684e5"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-40",
-      "name": "Sky Cube 40",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -1.5,
-          18.2781,
-          5.0303
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#3c3ce2"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-41",
-      "name": "Sky Cube 41",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          -1.5,
-          18.1094,
-          10.63
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#5c47eb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-42",
-      "name": "Sky Cube 42",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          3.25,
-          10.4388,
-          -20.0565
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#8465e2"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-43",
-      "name": "Sky Cube 43",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          3.25,
-          10.1129,
-          -14.0475
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#9e71ea"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-44",
-      "name": "Sky Cube 44",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          3.25,
-          9.6579,
-          -6.3376
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#8f35e9"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-45",
-      "name": "Sky Cube 45",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          3.25,
-          10.5022,
-          1.9305
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#aa54de"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-46",
-      "name": "Sky Cube 46",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          3.25,
-          13.2863,
-          9.1917
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#c55fe7"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "sky-sine-47",
-      "name": "Sky Cube 47",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          3.25,
-          17.4738,
-          14.6429
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7,
-            0.7,
-            0.7
-          ],
-          "color": "#de6cef"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-00",
-      "name": "Upper Sky Wave 00",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          18,
-          13,
-          -24.9871
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            2.1048,
-            2.1048,
-            2.1048
-          ],
-          "color": "#5fd4eb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-01",
-      "name": "Upper Sky Wave 01",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          19.45,
-          22.6082,
-          -18.235
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            2.1378,
-            2.1378,
-            2.1378
-          ],
-          "color": "#7ed6ef"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-02",
-      "name": "Upper Sky Wave 02",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          20.9,
-          21.2919,
-          -14.6349
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.6181,
-            1.6181,
-            1.6181
-          ],
-          "color": "#75ccee"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-03",
-      "name": "Upper Sky Wave 03",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          22.35,
-          14.5531,
-          -12.6733
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.8991,
-            0.8991,
-            0.8991
-          ],
-          "color": "#4cb4e9"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-04",
-      "name": "Upper Sky Wave 04",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          23.8,
-          16.0475,
-          -9.5967
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.4697,
-            0.4697,
-            0.4697
-          ],
-          "color": "#2097e3"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-05",
-      "name": "Upper Sky Wave 05",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          25.25,
-          27.0508,
-          -3.4955
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.6219,
-            0.6219,
-            0.6219
-          ],
-          "color": "#1b85db"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-06",
-      "name": "Upper Sky Wave 06",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          26.7,
-          34.5408,
-          5.251
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.2523,
-            1.2523,
-            1.2523
-          ],
-          "color": "#308ae5"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-07",
-      "name": "Upper Sky Wave 07",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          28.15,
-          6.8989,
-          -24.9383
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.9321,
-            1.9321,
-            1.9321
-          ],
-          "color": "#5f9deb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-08",
-      "name": "Upper Sky Wave 08",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          29.6,
-          16.9184,
-          -18.2447
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            2.1991,
-            2.1991,
-            2.1991
-          ],
-          "color": "#7ea9ef"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-09",
-      "name": "Upper Sky Wave 09",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          31.05,
-          26.0725,
-          -14.6957
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.8716,
-            1.8716,
-            1.8716
-          ],
-          "color": "#759cee"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-10",
-      "name": "Upper Sky Wave 10",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          32.5,
-          24.1195,
-          -12.7392
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.1725,
-            1.1725,
-            1.1725
-          ],
-          "color": "#4b75e9"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-11",
-      "name": "Upper Sky Wave 11",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          33.95,
-          17.5188,
-          -9.6179
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.577,
-            0.577,
-            0.577
-          ],
-          "color": "#2049e3"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-12",
-      "name": "Upper Sky Wave 12",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          35.4,
-          19.7184,
-          -3.4559
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.4902,
-            0.4902,
-            0.4902
-          ],
-          "color": "#1b38db"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-13",
-      "name": "Upper Sky Wave 13",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          36.85,
-          30.9337,
-          5.3214
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.9711,
-            0.9711,
-            0.9711
-          ],
-          "color": "#3142e6"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-14",
-      "name": "Upper Sky Wave 14",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          38.3,
-          10.43,
-          -24.8904
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.6926,
-            1.6926,
-            1.6926
-          ],
-          "color": "#6066eb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-15",
-      "name": "Upper Sky Wave 15",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          39.75,
-          10.4479,
-          -18.2556
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            2.1642,
-            2.1642,
-            2.1642
-          ],
-          "color": "#807eef"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-16",
-      "name": "Upper Sky Wave 16",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          41.2,
-          20.8334,
-          -14.7571
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            2.065,
-            2.065,
-            2.065
-          ],
-          "color": "#7d74ee"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-17",
-      "name": "Upper Sky Wave 17",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          42.65,
-          29.4932,
-          -12.8047
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.4626,
-            1.4626,
-            1.4626
-          ],
-          "color": "#5f4ae9"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-18",
-      "name": "Upper Sky Wave 18",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          44.1,
-          26.9288,
-          -9.6379
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7667,
-            0.7667,
-            0.7667
-          ],
-          "color": "#441fe3"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-19",
-      "name": "Upper Sky Wave 19",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          45.55,
-          20.519,
-          -3.4153
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.4504,
-            0.4504,
-            0.4504
-          ],
-          "color": "#4a1bdb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-20",
-      "name": "Upper Sky Wave 20",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          47,
-          23.4247,
-          5.392
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.7289,
-            0.7289,
-            0.7289
-          ],
-          "color": "#6832e6"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-21",
-      "name": "Upper Sky Wave 21",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          48.45,
-          20.16,
-          -24.8434
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.4127,
-            1.4127,
-            1.4127
-          ],
-          "color": "#9261eb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-22",
-      "name": "Upper Sky Wave 22",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          49.9,
-          13.33,
-          -18.2676
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            2.037,
-            2.037,
-            2.037
-          ],
-          "color": "#ad7fef"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-23",
-      "name": "Upper Sky Wave 23",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          51.35,
-          14.0376,
-          -14.8191
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            2.177,
-            2.177,
-            2.177
-          ],
-          "color": "#ad74ee"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-02.anim",
-          "animationName": "sky-cube-y-bob-02",
-          "loop": true,
-          "speed": 1.15,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-24",
-      "name": "Upper Sky Wave 24",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          52.8,
-          24.7416,
-          -12.8697
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.7377,
-            1.7377,
-            1.7377
-          ],
-          "color": "#9d49e9"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-05.anim",
-          "animationName": "sky-cube-y-bob-05",
-          "loop": true,
-          "speed": 1.25,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-25",
-      "name": "Upper Sky Wave 25",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          54.25,
-          32.8699,
-          -9.6567
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            1.0177,
-            1.0177,
-            1.0177
-          ],
-          "color": "#911ee3"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-03.anim",
-          "animationName": "sky-cube-y-bob-03",
-          "loop": true,
-          "speed": 1.3,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-26",
-      "name": "Upper Sky Wave 26",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          55.7,
-          29.7231,
-          -3.3737
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.5067,
-            0.5067,
-            0.5067
-          ],
-          "color": "#961bdb"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-01.anim",
-          "animationName": "sky-cube-y-bob-01",
-          "loop": true,
-          "speed": 0.8,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
-    },
-    {
-      "id": "upper-sky-wave-27",
-      "name": "Upper Sky Wave 27",
-      "active": true,
-      "tag": "Untagged",
-      "layer": 0,
-      "static": false,
-      "transform": {
-        "position": [
-          57.15,
-          23.5558,
-          5.4625
-        ],
-        "rotation": [
-          0,
-          0,
-          0
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
-      },
-      "components": [
-        {
-          "type": "primitive",
-          "primitiveType": "cube",
-          "size": [
-            0.5522,
-            0.5522,
-            0.5522
-          ],
-          "color": "#af33e6"
-        },
-        {
-          "type": "animation",
-          "animationPath": "/animations/sky-cube-y-bob-04.anim",
-          "animationName": "sky-cube-y-bob-04",
-          "loop": true,
-          "speed": 0.95,
-          "playOnAwake": true,
-          "enabled": true,
-          "duration": 0,
-          "space": "local"
-        }
-      ],
-      "children": []
+      "children": [
+        {
+          "id": "sky-sine-01",
+          "name": "Sky Cube 01",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -30,
+              6.7774,
+              -12.8697
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#4ed2e4"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-02",
+          "name": "Sky Cube 02",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -30,
+              10.1262,
+              -7.9478
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#5ac8ed"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-03",
+          "name": "Sky Cube 03",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -30,
+              14.4903,
+              -1.2492
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#76bbe5"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-04",
+          "name": "Sky Cube 04",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -30,
+              18.375,
+              6.8488
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#3c8fe2"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-05",
+          "name": "Sky Cube 05",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -30,
+              20.5765,
+              14.91
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#4785eb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-06",
+          "name": "Sky Cube 06",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -25.25,
+              10.9521,
+              -17.4754
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#6584e2"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-07",
+          "name": "Sky Cube 07",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -25.25,
+              12.8427,
+              -9.6394
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#7180ea"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-08",
+          "name": "Sky Cube 08",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -25.25,
+              12.9483,
+              -3.4385
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#3535e9"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-09",
+          "name": "Sky Cube 09",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -25.25,
+              12.3574,
+              1.1267
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#6554de"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-10",
+          "name": "Sky Cube 10",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -25.25,
+              12.5809,
+              5.2932
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#815fe7"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-11",
+          "name": "Sky Cube 11",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -25.25,
+              14.6357,
+              10.6001
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#9d6cef"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-12",
+          "name": "Sky Cube 12",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -20.5,
+              4.8722,
+              -19.8479
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#8f43db"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-13",
+          "name": "Sky Cube 13",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -20.5,
+              7.236,
+              -14.1483
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#ac4ee4"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-14",
+          "name": "Sky Cube 14",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -20.5,
+              11.2157,
+              -6.6716
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#c85aed"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-15",
+          "name": "Sky Cube 15",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -20.5,
+              15.5498,
+              1.6161
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#d776e5"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-16",
+          "name": "Sky Cube 16",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -20.5,
+              18.7619,
+              9.1348
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#3ce2e2"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-17",
+          "name": "Sky Cube 17",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -20.5,
+              20.056,
+              14.8866
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#47d6eb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-18",
+          "name": "Sky Cube 18",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -15.75,
+              11.1986,
+              -15.6014
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#65c2e2"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-19",
+          "name": "Sky Cube 19",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -15.75,
+              12.196,
+              -10.2458
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#71bcea"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-20",
+          "name": "Sky Cube 20",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -15.75,
+              11.8007,
+              -6.0664
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#358fe9"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-21",
+          "name": "Sky Cube 21",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -15.75,
+              11.405,
+              -1.5341
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#5488de"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-22",
+          "name": "Sky Cube 22",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -15.75,
+              12.4013,
+              4.6133
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#5f81e7"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-23",
+          "name": "Sky Cube 23",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -15.75,
+              15.338,
+              12.4155
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#6c7cef"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-24",
+          "name": "Sky Cube 24",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -11,
+              4.8379,
+              -19.9466
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#4343db"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-25",
+          "name": "Sky Cube 25",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -11,
+              8.049,
+              -11.9104
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#604ee4"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-26",
+          "name": "Sky Cube 26",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -11,
+              12.3829,
+              -3.7906
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#7e5aed"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-27",
+          "name": "Sky Cube 27",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -11,
+              16.3633,
+              2.9598
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#a076e5"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-28",
+          "name": "Sky Cube 28",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -11,
+              18.7281,
+              7.9244
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#8f3ce2"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-29",
+          "name": "Sky Cube 29",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -11,
+              19.1955,
+              12.0381
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#ad47eb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-30",
+          "name": "Sky Cube 30",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -6.25,
+              11.0196,
+              -17.3192
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#c265e2"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-31",
+          "name": "Sky Cube 31",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -6.25,
+              11.2439,
+              -13.1796
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#db71ea"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-32",
+          "name": "Sky Cube 32",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -6.25,
+              10.653,
+              -7.9959
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#35e9e9"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-33",
+          "name": "Sky Cube 33",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -6.25,
+              10.7579,
+              -0.9991
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#54cdde"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-34",
+          "name": "Sky Cube 34",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -6.25,
+              12.6474,
+              7.2079
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#5fc5e7"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-35",
+          "name": "Sky Cube 35",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -6.25,
+              16.3279,
+              15.1062
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#6cbeef"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-36",
+          "name": "Sky Cube 36",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -1.5,
+              5.2242,
+              -17.1303
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#438fdb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-37",
+          "name": "Sky Cube 37",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -1.5,
+              9.1083,
+              -9.5072
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#4e86e4"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-38",
+          "name": "Sky Cube 38",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -1.5,
+              13.4726,
+              -3.6192
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#5a7eed"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-39",
+          "name": "Sky Cube 39",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -1.5,
+              16.8223,
+              0.7698
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#7684e5"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-40",
+          "name": "Sky Cube 40",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -1.5,
+              18.2781,
+              5.0303
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#3c3ce2"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-41",
+          "name": "Sky Cube 41",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              -1.5,
+              18.1094,
+              10.63
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#5c47eb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-42",
+          "name": "Sky Cube 42",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              3.25,
+              10.4388,
+              -20.0565
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#8465e2"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-43",
+          "name": "Sky Cube 43",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              3.25,
+              10.1129,
+              -14.0475
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#9e71ea"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-44",
+          "name": "Sky Cube 44",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              3.25,
+              9.6579,
+              -6.3376
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#8f35e9"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-45",
+          "name": "Sky Cube 45",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              3.25,
+              10.5022,
+              1.9305
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#aa54de"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-46",
+          "name": "Sky Cube 46",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              3.25,
+              13.2863,
+              9.1917
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#c55fe7"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "sky-sine-47",
+          "name": "Sky Cube 47",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              3.25,
+              17.4738,
+              14.6429
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7,
+                0.7,
+                0.7
+              ],
+              "color": "#de6cef"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-00",
+          "name": "Upper Sky Wave 00",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              18,
+              13,
+              -24.9871
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                2.1048,
+                2.1048,
+                2.1048
+              ],
+              "color": "#5fd4eb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-01",
+          "name": "Upper Sky Wave 01",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              19.45,
+              22.6082,
+              -18.235
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                2.1378,
+                2.1378,
+                2.1378
+              ],
+              "color": "#7ed6ef"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-02",
+          "name": "Upper Sky Wave 02",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              20.9,
+              21.2919,
+              -14.6349
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.6181,
+                1.6181,
+                1.6181
+              ],
+              "color": "#75ccee"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-03",
+          "name": "Upper Sky Wave 03",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              22.35,
+              14.5531,
+              -12.6733
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.8991,
+                0.8991,
+                0.8991
+              ],
+              "color": "#4cb4e9"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-04",
+          "name": "Upper Sky Wave 04",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              23.8,
+              16.0475,
+              -9.5967
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.4697,
+                0.4697,
+                0.4697
+              ],
+              "color": "#2097e3"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-05",
+          "name": "Upper Sky Wave 05",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              25.25,
+              27.0508,
+              -3.4955
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.6219,
+                0.6219,
+                0.6219
+              ],
+              "color": "#1b85db"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-06",
+          "name": "Upper Sky Wave 06",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              26.7,
+              34.5408,
+              5.251
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.2523,
+                1.2523,
+                1.2523
+              ],
+              "color": "#308ae5"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-07",
+          "name": "Upper Sky Wave 07",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              28.15,
+              6.8989,
+              -24.9383
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.9321,
+                1.9321,
+                1.9321
+              ],
+              "color": "#5f9deb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-08",
+          "name": "Upper Sky Wave 08",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              29.6,
+              16.9184,
+              -18.2447
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                2.1991,
+                2.1991,
+                2.1991
+              ],
+              "color": "#7ea9ef"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-09",
+          "name": "Upper Sky Wave 09",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              31.05,
+              26.0725,
+              -14.6957
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.8716,
+                1.8716,
+                1.8716
+              ],
+              "color": "#759cee"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-10",
+          "name": "Upper Sky Wave 10",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              32.5,
+              24.1195,
+              -12.7392
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.1725,
+                1.1725,
+                1.1725
+              ],
+              "color": "#4b75e9"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-11",
+          "name": "Upper Sky Wave 11",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              33.95,
+              17.5188,
+              -9.6179
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.577,
+                0.577,
+                0.577
+              ],
+              "color": "#2049e3"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-12",
+          "name": "Upper Sky Wave 12",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              35.4,
+              19.7184,
+              -3.4559
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.4902,
+                0.4902,
+                0.4902
+              ],
+              "color": "#1b38db"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-13",
+          "name": "Upper Sky Wave 13",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              36.85,
+              30.9337,
+              5.3214
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.9711,
+                0.9711,
+                0.9711
+              ],
+              "color": "#3142e6"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-14",
+          "name": "Upper Sky Wave 14",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              38.3,
+              10.43,
+              -24.8904
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.6926,
+                1.6926,
+                1.6926
+              ],
+              "color": "#6066eb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-15",
+          "name": "Upper Sky Wave 15",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              39.75,
+              10.4479,
+              -18.2556
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                2.1642,
+                2.1642,
+                2.1642
+              ],
+              "color": "#807eef"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-16",
+          "name": "Upper Sky Wave 16",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              41.2,
+              20.8334,
+              -14.7571
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                2.065,
+                2.065,
+                2.065
+              ],
+              "color": "#7d74ee"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-17",
+          "name": "Upper Sky Wave 17",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              42.65,
+              29.4932,
+              -12.8047
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.4626,
+                1.4626,
+                1.4626
+              ],
+              "color": "#5f4ae9"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-18",
+          "name": "Upper Sky Wave 18",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              44.1,
+              26.9288,
+              -9.6379
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7667,
+                0.7667,
+                0.7667
+              ],
+              "color": "#441fe3"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-19",
+          "name": "Upper Sky Wave 19",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              45.55,
+              20.519,
+              -3.4153
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.4504,
+                0.4504,
+                0.4504
+              ],
+              "color": "#4a1bdb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-20",
+          "name": "Upper Sky Wave 20",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              47,
+              23.4247,
+              5.392
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.7289,
+                0.7289,
+                0.7289
+              ],
+              "color": "#6832e6"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-21",
+          "name": "Upper Sky Wave 21",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              48.45,
+              20.16,
+              -24.8434
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.4127,
+                1.4127,
+                1.4127
+              ],
+              "color": "#9261eb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-22",
+          "name": "Upper Sky Wave 22",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              49.9,
+              13.33,
+              -18.2676
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                2.037,
+                2.037,
+                2.037
+              ],
+              "color": "#ad7fef"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-23",
+          "name": "Upper Sky Wave 23",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              51.35,
+              14.0376,
+              -14.8191
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                2.177,
+                2.177,
+                2.177
+              ],
+              "color": "#ad74ee"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-02.anim",
+              "animationName": "sky-cube-y-bob-02",
+              "loop": true,
+              "speed": 1.15,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-24",
+          "name": "Upper Sky Wave 24",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              52.8,
+              24.7416,
+              -12.8697
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.7377,
+                1.7377,
+                1.7377
+              ],
+              "color": "#9d49e9"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-05.anim",
+              "animationName": "sky-cube-y-bob-05",
+              "loop": true,
+              "speed": 1.25,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-25",
+          "name": "Upper Sky Wave 25",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              54.25,
+              32.8699,
+              -9.6567
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                1.0177,
+                1.0177,
+                1.0177
+              ],
+              "color": "#911ee3"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-03.anim",
+              "animationName": "sky-cube-y-bob-03",
+              "loop": true,
+              "speed": 1.3,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-26",
+          "name": "Upper Sky Wave 26",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              55.7,
+              29.7231,
+              -3.3737
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.5067,
+                0.5067,
+                0.5067
+              ],
+              "color": "#961bdb"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-01.anim",
+              "animationName": "sky-cube-y-bob-01",
+              "loop": true,
+              "speed": 0.8,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        },
+        {
+          "id": "upper-sky-wave-27",
+          "name": "Upper Sky Wave 27",
+          "active": true,
+          "tag": "Untagged",
+          "layer": 0,
+          "static": false,
+          "transform": {
+            "position": [
+              57.15,
+              23.5558,
+              5.4625
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "components": [
+            {
+              "type": "primitive",
+              "primitiveType": "cube",
+              "size": [
+                0.5522,
+                0.5522,
+                0.5522
+              ],
+              "color": "#af33e6"
+            },
+            {
+              "type": "animation",
+              "animationPath": "/animations/sky-cube-y-bob-04.anim",
+              "animationName": "sky-cube-y-bob-04",
+              "loop": true,
+              "speed": 0.95,
+              "playOnAwake": true,
+              "enabled": true,
+              "duration": 0,
+              "space": "local"
+            }
+          ],
+          "children": []
+        }
+      ]
     }
   ]
 }
