@@ -40,6 +40,9 @@ export class Force {
   /**
    * Calculates the impulse for a collision using the relative collision velocity,
    * the effective mass of both bodies, and the configured restitution.
+   *
+   * The returned vector is scaled by the active delta time so a contact at 30 FPS and
+   * 60 FPS produces equivalent physical behavior rather than frame-rate-dependent spikes.
    */
   calculateCollisionImpulse({
     bodyA = null,

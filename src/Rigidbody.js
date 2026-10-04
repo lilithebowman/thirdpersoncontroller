@@ -16,6 +16,21 @@ import { Force } from './Force.js';
 import { Time } from './Time.js';
 
 export class Rigidbody {
+  /**
+   * Creates a rigidbody with a mass, gravity, damping, and collision configuration.
+   *
+   * @param {Object} [options] - Physics configuration values.
+   * @param {number} [options.mass=1] - Body mass used to scale acceleration and impulses.
+   * @param {THREE.Vector3|number|number[]} [options.gravity=new THREE.Vector3(0, -24, 0)] - Gravity vector or scalar.
+   * @param {number} [options.linearDamping=0] - Linear damping factor applied each step.
+   * @param {boolean} [options.enablePhysicsCollision=false] - Whether world collisions are resolved.
+   * @param {number} [options.maxWalkableSlope=0.2] - Highest slope the body can walk over.
+   * @param {string} [options.physicsMaterial='default'] - Material name used for defaults.
+   * @param {number} [options.restitution] - Override for collision restitution.
+   * @param {number} [options.friction] - Override for surface friction.
+   * @param {number} [options.bounciness=0] - Bounce strength used in collision response.
+   * @param {boolean} [options.kinetic=false] - Whether the body actively pushes itself out of other colliders.
+   */
   constructor({
     mass = 1,
     gravity = new THREE.Vector3(0, -24, 0),
@@ -66,6 +81,12 @@ export class Rigidbody {
     this._groundProbePosition = new THREE.Vector3();
   }
 
+  /**
+   * Returns the restitution value associated with a material name.
+   *
+   * @param {string} [material='default'] - Material identifier.
+   * @returns {number} The configured bounce value for the material.
+   */
   static getRestitutionForMaterial(material = 'default') {
     const normalized = typeof material === 'string' ? material.toLowerCase() : 'default';
     const restitutionByMaterial = {
@@ -78,6 +99,12 @@ export class Rigidbody {
     return Number.isFinite(restitutionByMaterial[normalized]) ? restitutionByMaterial[normalized] : 0;
   }
 
+  /**
+   * Returns the friction value associated with a material name.
+   *
+   * @param {string} [material='default'] - Material identifier.
+   * @returns {number} The configured friction value for the material.
+   */
   static getFrictionForMaterial(material = 'default') {
     const normalized = typeof material === 'string' ? material.toLowerCase() : 'default';
     const frictionByMaterial = {
@@ -90,6 +117,12 @@ export class Rigidbody {
     return Number.isFinite(frictionByMaterial[normalized]) ? frictionByMaterial[normalized] : 0.45;
   }
 
+  /**
+   * Computes the combined friction value for a collision between this rigidbody and another collider.
+   *
+   * @param {Rigidbody|Object|null} [other=null] - Other body or collider being contacted.
+   * @returns {number} Blended friction coefficient clamped to [0, 1].
+   */
   getSurfaceFriction(other = null) {
     const localFriction = Number.isFinite(this.friction) ? this.friction : 0.45;
     const otherFriction = other && Number.isFinite(other.friction)
@@ -100,6 +133,12 @@ export class Rigidbody {
     return Math.min(1, Math.max(0, (localFriction + otherFriction) * 0.5));
   }
 
+  /**
+   * Reduces tangential velocity along a collision normal to simulate surface friction.
+   *
+   * @param {THREE.Vector3} normal - Contact normal used to isolate tangential motion.
+   * @param {number} [frictionCoefficient=0] - Coefficient of friction to apply.
+   */
   applySurfaceFriction(normal, frictionCoefficient = 0) {
     if (!normal || !(normal instanceof THREE.Vector3)) {
       return;
@@ -131,6 +170,16 @@ export class Rigidbody {
     this.velocity.copy(retainedNormal.add(tangentDirection.multiplyScalar(reducedTangentialSpeed)));
   }
 
+  /**
+   * Applies a bounce impulse along the collision normal when a rigidbody strikes a surface.
+   * The reaction is intentionally scaled by both the object's mass and the configured
+   * bounciness so a heavier body has a stronger push back out of the surface than a
+   * lighter one. This is the mechanism that sends the beachball upward after landings.
+   *
+   * @param {THREE.Vector3} normal - Surface normal for the contact.
+   * @param {number} incomingNormalVelocity - Speed along the normal moving into the surface.
+   * @returns {boolean} True when a bounce impulse was applied.
+   */
   applyBouncinessReaction(normal, incomingNormalVelocity = 0) {
     if (!(normal instanceof THREE.Vector3) || !Number.isFinite(incomingNormalVelocity)) {
       return false;
@@ -158,6 +207,11 @@ export class Rigidbody {
     return true;
   }
 
+  /**
+   * Checks whether this rigidbody is configured to use gravity.
+   *
+   * @returns {boolean} True when the gravity vector or scalar is non-zero.
+   */
   hasGravity() {
     if (this.gravity == null) {
       return false;
@@ -174,12 +228,23 @@ export class Rigidbody {
     return false;
   }
 
+  /**
+   * Enables or disables gravitational acceleration for this body.
+   *
+   * @param {boolean} [enabled=this.hasGravity()] - Whether gravity should be applied.
+   * @returns {boolean} The resulting gravity-enabled state.
+   */
   configureGravity(enabled = this.hasGravity()) {
     const canUseGravity = this.hasGravity();
     this.useGravity = enabled === true && canUseGravity;
     return this.useGravity;
   }
 
+  /**
+   * Adds a force vector to the body's pending force accumulator.
+   *
+   * @param {THREE.Vector3|number[]|{x:number,y:number,z:number}|null} force - Force to be summed into the accumulator.
+   */
   addForce(force) {
     if (force == null) {
       return;
@@ -200,11 +265,22 @@ export class Rigidbody {
     }
   }
 
+  /**
+   * Applies an impulse to the body's velocity, accounting for the current timestep.
+   *
+   * @param {THREE.Vector3} impulse - Velocity change vector in force-time units.
+   * @param {Time|null} [time=null] - Time step used to normalize the impulse.
+   */
   addImpulse(impulse, time = null) {
     const elapsedTime = time instanceof Time ? time.deltaTime : 1;
     this.velocity.addScaledVector(impulse, (elapsedTime / this.mass));
   }
 
+  /**
+   * Builds the gravity vector used by this rigidbody from the configured gravity input.
+   *
+   * @returns {THREE.Vector3} The resolved gravity vector.
+   */
   getGravityVector() {
     if (Number.isFinite(this.gravity)) {
       return new THREE.Vector3(0, Number(this.gravity), 0);
@@ -215,10 +291,19 @@ export class Rigidbody {
     return new THREE.Vector3(0, -24, 0);
   }
 
+  /**
+   * Clears any accumulated external forces so the next integration step starts cleanly.
+   */
   clearForces() {
     this.accumulatedForce.set(0, 0, 0);
   }
 
+  /**
+   * Stores a recorded collision point and optionally applies an impulse to that body.
+   *
+   * @param {THREE.Vector3} point - World-space contact point.
+   * @param {THREE.Vector3|null} [impulse=null] - Optional impulse to apply at the contact point.
+   */
   registerCollisionPoint(point, impulse = null) {
     if (!this.kinetic) {
       return;
@@ -231,6 +316,15 @@ export class Rigidbody {
     }
   }
 
+  /**
+   * Resolves a collision between this rigidbody and another body using a normal-based impulse response.
+   *
+   * @param {Rigidbody} other - Other body involved in the contact.
+   * @param {THREE.Vector3} position - This body's world-space position.
+   * @param {THREE.Vector3} otherPosition - Other body's world-space position.
+   * @param {THREE.Vector3|null} [normal=null] - Explicit collision normal when known.
+   * @returns {boolean} True when an impulse-based resolution was applied.
+   */
   resolveRigidBodyCollision(other, position, otherPosition, normal = null) {
     if (!other || typeof other.mass !== 'number' || !Number.isFinite(other.mass)) {
       return false;
@@ -270,6 +364,13 @@ export class Rigidbody {
     return forceResult.applied;
   }
 
+  /**
+   * Finds the highest valid ground surface near the given position from all colliders.
+   *
+   * @param {THREE.Vector3} position - Position to sample for ground support.
+   * @param {Array<Object>} colliders - World colliders to query.
+   * @returns {number|null} Highest contact height, or null if no relevant ground is found.
+   */
   getGroundHeightAt(position, colliders) {
     let bestGroundY = null;
 
@@ -305,6 +406,20 @@ export class Rigidbody {
     return bestGroundY;
   }
 
+  /**
+   * Advances the rigidbody by one physics step.
+   *
+   * The method intentionally keeps force, acceleration, and collision response tied to the
+   * passed frame duration so simulation results stay stable regardless of the current fps.
+   * It first updates velocity from gravity and accumulated forces, then moves the body,
+   * resolves overlap against world colliders, and re-clamps the body to the ground when
+   * appropriate.
+   *
+   * @param {THREE.Vector3} position - Body position to update in place.
+   * @param {number} delta - Time step for this update.
+   * @param {Object} [context] - Optional ground and collider context.
+   * @returns {boolean} True when the body is grounded after the step.
+   */
   integrate(position, delta, { groundY = null, collider = null, colliders = [] } = {}) {
     if (!Number.isFinite(delta) || delta <= 0) {
       return groundY !== null ? position.y <= groundY + 1e-6 : false;
@@ -372,6 +487,15 @@ export class Rigidbody {
     return isGrounded;
   }
 
+  /**
+   * Determines whether the rigidbody is currently in contact with a world surface while moving downward or settled.
+   *
+   * @param {THREE.Vector3} position - Current body position.
+   * @param {THREE.Vector3} previousPosition - Previous position used for motion comparison.
+   * @param {Object} collider - Active collider for the rigidbody.
+   * @param {Array<Object>} colliders - World colliders to test against.
+   * @returns {boolean} True when the body should be treated as grounded.
+   */
   isGroundedAgainstWorld(position, previousPosition, collider, colliders) {
     if (!collider || !Array.isArray(colliders) || colliders.length === 0) {
       return false;
@@ -426,6 +550,14 @@ export class Rigidbody {
     return false;
   }
 
+  /**
+   * Separates a moving collider from overlapping world colliders.
+   *
+   * This method uses AABB overlap measurements to identify the smallest penetration axis,
+   * which keeps kinetic bodies from remaining embedded in walls or floors. Once the axis is
+   * chosen, the body is pushed out along that axis, its velocity along the contact normal is
+   * removed, and friction / bounce are applied to the remaining motion.
+   */
   resolveColliderCollisions(position, previousPosition, collider, colliders) {
     collider.getBounds(position, this._boundsA);
 
@@ -477,7 +609,42 @@ export class Rigidbody {
         (this._boundsB.min.z + this._boundsB.max.z) * 0.5
       );
 
-      if (overlapX <= overlapY && overlapX <= overlapZ) {
+      if (this.kinetic) {
+        const candidateAxes = [
+          { axis: 'x', overlap: overlapX, center: this._centerA.x - this._centerB.x },
+          { axis: 'y', overlap: overlapY, center: this._centerA.y - this._centerB.y },
+          { axis: 'z', overlap: overlapZ, center: this._centerA.z - this._centerB.z },
+        ].filter((entry) => Number.isFinite(entry.overlap) && entry.overlap > 0);
+
+        if (candidateAxes.length > 0) {
+          candidateAxes.sort((a, b) => a.overlap - b.overlap);
+          const minimal = candidateAxes[0];
+          const epsilon = 1e-4;
+          const direction = minimal.center >= 0 ? 1 : -1;
+          if (minimal.axis === 'x') {
+            position.x += (minimal.overlap + epsilon) * direction;
+            const collisionNormal = new THREE.Vector3(direction, 0, 0);
+            const incomingNormalVelocity = this.velocity.dot(collisionNormal);
+            this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
+            this.velocity.x = 0;
+            this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
+          } else if (minimal.axis === 'y') {
+            position.y += (minimal.overlap + epsilon) * direction;
+            const collisionNormal = new THREE.Vector3(0, direction, 0);
+            const incomingNormalVelocity = this.velocity.dot(collisionNormal);
+            this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
+            this.velocity.y = 0;
+            this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
+          } else {
+            position.z += (minimal.overlap + epsilon) * direction;
+            const collisionNormal = new THREE.Vector3(0, 0, direction);
+            const incomingNormalVelocity = this.velocity.dot(collisionNormal);
+            this.applySurfaceFriction(collisionNormal, this.getSurfaceFriction(collisionShape));
+            this.velocity.z = 0;
+            this.applyBouncinessReaction(collisionNormal, incomingNormalVelocity);
+          }
+        }
+      } else if (overlapX <= overlapY && overlapX <= overlapZ) {
         const direction = this._centerA.x >= this._centerB.x ? 1 : -1;
         position.x += overlapX * direction;
         const collisionNormal = new THREE.Vector3(direction, 0, 0);
@@ -507,6 +674,15 @@ export class Rigidbody {
     }
   }
 
+  /**
+   * Resolves collisions against mesh-based world geometry by axis-testing and fallback correction.
+   *
+   * @param {THREE.Vector3} position - The candidate position after motion integration.
+   * @param {THREE.Vector3} previousPosition - Position before the attempted move.
+   * @param {Object} movingCollider - The collider being moved.
+   * @param {Object} worldCollisionShape - Mesh world collider being collided with.
+   * @param {THREE.Vector3} worldPosition - World-space position of the mesh collider.
+   */
   resolveMeshCollision(position, previousPosition, movingCollider, worldCollisionShape, worldPosition) {
     const targetX = position.x;
     const targetY = position.y;
@@ -574,6 +750,15 @@ export class Rigidbody {
     }
   }
 
+  /**
+   * Checks whether a collider bounds intersects a world collision shape at a specific test position.
+   *
+   * @param {THREE.Vector3} testPosition - Candidate position to test.
+   * @param {Object} movingCollider - Collider being evaluated.
+   * @param {Object} worldCollisionShape - Static or mesh collider being intersected.
+   * @param {THREE.Vector3} worldPosition - World-space position of the static collider.
+   * @returns {boolean} True when the moving bounds overlap the world shape at that position.
+   */
   intersectsWorldShapeAt(testPosition, movingCollider, worldCollisionShape, worldPosition) {
     movingCollider.getBounds(testPosition, this._boundsA);
     const maxSlope = worldCollisionShape.maxWalkableSlope ?? this.maxWalkableSlope;

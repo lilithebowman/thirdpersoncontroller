@@ -172,6 +172,11 @@ export class ThirdPersonControllerApp {
 
     this.worldColliders = [];
     this.dynamicRigidbodies = [];
+    this.colliderDebugGroup = new THREE.Group();
+    this.colliderDebugGroup.name = 'collider-debug-group';
+    this.colliderDebugGroup.visible = false;
+    this.scene.add(this.colliderDebugGroup);
+    this.colliderDebugMeshes = [];
     this.pickups = [];
     this.currentHeldPickup = null;
     this.directionalLights = [];

@@ -282,6 +282,99 @@ Example:
 
 For dynamic colliders, set `mass` and `kinetic` alongside `bounciness` when you want collision reaction force to be added in the opposite collision direction. For example, a beachball can use `"bounciness": 0.5` so ground contact produces an upward bounce.
 
+## Physics system overview
+
+The runtime physics stack is split across a few small classes that each do one job, and they combine to produce grounded motion, dynamic collisions, and bounce responses.
+
+### `Time`
+
+`src/Time.js` wraps the frame interval in a single helper object. It is intentionally lightweight: the runtime passes a `deltaTime` value (for example, `1 / 60` when a frame is 60 FPS) and the rest of the physics system multiplies forces and impulses by `Time.deltaTime` instead of treating them as if they were full-frame instantaneous events.
+
+This matters because the same force should produce a smaller effect on a fast frame and a larger effect on a slower frame. A value like `gravity = -26` is not interpreted as "apply -26 units instantly"; it is interpreted as "apply a force that results in a velocity change proportional to frame time".
+
+### `Force`
+
+`src/Force.js` is the force/impulse helper layer. It converts user-supplied vectors into `THREE.Vector3`s and then routes them through `Rigidbody.addImpulse`.
+
+The important calculation is `calculateCollisionImpulse`, which:
+
+- reads the velocity of the two bodies relative to the collision normal,
+- computes the closing speed by projecting that relative velocity onto the normal,
+- checks that the bodies are actually moving into each other,
+- combines mass and restitution to estimate the impulse needed to reverse the contact velocity,
+- scales the result by `Time.deltaTime` so collision response matches the current frame length.
+
+This prevents very large or tiny jumps in response from being caused solely by frame-rate differences.
+
+### `Rigidbody`
+
+`src/Rigidbody.js` is the runtime core. A `Rigidbody` owns:
+
+- `mass`, which determines how strongly acceleration changes velocity,
+- `velocity`, which is the actual linear motion vector,
+- `accumulatedForce`, which stores pending force contributions,
+- `gravity`, which is applied as a force each frame when the body is not grounded,
+- `linearDamping`, which reduces velocity over time,
+- `bounciness`, which creates opposite-direction reaction when a body hits a surface,
+- `kinetic`, which tells the object to actively resolve overlap and push itself apart from other colliders.
+
+The main update loop is `integrate(position, delta, context)`. It does the following in order:
+
+1. Determines whether the body is grounded by checking both world colliders and recent collision data.
+2. Adds gravity as a force when it is not grounded.
+3. Converts accumulated force into acceleration: `a = F / mass`.
+4. Multiplies acceleration by `Time.deltaTime` to produce a reliable per-frame velocity change.
+5. Applies linear damping to avoid endless acceleration.
+6. Advances the rigidbody's position by velocity * delta.
+7. Resolves overlap against all world colliders.
+8. Re-checks ground height and clamps the body back onto the surface when needed.
+9. Clears pending forces for the next frame.
+
+This is why dynamic motion is smooth and remains consistent whether the game runs at 30 FPS or 120 FPS.
+
+### Collision resolution and bounce logic
+
+`resolveColliderCollisions` is the core overlap solver. It:
+
+- builds world-space bounds for the moving body and each colliding object,
+- checks whether the AABBs intersect,
+- computes overlap on all three axes,
+- chooses the smallest overlap axis to separate the bodies with the least amount of correction,
+- pushes the moving body out along that axis,
+- zeroes the component of velocity along the collision normal,
+- applies friction to tangential motion,
+- triggers `applyBouncinessReaction` when the contact is moving into the surface.
+
+The default non-kinetic case still uses a conservative axis-based separation, but `kinetic` bodies are treated more aggressively and are pushed out using the smallest penetration axis to prevent the body from staying intersecting a wall or floor.
+
+### Bounce response
+
+`applyBouncinessReaction(normal, incomingNormalVelocity)` is what makes the beachball jump upward after hitting the ground. It is intentionally gated so it only fires when:
+
+- the collision normal is valid,
+- the body has a positive `bounciness`,
+- the body is moving into the surface (`incomingNormalVelocity < 0` for a downward hit),
+- the collision is strong enough to matter.
+
+The reaction is computed from a combination of:
+
+- `bounciness * mass`, which ensures the bounce strength is proportional to the object's weight,
+- the impact speed from the incoming normal velocity,
+- the restitution value of the material.
+
+The result is added directly to the body's velocity in the opposite direction of the collision normal. For a beachball with `bounciness: 0.5`, the contact with the ground adds upward force that sends the ball back into the air instead of leaving it stuck on the floor.
+
+### Ground detection
+
+The ground test path uses `getGroundHeightAt` and `isGroundedAgainstWorld`. These methods sample the height of the nearest solid collider and decide whether a moving rigidbody should be considered standing on a surface.
+
+Together they do two checks:
+
+- `getGroundHeightAt` chooses the highest valid support surface near the body,
+- `isGroundedAgainstWorld` verifies the body is actually close enough to that surface and moving downward or settled enough to be counted as grounded.
+
+This stops the controller from floating, jittering, or simply "rolling" across the floor with no real interaction.
+
 ## Controller physics settings
 
 Use the `controller.physics` block to tune behavior without code changes:
