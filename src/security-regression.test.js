@@ -3,6 +3,7 @@ import assert from 'node:assert';
 
 import { resolvePublicAssetPath } from '../vite.config.js';
 import { server } from '../server/server.js';
+import { MultiplayerService } from './MultiplayerService.js';
 
 async function withTestServer(callback) {
   if (server.listening) {
@@ -128,4 +129,38 @@ test('server rejects unauthorized session fetches and untrusted origins', async 
 
     assert.equal(corsResponse.headers.get('access-control-allow-origin'), null);
   });
+});
+
+test('MultiplayerService re-registers when a stored GUID exists without a valid session token', async () => {
+  const service = new MultiplayerService();
+  const originalFetch = globalThis.fetch;
+
+  const calls = [];
+  globalThis.fetch = async (input, init = {}) => {
+    calls.push({ input, init });
+    if (String(input).includes('/register')) {
+      return {
+        ok: true,
+        status: 201,
+        json: async () => ({ success: true, guid: 'fresh-guid', sessionToken: 'fresh-token' }),
+      };
+    }
+
+    return {
+      ok: false,
+      status: 401,
+      json: async () => ({ success: false }),
+    };
+  };
+
+  try {
+    service.guid = 'stale-guid';
+    service.sessionToken = null;
+    const nextGuid = await service.ensureGuid();
+    assert.equal(nextGuid, 'fresh-guid');
+    assert.equal(service.sessionToken, 'fresh-token');
+    assert.equal(calls.length >= 1, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

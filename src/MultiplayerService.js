@@ -109,7 +109,7 @@ export class MultiplayerService {
   }
 
   async ensureGuid() {
-    if (this.guid) {
+    if (this.guid && this.sessionToken) {
       return this.guid;
     }
 
@@ -117,7 +117,9 @@ export class MultiplayerService {
     if (storedGuid) {
       this.guid = storedGuid;
       this.isRegistered = true;
-      return this.guid;
+      if (this.sessionToken) {
+        return this.guid;
+      }
     }
 
     return this.register();
@@ -155,6 +157,11 @@ export class MultiplayerService {
       this.guid = 'client-fallback-' + Math.random().toString(36).substring(2, 11);
       this.persistGuid(this.guid);
       this.isRegistered = true;
+    }
+
+    if (!this.sessionToken) {
+      this.sessionToken = 'client-fallback-session-' + Math.random().toString(36).substring(2, 11);
+      this.persistSessionToken(this.sessionToken);
     }
 
     return this.guid;
@@ -229,6 +236,15 @@ export class MultiplayerService {
           return others;
         }
       }
+
+      if (response.status === 401 && this.sessionToken) {
+        this.sessionToken = null;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(this.sessionTokenKey);
+        }
+        await this.register();
+        return this.fetchPlayers();
+      }
     } catch (error) {
       // Network error / offline fallback
     }
@@ -249,6 +265,13 @@ export class MultiplayerService {
         headers: this.getAuthHeaders(),
       });
       if (!response.ok) {
+        if (response.status === 401 && this.sessionToken) {
+          this.sessionToken = null;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem(this.sessionTokenKey);
+          }
+          await this.register();
+        }
         return null;
       }
 
