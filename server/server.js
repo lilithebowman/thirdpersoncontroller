@@ -27,6 +27,13 @@ const PLAYER_STATE_PATH = path.join(STORAGE_DIR, 'players.json');
 const PORT = process.env.PORT || 3000;
 const players = new Map();
 const rateLimits = new Map();
+const sessions = new Map();
+const allowedOrigins = new Set([
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+]);
 
 const STALE_TIMEOUT_MS = 15000;
 const PLAYER_RETENTION_MS = 1000 * 60 * 60 * 24 * 60; // 60 days
@@ -155,6 +162,11 @@ async function cleanupExpiredPlayers() {
     if (now - (data.lastUpdated ?? now) > PLAYER_RETENTION_MS) {
       players.delete(guid);
       rateLimits.delete(guid);
+      for (const [token, session] of sessions.entries()) {
+        if (session.guid === guid) {
+          sessions.delete(token);
+        }
+      }
       changed = true;
     }
   }
@@ -171,6 +183,11 @@ async function cleanupStalePlayers() {
     if (now - (data.lastUpdated ?? now) > STALE_TIMEOUT_MS) {
       players.delete(guid);
       rateLimits.delete(guid);
+      for (const [token, session] of sessions.entries()) {
+        if (session.guid === guid) {
+          sessions.delete(token);
+        }
+      }
       changed = true;
     }
   }
@@ -192,14 +209,50 @@ function checkRateLimit(guid) {
   return record.count <= RATE_LIMIT_MAX_REQUESTS;
 }
 
-function setCorsHeaders(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+function getRequestSessionToken(req) {
+  const authHeader = typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+  if (authHeader.startsWith('Bearer ')) {
+    return authHeader.slice('Bearer '.length).trim();
+  }
+
+  const sessionHeader = typeof req.headers['x-session-token'] === 'string'
+    ? req.headers['x-session-token']
+    : '';
+
+  return sessionHeader.trim() || null;
+}
+
+function getAuthorizedPlayer(req, guid) {
+  if (typeof guid !== 'string' || !guid) {
+    return null;
+  }
+
+  const sessionToken = getRequestSessionToken(req);
+  if (!sessionToken) {
+    return null;
+  }
+
+  const session = sessions.get(sessionToken);
+  if (!session || session.guid !== guid) {
+    return null;
+  }
+
+  return players.get(guid) ?? null;
+}
+
+function setCorsHeaders(req, res) {
+  const origin = typeof req.headers.origin === 'string' ? req.headers.origin.trim() : null;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Session-Token, Authorization');
+  res.setHeader('Vary', 'Origin');
 }
 
 const server = http.createServer((req, res) => {
-  setCorsHeaders(res);
+  setCorsHeaders(req, res);
 
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
@@ -212,6 +265,7 @@ const server = http.createServer((req, res) => {
 
   if (pathname === '/api/players/register' && req.method === 'POST') {
     const guid = crypto.randomUUID();
+    const sessionToken = crypto.randomUUID();
     const now = Date.now();
     players.set(guid, {
       guid,
@@ -226,12 +280,13 @@ const server = http.createServer((req, res) => {
       lastUpdated: now,
       createdAt: now,
     });
+    sessions.set(sessionToken, { guid, createdAt: now });
 
     persistPlayers().catch(() => {});
 
     res.statusCode = 201;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ success: true, guid }));
+    res.end(JSON.stringify({ success: true, guid, sessionToken }));
     return;
   }
 
@@ -265,6 +320,13 @@ const server = http.createServer((req, res) => {
           res.statusCode = 400;
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ error: 'Invalid or missing player GUID' }));
+          return;
+        }
+
+        if (!getAuthorizedPlayer(req, guid)) {
+          res.statusCode = 401;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'Unauthorized player session' }));
           return;
         }
 
@@ -383,6 +445,13 @@ const server = http.createServer((req, res) => {
           return;
         }
 
+        if (!getAuthorizedPlayer(req, guid)) {
+          res.statusCode = 401;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'Unauthorized player session' }));
+          return;
+        }
+
         if (!players.has(guid)) {
           players.set(guid, {
             guid,
@@ -430,7 +499,14 @@ const server = http.createServer((req, res) => {
 
   if (pathname === '/api/players/session' && req.method === 'GET') {
     const guid = url.searchParams.get('guid');
-    const player = guid ? players.get(guid) : null;
+    if (!guid || !getAuthorizedPlayer(req, guid)) {
+      res.statusCode = 401;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ success: false, message: 'Unauthorized player session.' }));
+      return;
+    }
+
+    const player = players.get(guid);
     if (!player) {
       res.statusCode = 404;
       res.setHeader('Content-Type', 'application/json');
@@ -459,6 +535,14 @@ const server = http.createServer((req, res) => {
   }
 
   if (pathname === '/api/players' && req.method === 'GET') {
+    const guid = url.searchParams.get('guid');
+    if (!guid || !getAuthorizedPlayer(req, guid)) {
+      res.statusCode = 401;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ success: false, message: 'Unauthorized player session.' }));
+      return;
+    }
+
     await cleanupExpiredPlayers();
     await cleanupStalePlayers();
     const now = Date.now();
