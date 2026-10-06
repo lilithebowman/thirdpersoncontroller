@@ -23,8 +23,10 @@ export class MultiplayerService {
     this.submitIntervalMs = options.submitIntervalMs ?? 100;
     this.pollIntervalMs = options.pollIntervalMs ?? 100;
     this.storageKey = options.storageKey ?? 'thirdpersoncontroller-player-guid';
+    this.sessionTokenKey = options.sessionTokenKey ?? 'thirdpersoncontroller-player-session-token';
 
     this.guid = this.readStoredGuid();
+    this.sessionToken = this.readStoredSessionToken();
     this.isRegistered = Boolean(this.guid);
     this.isRunning = false;
 
@@ -81,6 +83,31 @@ export class MultiplayerService {
     localStorage.setItem(this.storageKey, String(guid));
   }
 
+  readStoredSessionToken() {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    const storedValue = localStorage.getItem(this.sessionTokenKey);
+    return typeof storedValue === 'string' && storedValue.trim() ? storedValue.trim() : null;
+  }
+
+  persistSessionToken(sessionToken = this.sessionToken) {
+    if (typeof localStorage === 'undefined' || !sessionToken) {
+      return;
+    }
+
+    localStorage.setItem(this.sessionTokenKey, String(sessionToken));
+  }
+
+  getAuthHeaders(extraHeaders = {}) {
+    const headers = { ...extraHeaders };
+    if (this.sessionToken) {
+      headers['X-Session-Token'] = this.sessionToken;
+    }
+    return headers;
+  }
+
   async ensureGuid() {
     if (this.guid) {
       return this.guid;
@@ -104,14 +131,18 @@ export class MultiplayerService {
     try {
       const response = await fetch(`${this.apiEndpoint}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.guid) {
           this.guid = data.guid;
+          this.sessionToken = data.sessionToken || this.sessionToken;
           this.persistGuid(this.guid);
+          if (this.sessionToken) {
+            this.persistSessionToken(this.sessionToken);
+          }
           this.isRegistered = true;
           return this.guid;
         }
@@ -156,9 +187,18 @@ export class MultiplayerService {
     try {
       const response = await fetch(`${this.apiEndpoint}/transform`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
+
+      if (!response.ok && response.status === 401 && this.sessionToken) {
+        this.sessionToken = null;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(this.sessionTokenKey);
+        }
+        await this.register();
+        return false;
+      }
 
       return response.ok;
     } catch (error) {
@@ -171,8 +211,14 @@ export class MultiplayerService {
    * @returns {Promise<Array<Object>>} List of active players excluding self
    */
   async fetchPlayers() {
+    if (!this.guid) {
+      await this.ensureGuid();
+    }
+
     try {
-      const response = await fetch(this.apiEndpoint);
+      const response = await fetch(`${this.apiEndpoint}?guid=${encodeURIComponent(this.guid ?? '')}`, {
+        headers: this.getAuthHeaders(),
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.players)) {
@@ -199,7 +245,9 @@ export class MultiplayerService {
     }
 
     try {
-      const response = await fetch(`${this.apiEndpoint}/session?guid=${encodeURIComponent(this.guid)}`);
+      const response = await fetch(`${this.apiEndpoint}/session?guid=${encodeURIComponent(this.guid)}`, {
+        headers: this.getAuthHeaders(),
+      });
       if (!response.ok) {
         return null;
       }

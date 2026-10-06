@@ -21,6 +21,8 @@ export class VoiceChatService {
     this.onMutedChange = options.onMutedChange ?? (() => {});
 
     this.guid = null;
+    this.sessionTokenKey = options.sessionTokenKey ?? 'thirdpersoncontroller-player-session-token';
+    this.sessionToken = typeof localStorage !== 'undefined' ? localStorage.getItem(this.sessionTokenKey) : null;
     this.isListening = false;
     this.isMuted = false;
     this.isSpeaking = false;
@@ -47,6 +49,9 @@ export class VoiceChatService {
    */
   async init(guid) {
     this.guid = guid;
+    if (typeof localStorage !== 'undefined') {
+      this.sessionToken = localStorage.getItem(this.sessionTokenKey) ?? this.sessionToken;
+    }
     if (this.isListening) return;
 
     try {
@@ -226,12 +231,20 @@ export class VoiceChatService {
     return buffer;
   }
 
+  getAuthHeaders(extraHeaders = {}) {
+    const headers = { ...extraHeaders };
+    if (this.sessionToken) {
+      headers['X-Session-Token'] = this.sessionToken;
+    }
+    return headers;
+  }
+
   async sendVoiceChunk(audioBase64) {
     if (!this.guid || this.isMuted) return;
     try {
       await fetch(`${this.apiEndpoint}/voice`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ guid: this.guid, audioBase64 }),
       });
     } catch (error) {

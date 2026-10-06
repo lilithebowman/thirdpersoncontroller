@@ -3,7 +3,33 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { multiplayerPlugin } from './server/multiplayerPlugin.js';
 
-function assetMetaPlugin() {
+export function resolvePublicAssetPath(assetPath) {
+  if (typeof assetPath !== 'string') {
+    return null;
+  }
+
+  const trimmed = assetPath.trim();
+  if (!trimmed || trimmed.includes('\0')) {
+    return null;
+  }
+
+  const normalized = trimmed.replace(/\\/g, '/');
+  if (normalized.startsWith('/') || /^[a-zA-Z]:\//.test(normalized) || normalized.split('/').includes('..')) {
+    return null;
+  }
+
+  const publicRoot = path.resolve(process.cwd(), 'public');
+  const candidate = path.resolve(publicRoot, normalized.replace(/^\.\//, ''));
+  const relative = path.relative(publicRoot, candidate);
+
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+    return null;
+  }
+
+  return candidate;
+}
+
+export function assetMetaPlugin() {
   return {
     name: 'asset-meta-service',
     configureServer(server) {
@@ -19,7 +45,14 @@ function assetMetaPlugin() {
             return;
           }
 
-          const assetFullPath = path.resolve(process.cwd(), 'public', assetPathQuery);
+          const assetFullPath = resolvePublicAssetPath(assetPathQuery);
+          if (!assetFullPath) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid asset path' }));
+            return;
+          }
+
           const metaFullPath = assetFullPath + '.meta.json';
 
           const existsAsset = fs.existsSync(assetFullPath);
@@ -70,7 +103,14 @@ function assetMetaPlugin() {
                 return;
               }
 
-              const assetFullPath = path.resolve(process.cwd(), 'public', assetPath);
+              const assetFullPath = resolvePublicAssetPath(assetPath);
+              if (!assetFullPath) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid asset path' }));
+                return;
+              }
+
               const metaFullPath = assetFullPath + '.meta.json';
 
               let assetMtimeMs = Date.now();
