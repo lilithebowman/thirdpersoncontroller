@@ -97,3 +97,35 @@ test('server rejects transform requests without a valid session token', async ()
     assert.equal(authorizedTransform.status, 200);
   });
 });
+
+test('server rejects unauthorized session fetches and untrusted origins', async () => {
+  await withTestServer(async (port) => {
+    const registerResponse = await fetch(`http://127.0.0.1:${port}/api/players/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    assert.equal(registerResponse.status, 201);
+    const registration = await registerResponse.json();
+    assert.ok(registration.guid);
+    assert.ok(registration.sessionToken);
+
+    const unauthorizedSession = await fetch(`http://127.0.0.1:${port}/api/players/session?guid=${encodeURIComponent(registration.guid)}`, {
+      headers: { 'X-Session-Token': 'bad-token' },
+    });
+
+    assert.equal(unauthorizedSession.status, 401);
+
+    const authorizedSession = await fetch(`http://127.0.0.1:${port}/api/players/session?guid=${encodeURIComponent(registration.guid)}`, {
+      headers: { 'X-Session-Token': registration.sessionToken },
+    });
+
+    assert.equal(authorizedSession.status, 200);
+
+    const corsResponse = await fetch(`http://127.0.0.1:${port}/api/players/session?guid=${encodeURIComponent(registration.guid)}`, {
+      headers: { Origin: 'https://evil.example', 'X-Session-Token': registration.sessionToken },
+    });
+
+    assert.equal(corsResponse.headers.get('access-control-allow-origin'), null);
+  });
+});

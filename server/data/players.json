@@ -1,7 +1,7 @@
 {
   "players": [
     {
-      "guid": "71c1c901-01e9-4c27-ae62-15924710cbe5",
+      "guid": "3c66a4eb-5391-4bb5-8ddb-20a4df2c8282",
       "position": {
         "x": 10,
         "y": 0,
@@ -22,8 +22,33 @@
       "animationState": "idle",
       "isSpeaking": false,
       "model": null,
-      "lastUpdated": 1791248192076,
-      "createdAt": 1791248192041
+      "lastUpdated": 1791248557843,
+      "createdAt": 1791248557823
+    },
+    {
+      "guid": "151c9882-df9e-4ee6-b97c-5e310dd8ed6c",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "yaw": 0,
+      "direction": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      },
+      "animationState": "idle",
+      "isSpeaking": false,
+      "model": null,
+      "lastUpdated": 1791248557852,
+      "createdAt": 1791248557852
     }
   ]
 }
