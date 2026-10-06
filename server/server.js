@@ -251,7 +251,7 @@ function setCorsHeaders(req, res) {
   res.setHeader('Vary', 'Origin');
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   setCorsHeaders(req, res);
 
   if (req.method === 'OPTIONS') {
@@ -573,10 +573,10 @@ if (process.argv[1] === import.meta.url || process.argv[1]?.endsWith('server.js'
   server.listen(PORT, () => {
     console.log(`Multiplayer sync backend server running on port ${PORT}`);
   });
-}
 
-setInterval(() => {
-  cleanupExpiredPlayers().catch(() => {});
-}, 60 * 60 * 1000);
+  setInterval(() => {
+    cleanupExpiredPlayers().catch(() => {});
+  }, 60 * 60 * 1000);
+}
 
 export { server, players, cleanupExpiredPlayers, cleanupStalePlayers };

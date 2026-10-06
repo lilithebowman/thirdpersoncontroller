@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { multiplayerPlugin } from './server/multiplayerPlugin.js';
 
-function resolvePublicAssetPath(assetPath) {
+export function resolvePublicAssetPath(assetPath) {
   if (typeof assetPath !== 'string') {
     return null;
   }
@@ -29,7 +29,7 @@ function resolvePublicAssetPath(assetPath) {
   return candidate;
 }
 
-function assetMetaPlugin() {
+export function assetMetaPlugin() {
   return {
     name: 'asset-meta-service',
     configureServer(server) {

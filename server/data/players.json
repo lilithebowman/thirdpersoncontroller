@@ -1,0 +1,29 @@
+{
+  "players": [
+    {
+      "guid": "71c1c901-01e9-4c27-ae62-15924710cbe5",
+      "position": {
+        "x": 10,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "yaw": 0,
+      "direction": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "animationState": "idle",
+      "isSpeaking": false,
+      "model": null,
+      "lastUpdated": 1791248192076,
+      "createdAt": 1791248192041
+    }
+  ]
+}
