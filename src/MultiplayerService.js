@@ -29,6 +29,7 @@ export class MultiplayerService {
     this.sessionToken = this.readStoredSessionToken();
     this.isRegistered = Boolean(this.guid);
     this.isRunning = false;
+    this._registerPromise = null;
 
     this.latestLocalTransform = {
       position: { x: 0, y: 0, z: 0 },
@@ -112,6 +113,9 @@ export class MultiplayerService {
     if (this.guid && this.sessionToken) {
       return this.guid;
     }
+    if (this._registerPromise) {
+      return this._registerPromise;
+    }
 
     const storedGuid = this.readStoredGuid();
     if (storedGuid) {
@@ -130,41 +134,53 @@ export class MultiplayerService {
    * @returns {Promise<string>} The assigned player GUID
    */
   async register() {
-    try {
-      const response = await fetch(`${this.apiEndpoint}/register`, {
-        method: 'POST',
-        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
-      });
+    if (this._registerPromise) {
+      return this._registerPromise;
+    }
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.guid) {
-          this.guid = data.guid;
-          this.sessionToken = data.sessionToken || this.sessionToken;
-          this.persistGuid(this.guid);
-          if (this.sessionToken) {
-            this.persistSessionToken(this.sessionToken);
+    this._registerPromise = (async () => {
+      try {
+        const response = await fetch(`${this.apiEndpoint}/register`, {
+          method: 'POST',
+          headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.guid) {
+            this.guid = data.guid;
+            this.sessionToken = data.sessionToken || this.sessionToken;
+            this.persistGuid(this.guid);
+            if (this.sessionToken) {
+              this.persistSessionToken(this.sessionToken);
+            }
+            this.isRegistered = true;
+            return this.guid;
           }
-          this.isRegistered = true;
-          return this.guid;
         }
+      } catch (error) {
+        // Fallback for offline or static mode: generate client-side pseudo-GUID
       }
-    } catch (error) {
-      // Fallback for offline or static mode: generate client-side pseudo-GUID
-    }
 
-    if (!this.guid) {
-      this.guid = 'client-fallback-' + Math.random().toString(36).substring(2, 11);
-      this.persistGuid(this.guid);
-      this.isRegistered = true;
-    }
+      if (!this.guid) {
+        this.guid = 'client-fallback-' + Math.random().toString(36).substring(2, 11);
+        this.persistGuid(this.guid);
+        this.isRegistered = true;
+      }
 
-    if (!this.sessionToken) {
-      this.sessionToken = 'client-fallback-session-' + Math.random().toString(36).substring(2, 11);
-      this.persistSessionToken(this.sessionToken);
-    }
+      if (!this.sessionToken) {
+        this.sessionToken = 'client-fallback-session-' + Math.random().toString(36).substring(2, 11);
+        this.persistSessionToken(this.sessionToken);
+      }
 
-    return this.guid;
+      return this.guid;
+    })();
+
+    try {
+      return await this._registerPromise;
+    } finally {
+      this._registerPromise = null;
+    }
   }
 
   /**

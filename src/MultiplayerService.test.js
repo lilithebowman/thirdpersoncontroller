@@ -46,3 +46,44 @@ test('MultiplayerService starts and stops loops correctly', () => {
   assert.strictEqual(service._submitTimer, null);
   assert.strictEqual(service._pollTimer, null);
 });
+
+test('MultiplayerService deduplicates concurrent registrations', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalStorage = globalThis.localStorage;
+  const storage = new Map();
+  globalThis.localStorage = {
+    getItem: (key) => (storage.has(key) ? storage.get(key) : null),
+    setItem: (key, value) => storage.set(key, String(value)),
+    removeItem: (key) => storage.delete(key),
+  };
+
+  let requestCount = 0;
+  globalThis.fetch = async () => {
+    requestCount += 1;
+    return {
+      ok: true,
+      status: 201,
+      json: async () => ({ success: true, guid: `guid-${requestCount}`, sessionToken: `token-${requestCount}` }),
+    };
+  };
+
+  try {
+    const service = new MultiplayerService();
+    const [firstResult, secondResult] = await Promise.all([
+      service.ensureGuid(),
+      service.ensureGuid(),
+    ]);
+
+    assert.strictEqual(requestCount, 1);
+    assert.strictEqual(firstResult, secondResult);
+    assert.strictEqual(service.guid, 'guid-1');
+    assert.strictEqual(service.sessionToken, 'token-1');
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalStorage === undefined) {
+      delete globalThis.localStorage;
+    } else {
+      globalThis.localStorage = originalStorage;
+    }
+  }
+});
