@@ -22,7 +22,7 @@ export class VoiceChatService {
 
     this.guid = null;
     this.sessionTokenKey = options.sessionTokenKey ?? 'thirdpersoncontroller-player-session-token';
-    this.sessionToken = typeof localStorage !== 'undefined' ? localStorage.getItem(this.sessionTokenKey) : null;
+    this.sessionToken = this.readStoredSessionToken();
     this.isListening = false;
     this.isMuted = false;
     this.isSpeaking = false;
@@ -47,11 +47,31 @@ export class VoiceChatService {
    * Initializes microphone access and starts monitoring/recording.
    * @param {string} guid - Player GUID
    */
+  readStoredSessionToken() {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    const storedValue = localStorage.getItem(this.sessionTokenKey);
+    return typeof storedValue === 'string' && storedValue.trim() ? storedValue.trim() : null;
+  }
+
+  syncSessionToken() {
+    const nextToken = this.readStoredSessionToken();
+    if (nextToken) {
+      this.sessionToken = nextToken;
+      return this.sessionToken;
+    }
+
+    if (this.sessionToken) {
+      this.sessionToken = null;
+    }
+    return null;
+  }
+
   async init(guid) {
     this.guid = guid;
-    if (typeof localStorage !== 'undefined') {
-      this.sessionToken = localStorage.getItem(this.sessionTokenKey) ?? this.sessionToken;
-    }
+    this.syncSessionToken();
     if (this.isListening) return;
 
     try {
@@ -233,6 +253,7 @@ export class VoiceChatService {
 
   getAuthHeaders(extraHeaders = {}) {
     const headers = { ...extraHeaders };
+    this.syncSessionToken();
     if (this.sessionToken) {
       headers['X-Session-Token'] = this.sessionToken;
     }
@@ -240,13 +261,21 @@ export class VoiceChatService {
   }
 
   async sendVoiceChunk(audioBase64) {
-    if (!this.guid || this.isMuted) return;
+    this.syncSessionToken();
+    if (!this.guid || this.isMuted || !this.sessionToken) return;
     try {
-      await fetch(`${this.apiEndpoint}/voice`, {
+      const response = await fetch(`${this.apiEndpoint}/voice`, {
         method: 'POST',
         headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ guid: this.guid, audioBase64 }),
       });
+
+      if (!response.ok && response.status === 401) {
+        this.sessionToken = null;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(this.sessionTokenKey);
+        }
+      }
     } catch (error) {
       // Network error ignored
     }

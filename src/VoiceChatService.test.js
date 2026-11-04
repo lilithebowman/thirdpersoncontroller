@@ -81,3 +81,38 @@ test('VoiceChatService stops correctly', () => {
   assert.strictEqual(service.isSpeaking, false);
   assert.strictEqual(service.isMuted, false);
 });
+
+test('VoiceChatService refreshes the session token before sending voice data', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalStorage = globalThis.localStorage;
+  const storage = new Map();
+  globalThis.localStorage = {
+    getItem: (key) => (storage.has(key) ? storage.get(key) : null),
+    setItem: (key, value) => storage.set(key, String(value)),
+    removeItem: (key) => storage.delete(key),
+  };
+
+  storage.set('thirdpersoncontroller-player-session-token', 'fresh-token');
+  const service = new VoiceChatService({ apiEndpoint: '/api/players' });
+  service.guid = 'player-123';
+  service.sessionToken = 'stale-token';
+
+  let capturedHeaders = null;
+  globalThis.fetch = async (url, init = {}) => {
+    capturedHeaders = init.headers;
+    return { ok: true, status: 200 };
+  };
+
+  try {
+    await service.sendVoiceChunk('data:audio/wav;base64,AAAA');
+    assert.strictEqual(capturedHeaders['X-Session-Token'], 'fresh-token');
+    assert.strictEqual(service.sessionToken, 'fresh-token');
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalStorage === undefined) {
+      delete globalThis.localStorage;
+    } else {
+      globalThis.localStorage = originalStorage;
+    }
+  }
+});
